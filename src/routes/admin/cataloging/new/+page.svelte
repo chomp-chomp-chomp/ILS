@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import SubjectHeadingInput from '$lib/components/SubjectHeadingInput.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -190,28 +191,23 @@
 
 		<section class="form-section">
 			<h2>Subject Headings (MARC 650)</h2>
+			<p class="section-note">
+				<strong>Note:</strong> Start typing to see validated Library of Congress Subject Headings.
+				Use authorized headings for better discoverability.
+			</p>
 
 			{#each subjects as subject, index}
 				<div class="form-row">
 					<div class="form-group" style="flex: 1;">
 						<label for="subject-{index}">Subject {index + 1}</label>
-						<input
-							id="subject-{index}"
-							type="text"
+						<SubjectHeadingInput
 							bind:value={subjects[index]}
-							placeholder="Subject heading"
+							{index}
+							onchange={(val) => (subjects[index] = val)}
+							onremove={subjects.length > 1 ? () => removeSubject(index) : undefined}
+							showRemove={subjects.length > 1}
 						/>
 					</div>
-					{#if subjects.length > 1}
-						<button
-							type="button"
-							class="btn-remove"
-							onclick={() => removeSubject(index)}
-							style="align-self: flex-end;"
-						>
-							Remove
-						</button>
-					{/if}
 				</div>
 			{/each}
 
@@ -280,6 +276,19 @@
 		font-size: 1.25rem;
 		margin: 0 0 1rem 0;
 		color: #2c3e50;
+	}
+
+	.section-note {
+		background: #f0f9ff;
+		border-left: 3px solid #e73b42;
+		padding: 0.75rem 1rem;
+		margin-bottom: 1rem;
+		font-size: 0.875rem;
+		color: #666;
+	}
+
+	.section-note strong {
+		color: #e73b42;
 	}
 
 	.form-row {
