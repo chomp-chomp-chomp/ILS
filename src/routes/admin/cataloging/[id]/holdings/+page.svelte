@@ -8,6 +8,7 @@
 
 	// New holding form
 	let showForm = $state(false);
+	let editingId = $state<string | null>(null);
 	let callNumber = $state('');
 	let location = $state('Main Library');
 	let sublocation = $state('');
@@ -22,12 +23,53 @@
 	let saving = $state(false);
 	let message = $state('');
 
-	async function addHolding() {
+	function generateBarcode() {
+		// Generate a simple barcode: timestamp + random 4 digits
+		const timestamp = Date.now().toString().slice(-8);
+		const random = Math.floor(1000 + Math.random() * 9000);
+		barcode = `${timestamp}${random}`;
+	}
+
+	function editHolding(holding: any) {
+		editingId = holding.id;
+		showForm = true;
+		callNumber = holding.call_number || '';
+		location = holding.location || 'Main Library';
+		sublocation = holding.sublocation || '';
+		barcode = holding.barcode || '';
+		copyNumber = holding.copy_number || 1;
+		volume = holding.volume || '';
+		status = holding.status || 'available';
+		isElectronic = holding.is_electronic || false;
+		url = holding.url || '';
+		accessRestrictions = holding.access_restrictions || '';
+	}
+
+	function cancelEdit() {
+		editingId = null;
+		showForm = false;
+		resetForm();
+	}
+
+	function resetForm() {
+		callNumber = '';
+		location = 'Main Library';
+		sublocation = '';
+		barcode = '';
+		copyNumber = 1;
+		volume = '';
+		status = 'available';
+		isElectronic = false;
+		url = '';
+		accessRestrictions = '';
+	}
+
+	async function saveHolding() {
 		saving = true;
 		message = '';
 
 		try {
-			const newHolding = {
+			const holdingData = {
 				marc_record_id: record.id,
 				call_number: callNumber || null,
 				location: location || 'Main Library',
@@ -41,31 +83,41 @@
 				access_restrictions: accessRestrictions || null,
 			};
 
-			const { data: inserted, error: insertError } = await data.supabase
-				.from('holdings')
-				.insert([newHolding])
-				.select();
+			if (editingId) {
+				// Update existing holding
+				const { error: updateError } = await data.supabase
+					.from('holdings')
+					.update(holdingData)
+					.eq('id', editingId);
 
-			if (insertError) throw insertError;
+				if (updateError) throw updateError;
 
-			if (inserted && inserted[0]) {
-				holdings = [inserted[0], ...holdings];
+				holdings = holdings.map((h) =>
+					h.id === editingId ? { ...h, ...holdingData } : h
+				);
+
+				message = 'Holding updated successfully!';
+			} else {
+				// Add new holding
+				const { data: inserted, error: insertError } = await data.supabase
+					.from('holdings')
+					.insert([holdingData])
+					.select();
+
+				if (insertError) throw insertError;
+
+				if (inserted && inserted[0]) {
+					holdings = [inserted[0], ...holdings];
+				}
+
+				message = 'Holding added successfully!';
 			}
 
 			// Reset form
 			showForm = false;
-			callNumber = '';
-			location = 'Main Library';
-			sublocation = '';
-			barcode = '';
-			copyNumber = 1;
-			volume = '';
-			status = 'available';
-			isElectronic = false;
-			url = '';
-			accessRestrictions = '';
+			editingId = null;
+			resetForm();
 
-			message = 'Holding added successfully!';
 			setTimeout(() => (message = ''), 3000);
 		} catch (err) {
 			message = `Error: ${err.message}`;
@@ -130,16 +182,16 @@
 	{/if}
 
 	<div class="actions-bar">
-		<button class="btn-primary" onclick={() => (showForm = !showForm)}>
+		<button class="btn-primary" onclick={() => { if (!showForm) { resetForm(); editingId = null; } showForm = !showForm; }}>
 			{showForm ? 'Cancel' : '+ Add Holding'}
 		</button>
 	</div>
 
 	{#if showForm}
 		<div class="add-form">
-			<h3>Add New Holding</h3>
+			<h3>{editingId ? 'Edit Holding' : 'Add New Holding'}</h3>
 
-			<form onsubmit={(e) => { e.preventDefault(); addHolding(); }}>
+			<form onsubmit={(e) => { e.preventDefault(); saveHolding(); }}>
 				<div class="form-row">
 					<div class="form-group">
 						<label for="callNumber">Call Number</label>
@@ -152,8 +204,13 @@
 					</div>
 
 					<div class="form-group">
-						<label for="barcode">Barcode</label>
-						<input id="barcode" type="text" bind:value={barcode} placeholder="Barcode" />
+						<label for="barcode">Barcode / Item ID</label>
+						<div class="barcode-input">
+							<input id="barcode" type="text" bind:value={barcode} placeholder="Auto-generate or enter manually" />
+							<button type="button" onclick={generateBarcode} class="btn-generate">
+								Generate
+							</button>
+						</div>
 					</div>
 
 					<div class="form-group">
@@ -297,6 +354,10 @@
 							<option value="on_order">On Order</option>
 							<option value="in_processing">In Processing</option>
 						</select>
+
+						<button class="btn-edit-small" onclick={() => editHolding(holding)}>
+							Edit
+						</button>
 
 						<button class="btn-delete-small" onclick={() => deleteHolding(holding.id)}>
 							Delete
@@ -518,9 +579,47 @@
 		font-size: 0.875rem;
 	}
 
+	.barcode-input {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.barcode-input input {
+		flex: 1;
+	}
+
+	.btn-generate {
+		padding: 0.75rem 1rem;
+		background: var(--info);
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.875rem;
+		white-space: nowrap;
+	}
+
+	.btn-generate:hover {
+		background: var(--info-hover);
+	}
+
+	.btn-edit-small {
+		padding: 0.5rem 1rem;
+		background: var(--info);
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.875rem;
+	}
+
+	.btn-edit-small:hover {
+		background: var(--info-hover);
+	}
+
 	.btn-delete-small {
 		padding: 0.5rem 1rem;
-		background: #f44336;
+		background: var(--danger);
 		color: white;
 		border: none;
 		border-radius: 4px;
@@ -529,6 +628,6 @@
 	}
 
 	.btn-delete-small:hover {
-		background: #d32f2f;
+		background: var(--danger-hover);
 	}
 </style>
