@@ -26,19 +26,23 @@
 		loading = true;
 
 		try {
-			// Use Library of Congress Suggest API
+			// Use our API endpoint to avoid CORS issues
 			const response = await fetch(
-				`https://id.loc.gov/authorities/subjects/suggest2/?q=${encodeURIComponent(query)}`
+				`/api/subject-headings?q=${encodeURIComponent(query)}`
 			);
 
-			if (!response.ok) throw new Error('Failed to fetch suggestions');
+			if (!response.ok) {
+				console.error('API error:', response.status, response.statusText);
+				throw new Error('Failed to fetch suggestions');
+			}
 
 			const data = await response.json();
+			console.log('Received subject headings:', data);
 
-			// The response format is [query, [labels], [uris], [extras]]
-			if (data && data[1] && Array.isArray(data[1])) {
-				suggestions = data[1].slice(0, 10); // Limit to 10 suggestions
-				showSuggestions = suggestions.length > 0;
+			// The response is now just an array of suggestions
+			if (Array.isArray(data) && data.length > 0) {
+				suggestions = data;
+				showSuggestions = true;
 			} else {
 				suggestions = [];
 				showSuggestions = false;
