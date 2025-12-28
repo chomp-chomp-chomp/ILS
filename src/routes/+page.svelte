@@ -44,59 +44,75 @@
 <style>
 	.catalog-home {
 		min-height: 100vh;
-		background: linear-gradient(135deg, var(--accent) 0%, #c62d34 100%);
-		color: white;
-		padding: 2rem;
+		background: var(--bg-primary);
+		padding: 0;
 	}
 
 	.header-top {
-		max-width: 800px;
-		margin: 0 auto 2rem;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 1rem 2rem;
 		text-align: right;
+		background: white;
+		border-bottom: 1px solid var(--border);
 	}
 
 	.admin-link {
-		color: rgba(255, 255, 255, 0.8);
+		color: var(--accent);
 		font-size: 0.875rem;
 		text-decoration: none;
 		padding: 0.5rem 1rem;
-		border: 1px solid rgba(255, 255, 255, 0.3);
+		border: 1px solid var(--accent);
 		border-radius: var(--radius-sm);
 		transition: all 0.2s;
 	}
 
 	.admin-link:hover {
-		background: rgba(255, 255, 255, 0.1);
+		background: var(--accent);
 		color: white;
 	}
 
 	.hero {
-		max-width: 800px;
+		max-width: 1200px;
 		margin: 0 auto;
 		text-align: center;
-		padding: 4rem 0;
+		padding: 6rem 2rem 4rem;
+		background: white;
+		border-left: 1px solid var(--border);
+		border-right: 1px solid var(--border);
+		min-height: calc(100vh - 60px);
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 	}
 
 	h1 {
 		font-size: 3.5rem;
 		margin: 0 0 1rem 0;
 		font-weight: 700;
+		color: var(--text-primary);
 	}
 
 	.hero > p {
 		font-size: 1.5rem;
 		margin-bottom: 3rem;
-		opacity: 0.9;
+		color: var(--text-muted);
 	}
 
 	.search-box {
 		display: flex;
 		max-width: 600px;
-		margin: 0 auto 1rem;
+		margin: 0 auto 1.5rem;
 		background: white;
 		border-radius: var(--radius-md);
 		overflow: hidden;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		border: 2px solid var(--border);
+	}
+
+	.search-box:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 4px 12px rgba(231, 59, 66, 0.15);
 	}
 
 	.search-box input {
@@ -105,6 +121,7 @@
 		border: none;
 		font-size: 1.125rem;
 		color: var(--text-primary);
+		background: transparent;
 	}
 
 	.search-box input:focus {
@@ -131,21 +148,26 @@
 		gap: 1rem;
 		justify-content: center;
 		font-size: 1rem;
+		padding: 1rem;
+		background: var(--bg-secondary);
+		border-radius: var(--radius-md);
+		max-width: 600px;
+		margin: 0 auto;
 	}
 
 	.search-links a {
-		color: white;
+		color: var(--accent);
 		text-decoration: none;
-		opacity: 0.9;
+		font-weight: 500;
 	}
 
 	.search-links a:hover {
-		opacity: 1;
 		text-decoration: underline;
 	}
 
 	.search-links span {
-		opacity: 0.5;
+		opacity: 0.3;
+		color: var(--text-muted);
 	}
 
 	@media (max-width: 768px) {
@@ -155,6 +177,12 @@
 
 		.hero > p {
 			font-size: 1.25rem;
+		}
+
+		.hero {
+			border-left: none;
+			border-right: none;
+			padding: 4rem 1rem 2rem;
 		}
 	}
 </style>
