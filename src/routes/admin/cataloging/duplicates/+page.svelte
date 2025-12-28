@@ -121,21 +121,42 @@
 
 		try {
 			const idsToDelete = Array.from(selectedForDeletion);
+			console.log('Deleting records:', idsToDelete);
 
-			const { error: deleteError } = await data.supabase
-				.from('marc_records')
-				.delete()
-				.in('id', idsToDelete);
+			// Delete records one at a time to avoid RLS issues
+			let deletedCount = 0;
+			let failedCount = 0;
+			const errors: string[] = [];
 
-			if (deleteError) throw deleteError;
+			for (const id of idsToDelete) {
+				const { error: deleteError } = await data.supabase
+					.from('marc_records')
+					.delete()
+					.eq('id', id);
+
+				if (deleteError) {
+					console.error('Delete error for record', id, deleteError);
+					errors.push(`${id}: ${deleteError.message}`);
+					failedCount++;
+				} else {
+					deletedCount++;
+				}
+			}
 
 			// Reload duplicates
 			selectedForDeletion.clear();
 			selectedForDeletion = selectedForDeletion;
 			await loadDuplicates();
 
-			alert(`Successfully deleted ${idsToDelete.length} record(s)`);
+			if (failedCount > 0) {
+				alert(
+					`Deleted ${deletedCount} record(s). Failed to delete ${failedCount} record(s).\n\nErrors:\n${errors.join('\n')}`
+				);
+			} else {
+				alert(`Successfully deleted ${deletedCount} record(s)`);
+			}
 		} catch (err: any) {
+			console.error('Delete error:', err);
 			alert(`Error deleting records: ${err.message}`);
 		} finally {
 			processing = false;
