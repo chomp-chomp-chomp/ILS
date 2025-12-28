@@ -105,21 +105,23 @@
 		padding: 1.5rem;
 		border-radius: 8px;
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		border-left: 4px solid #e73b42;
 	}
 
 	.stat-card h3 {
 		margin: 0 0 1rem 0;
 		font-size: 0.875rem;
 		text-transform: uppercase;
-		color: #666;
-		font-weight: 500;
+		color: #888;
+		font-weight: 600;
+		letter-spacing: 0.05em;
 	}
 
 	.stat-number {
 		margin: 0;
 		font-size: 2.5rem;
 		font-weight: 700;
-		color: #2c3e50;
+		color: #e73b42;
 	}
 
 	.stat-label {
@@ -151,8 +153,8 @@
 	}
 
 	.action-card:hover {
-		border-color: #667eea;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		border-color: #e73b42;
+		box-shadow: 0 4px 12px rgba(231, 59, 66, 0.2);
 		transform: translateY(-2px);
 	}
 
@@ -171,5 +173,38 @@
 		margin: 0;
 		color: #666;
 		font-size: 0.875rem;
+	}
+
+	@media (max-width: 768px) {
+		h1 {
+			font-size: 2rem;
+		}
+
+		.stats {
+			grid-template-columns: 1fr;
+		}
+
+		.actions-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.stat-card,
+		.action-card {
+			padding: 1.25rem;
+		}
+
+		.stat-number {
+			font-size: 2rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.dashboard {
+			max-width: 100%;
+		}
+
+		.icon {
+			font-size: 2rem;
+		}
 	}
 </style>

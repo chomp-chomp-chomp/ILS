@@ -2,25 +2,30 @@
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
+	let mobileMenuOpen = $state(false);
 </script>
 
 {#if data.session}
 	<div class="admin-layout">
-		<nav class="sidebar">
+		<button class="mobile-menu-toggle" onclick={() => mobileMenuOpen = !mobileMenuOpen}>
+			<span class="hamburger"></span>
+		</button>
+
+		<nav class="sidebar" class:mobile-open={mobileMenuOpen}>
 			<div class="logo">
 				<h2>Library Admin</h2>
 			</div>
 			<ul class="nav-links">
-				<li><a href="/admin">Dashboard</a></li>
-				<li><a href="/admin/cataloging">Cataloging</a></li>
-				<li><a href="/admin/cataloging/new">New MARC Record</a></li>
-				<li><a href="/admin/cataloging/isbn-lookup">ISBN Lookup</a></li>
-				<li><a href="/admin/cataloging/bulk-isbn">Bulk ISBN Upload</a></li>
-				<li><a href="/admin/cataloging/upload">MARC File Upload</a></li>
-				<li><a href="/admin/serials">Serials Management</a></li>
-				<li><a href="/admin/holdings">Holdings</a></li>
-				<li><a href="/admin/acquisitions">Acquisitions</a></li>
-				<li><a href="/catalog">View Public Catalog</a></li>
+				<li><a href="/admin" onclick={() => mobileMenuOpen = false}>Dashboard</a></li>
+				<li><a href="/admin/cataloging" onclick={() => mobileMenuOpen = false}>Cataloging</a></li>
+				<li><a href="/admin/cataloging/new" onclick={() => mobileMenuOpen = false}>New MARC Record</a></li>
+				<li><a href="/admin/cataloging/isbn-lookup" onclick={() => mobileMenuOpen = false}>ISBN Lookup</a></li>
+				<li><a href="/admin/cataloging/bulk-isbn" onclick={() => mobileMenuOpen = false}>Bulk ISBN Upload</a></li>
+				<li><a href="/admin/cataloging/upload" onclick={() => mobileMenuOpen = false}>MARC File Upload</a></li>
+				<li><a href="/admin/serials" onclick={() => mobileMenuOpen = false}>Serials Management</a></li>
+				<li><a href="/admin/holdings" onclick={() => mobileMenuOpen = false}>Holdings</a></li>
+				<li><a href="/admin/acquisitions" onclick={() => mobileMenuOpen = false}>Acquisitions</a></li>
+				<li><a href="/catalog" onclick={() => mobileMenuOpen = false}>View Public Catalog</a></li>
 			</ul>
 			<div class="user-info">
 				<p>{data.session.user.email}</p>
@@ -42,19 +47,65 @@
 		display: grid;
 		grid-template-columns: 250px 1fr;
 		min-height: 100vh;
+		position: relative;
+	}
+
+	.mobile-menu-toggle {
+		display: none;
+		position: fixed;
+		top: 1rem;
+		left: 1rem;
+		z-index: 1001;
+		background: #e73b42;
+		border: none;
+		width: 50px;
+		height: 50px;
+		border-radius: 8px;
+		cursor: pointer;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	.hamburger {
+		display: block;
+		position: relative;
+		width: 24px;
+		height: 2px;
+		background: white;
+		margin: 0 auto;
+	}
+
+	.hamburger::before,
+	.hamburger::after {
+		content: '';
+		position: absolute;
+		width: 24px;
+		height: 2px;
+		background: white;
+		left: 0;
+	}
+
+	.hamburger::before {
+		top: -8px;
+	}
+
+	.hamburger::after {
+		top: 8px;
 	}
 
 	.sidebar {
-		background: #2c3e50;
+		background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%);
 		color: white;
 		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
+		border-right: 1px solid rgba(231, 59, 66, 0.2);
 	}
 
 	.logo h2 {
 		margin: 0 0 2rem 0;
 		font-size: 1.5rem;
+		color: #e73b42;
+		font-weight: 700;
 	}
 
 	.nav-links {
@@ -69,20 +120,24 @@
 	}
 
 	.nav-links a {
-		color: white;
+		color: #b0b0b0;
 		text-decoration: none;
 		padding: 0.75rem 1rem;
 		display: block;
-		border-radius: 4px;
-		transition: background 0.2s;
+		border-radius: 6px;
+		transition: all 0.2s;
+		font-size: 0.9rem;
 	}
 
 	.nav-links a:hover {
-		background: rgba(255, 255, 255, 0.1);
+		background: rgba(231, 59, 66, 0.1);
+		color: #e73b42;
+		border-left: 3px solid #e73b42;
+		padding-left: calc(1rem - 3px);
 	}
 
 	.user-info {
-		border-top: 1px solid rgba(255, 255, 255, 0.2);
+		border-top: 1px solid rgba(231, 59, 66, 0.2);
 		padding-top: 1rem;
 		margin-top: 1rem;
 	}
@@ -90,25 +145,67 @@
 	.user-info p {
 		margin: 0 0 0.5rem 0;
 		font-size: 0.875rem;
-		opacity: 0.8;
+		color: #888;
 	}
 
 	.user-info button {
-		background: rgba(255, 255, 255, 0.1);
-		color: white;
-		border: 1px solid rgba(255, 255, 255, 0.3);
+		background: rgba(231, 59, 66, 0.1);
+		color: #e73b42;
+		border: 1px solid rgba(231, 59, 66, 0.3);
 		padding: 0.5rem 1rem;
-		border-radius: 4px;
+		border-radius: 6px;
 		cursor: pointer;
 		width: 100%;
+		font-weight: 500;
+		transition: all 0.2s;
 	}
 
 	.user-info button:hover {
-		background: rgba(255, 255, 255, 0.2);
+		background: #e73b42;
+		color: white;
+		border-color: #e73b42;
 	}
 
 	.content {
 		padding: 2rem;
 		background: #f5f5f5;
+		overflow-x: auto;
+	}
+
+	/* Mobile Styles */
+	@media (max-width: 768px) {
+		.admin-layout {
+			grid-template-columns: 1fr;
+		}
+
+		.mobile-menu-toggle {
+			display: block;
+		}
+
+		.sidebar {
+			position: fixed;
+			top: 0;
+			left: -280px;
+			width: 280px;
+			height: 100vh;
+			z-index: 1000;
+			transition: left 0.3s ease;
+			overflow-y: auto;
+			box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+		}
+
+		.sidebar.mobile-open {
+			left: 0;
+		}
+
+		.content {
+			padding: 5rem 1rem 1rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.content {
+			padding: 5rem 0.5rem 0.5rem;
+		}
 	}
 </style>
