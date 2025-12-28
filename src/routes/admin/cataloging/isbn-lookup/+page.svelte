@@ -8,42 +8,105 @@
 	let searching = $state(false);
 	let results = $state<any>(null);
 	let error = $state('');
-	let source = $state<'openlibrary' | 'loc'>('openlibrary');
+	let searchLog = $state<string[]>([]);
+
+	async function parseLocMarc(marcxml: string) {
+		// Parse MARCXML from Library of Congress
+		const parser = new DOMParser();
+		const xmlDoc = parser.parseFromString(marcxml, 'text/xml');
+
+		const getDatafield = (tag: string, subfield: string) => {
+			const field = xmlDoc.querySelector(`datafield[tag="${tag}"] subfield[code="${subfield}"]`);
+			return field?.textContent || '';
+		};
+
+		const getAllDatafields = (tag: string, subfield: string) => {
+			const fields = xmlDoc.querySelectorAll(`datafield[tag="${tag}"] subfield[code="${subfield}"]`);
+			return Array.from(fields).map(f => f.textContent || '').filter(t => t);
+		};
+
+		return {
+			title: getDatafield('245', 'a').replace(/\s*\/\s*$/, '').replace(/\s*:\s*$/, ''),
+			subtitle: getDatafield('245', 'b').replace(/\s*\/\s*$/, ''),
+			authors: [getDatafield('100', 'a') || getDatafield('110', 'a')].filter(a => a),
+			publishers: [getDatafield('260', 'b') || getDatafield('264', 'b')].filter(p => p).map(p => p.replace(/,\s*$/, '')),
+			publish_date: getDatafield('260', 'c') || getDatafield('264', 'c'),
+			subjects: getAllDatafields('650', 'a'),
+			source: 'Library of Congress'
+		};
+	}
+
+	async function tryOpenLibrary(cleanISBN: string) {
+		const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanISBN}&format=json&jscmd=data`);
+		const data = await response.json();
+
+		const key = `ISBN:${cleanISBN}`;
+		if (data[key]) {
+			return {
+				title: data[key].title,
+				subtitle: data[key].subtitle,
+				authors: data[key].authors?.map((a: any) => a.name) || [],
+				publishers: data[key].publishers?.map((p: any) => p.name) || [],
+				publish_date: data[key].publish_date,
+				number_of_pages: data[key].number_of_pages,
+				subjects: data[key].subjects?.map((s: any) => s.name) || [],
+				cover: data[key].cover?.large,
+				source: 'OpenLibrary'
+			};
+		}
+		return null;
+	}
+
+	async function tryLibraryOfCongress(cleanISBN: string) {
+		// LoC SRU API - returns MARCXML
+		const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
+		const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
+
+		const response = await fetch(url);
+		const xmlText = await response.text();
+
+		// Check if we got results
+		if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
+			return null;
+		}
+
+		return await parseLocMarc(xmlText);
+	}
 
 	async function lookupISBN() {
 		searching = true;
 		error = '';
 		results = null;
+		searchLog = [];
 
 		try {
 			const cleanISBN = isbn.replace(/[^0-9X]/g, '');
 
-			if (source === 'openlibrary') {
-				const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanISBN}&format=json&jscmd=data`);
-				const data = await response.json();
+			// Try OpenLibrary first
+			searchLog = [...searchLog, 'Searching OpenLibrary...'];
+			const olResult = await tryOpenLibrary(cleanISBN);
 
-				const key = `ISBN:${cleanISBN}`;
-				if (data[key]) {
-					results = {
-						title: data[key].title,
-						subtitle: data[key].subtitle,
-						authors: data[key].authors?.map((a: any) => a.name) || [],
-						publishers: data[key].publishers?.map((p: any) => p.name) || [],
-						publish_date: data[key].publish_date,
-						number_of_pages: data[key].number_of_pages,
-						subjects: data[key].subjects?.map((s: any) => s.name) || [],
-						cover: data[key].cover?.large,
-						source: 'OpenLibrary'
-					};
-				} else {
-					error = 'No results found for this ISBN on OpenLibrary';
-				}
+			if (olResult) {
+				results = olResult;
+				searchLog = [...searchLog, '✓ Found on OpenLibrary'];
 			} else {
-				// Library of Congress lookup (simplified - actual API is more complex)
-				error = 'Library of Congress integration coming soon! For now, use OpenLibrary.';
+				searchLog = [...searchLog, '✗ Not found on OpenLibrary'];
+
+				// Fallback to Library of Congress
+				searchLog = [...searchLog, 'Trying Library of Congress...'];
+				const locResult = await tryLibraryOfCongress(cleanISBN);
+
+				if (locResult) {
+					results = locResult;
+					searchLog = [...searchLog, '✓ Found on Library of Congress'];
+				} else {
+					searchLog = [...searchLog, '✗ Not found on Library of Congress'];
+					error = 'No results found for this ISBN on OpenLibrary or Library of Congress';
+				}
 			}
-		} catch (err) {
+		} catch (err: any) {
 			error = `Error: ${err.message}`;
+			searchLog = [...searchLog, `✗ Error: ${err.message}`];
 		} finally {
 			searching = false;
 		}
@@ -107,7 +170,7 @@
 
 <div class="isbn-lookup">
 	<h1>ISBN Lookup</h1>
-	<p class="subtitle">Search for books by ISBN and import bibliographic data</p>
+	<p class="subtitle">Search for books by ISBN (tries OpenLibrary first, then Library of Congress)</p>
 
 	<div class="lookup-form">
 		<div class="form-row">
@@ -122,14 +185,6 @@
 				/>
 			</div>
 
-			<div class="form-group">
-				<label for="source">Source</label>
-				<select id="source" bind:value={source}>
-					<option value="openlibrary">OpenLibrary</option>
-					<option value="loc" disabled>Library of Congress (Coming soon)</option>
-				</select>
-			</div>
-
 			<button
 				class="btn-search"
 				onclick={lookupISBN}
@@ -139,6 +194,14 @@
 			</button>
 		</div>
 	</div>
+
+	{#if searchLog.length > 0}
+		<div class="search-log">
+			{#each searchLog as logEntry}
+				<div class="log-entry">{logEntry}</div>
+			{/each}
+		</div>
+	{/if}
 
 	{#if error}
 		<div class="error">{error}</div>
@@ -223,9 +286,23 @@
 
 	.form-row {
 		display: grid;
-		grid-template-columns: 2fr 1fr auto;
+		grid-template-columns: 1fr auto;
 		gap: 1rem;
 		align-items: end;
+	}
+
+	.search-log {
+		background: #f8f9fa;
+		padding: 1rem;
+		border-radius: 4px;
+		margin-bottom: 1rem;
+		font-size: 0.875rem;
+		font-family: 'Courier New', monospace;
+	}
+
+	.log-entry {
+		padding: 0.25rem 0;
+		color: #666;
 	}
 
 	.form-group {

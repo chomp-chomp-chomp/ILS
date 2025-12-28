@@ -15,6 +15,7 @@
 				<li><a href="/admin/cataloging">Cataloging</a></li>
 				<li><a href="/admin/cataloging/new">New MARC Record</a></li>
 				<li><a href="/admin/cataloging/isbn-lookup">ISBN Lookup</a></li>
+				<li><a href="/admin/cataloging/bulk-isbn">Bulk ISBN Upload</a></li>
 				<li><a href="/admin/cataloging/upload">MARC File Upload</a></li>
 				<li><a href="/admin/serials">Serials Management</a></li>
 				<li><a href="/admin/holdings">Holdings</a></li>
