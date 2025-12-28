@@ -20,23 +20,29 @@
 			{/if}
 		</div>
 
-		<h1>Library Catalog</h1>
-		<p>Search our collection</p>
-
-		<div class="search-box">
-			<input
-				type="search"
-				bind:value={query}
-				placeholder="Search by title, author, subject, ISBN..."
-				onkeydown={(e) => e.key === 'Enter' && handleSearch()}
+		<div class="hero-content">
+			<img
+				src="https://ik.imagekit.io/chompchomp/Chomp_Chomp_logos_5ty_DOfKY.jpeg?updatedAt=1766925051206"
+				alt="Library Logo"
+				class="main-logo"
 			/>
-			<button onclick={handleSearch}>Search</button>
-		</div>
+			<p class="tagline">Search our collection</p>
 
-		<div class="search-links">
-			<a href="/catalog/search/advanced">Advanced Search</a>
-			<span>|</span>
-			<a href="/catalog/browse">Browse Collection</a>
+			<div class="search-box">
+				<input
+					type="search"
+					bind:value={query}
+					placeholder="Search by title, author, subject, ISBN..."
+					onkeydown={(e) => e.key === 'Enter' && handleSearch()}
+				/>
+				<button onclick={handleSearch}>Search</button>
+			</div>
+
+			<div class="search-links">
+				<a href="/catalog/search/advanced">Advanced Search</a>
+				<span>|</span>
+				<a href="/catalog/browse">Browse Collection</a>
+			</div>
 		</div>
 	</header>
 </div>
@@ -44,7 +50,7 @@
 <style>
 	.catalog-home {
 		min-height: 100vh;
-		background: var(--bg-primary);
+		background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
 		padding: 0;
 	}
 
@@ -53,22 +59,22 @@
 		margin: 0 auto;
 		padding: 1rem 2rem;
 		text-align: right;
-		background: white;
-		border-bottom: 1px solid var(--border);
+		background: rgba(0, 0, 0, 0.3);
+		border-bottom: 1px solid rgba(231, 59, 66, 0.2);
 	}
 
 	.admin-link {
-		color: var(--accent);
+		color: #e73b42;
 		font-size: 0.875rem;
 		text-decoration: none;
 		padding: 0.5rem 1rem;
-		border: 1px solid var(--accent);
+		border: 1px solid #e73b42;
 		border-radius: var(--radius-sm);
 		transition: all 0.2s;
 	}
 
 	.admin-link:hover {
-		background: var(--accent);
+		background: #e73b42;
 		color: white;
 	}
 
@@ -76,43 +82,52 @@
 		max-width: 1200px;
 		margin: 0 auto;
 		text-align: center;
-		padding: 6rem 2rem 4rem;
-		background: white;
-		border-left: 1px solid var(--border);
-		border-right: 1px solid var(--border);
+		padding: 2rem;
 		min-height: calc(100vh - 60px);
 		display: flex;
 		flex-direction: column;
+	}
+
+	.hero-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
 		justify-content: center;
+		align-items: center;
+		padding: 4rem 2rem;
 	}
 
-	h1 {
-		font-size: 3.5rem;
-		margin: 0 0 1rem 0;
-		font-weight: 700;
-		color: var(--text-primary);
+	.main-logo {
+		max-width: 500px;
+		width: 100%;
+		height: auto;
+		margin-bottom: 2rem;
+		border-radius: var(--radius-md);
 	}
 
-	.hero > p {
+	.tagline {
 		font-size: 1.5rem;
 		margin-bottom: 3rem;
-		color: var(--text-muted);
+		color: #b0b0b0;
+		font-weight: 300;
 	}
 
 	.search-box {
 		display: flex;
 		max-width: 600px;
+		width: 100%;
 		margin: 0 auto 1.5rem;
-		background: white;
+		background: rgba(255, 255, 255, 0.05);
 		border-radius: var(--radius-md);
 		overflow: hidden;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		border: 2px solid var(--border);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+		border: 2px solid rgba(255, 255, 255, 0.1);
+		backdrop-filter: blur(10px);
 	}
 
 	.search-box:focus-within {
-		border-color: var(--accent);
-		box-shadow: 0 4px 12px rgba(231, 59, 66, 0.15);
+		border-color: #e73b42;
+		box-shadow: 0 4px 20px rgba(231, 59, 66, 0.4);
 	}
 
 	.search-box input {
@@ -120,8 +135,12 @@
 		padding: 1rem 1.5rem;
 		border: none;
 		font-size: 1.125rem;
-		color: var(--text-primary);
+		color: white;
 		background: transparent;
+	}
+
+	.search-box input::placeholder {
+		color: rgba(255, 255, 255, 0.4);
 	}
 
 	.search-box input:focus {
@@ -130,17 +149,18 @@
 
 	.search-box button {
 		padding: 1rem 2rem;
-		background: var(--accent);
+		background: #e73b42;
 		color: white;
 		border: none;
 		font-size: 1.125rem;
 		font-weight: 500;
 		cursor: pointer;
-		transition: background 0.2s;
+		transition: all 0.2s;
 	}
 
 	.search-box button:hover {
-		background: var(--accent-hover);
+		background: #d12d34;
+		box-shadow: 0 0 20px rgba(231, 59, 66, 0.5);
 	}
 
 	.search-links {
@@ -148,41 +168,43 @@
 		gap: 1rem;
 		justify-content: center;
 		font-size: 1rem;
-		padding: 1rem;
-		background: var(--bg-secondary);
+		padding: 1rem 1.5rem;
+		background: rgba(255, 255, 255, 0.05);
 		border-radius: var(--radius-md);
 		max-width: 600px;
+		width: 100%;
 		margin: 0 auto;
+		border: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	.search-links a {
-		color: var(--accent);
+		color: #e73b42;
 		text-decoration: none;
 		font-weight: 500;
+		transition: all 0.2s;
 	}
 
 	.search-links a:hover {
-		text-decoration: underline;
+		color: #ff5a61;
+		text-shadow: 0 0 8px rgba(231, 59, 66, 0.5);
 	}
 
 	.search-links span {
 		opacity: 0.3;
-		color: var(--text-muted);
+		color: #888;
 	}
 
 	@media (max-width: 768px) {
-		h1 {
-			font-size: 2.5rem;
+		.main-logo {
+			max-width: 350px;
 		}
 
-		.hero > p {
+		.tagline {
 			font-size: 1.25rem;
 		}
 
-		.hero {
-			border-left: none;
-			border-right: none;
-			padding: 4rem 1rem 2rem;
+		.hero-content {
+			padding: 2rem 1rem;
 		}
 	}
 </style>

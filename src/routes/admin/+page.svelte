@@ -1,7 +1,33 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { onMount } from 'svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	let totalRecords = $state(0);
+	let activeSerials = $state(0);
+	let totalHoldings = $state(0);
+	let loading = $state(true);
+
+	onMount(async () => {
+		await loadStats();
+	});
+
+	async function loadStats() {
+		loading = true;
+
+		const [recordsResult, serialsResult, holdingsResult] = await Promise.all([
+			data.supabase.from('marc_records').select('id', { count: 'exact', head: true }),
+			data.supabase.from('serials').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+			data.supabase.from('holdings').select('id', { count: 'exact', head: true })
+		]);
+
+		totalRecords = recordsResult.count || 0;
+		activeSerials = serialsResult.count || 0;
+		totalHoldings = holdingsResult.count || 0;
+
+		loading = false;
+	}
 </script>
 
 <div class="dashboard">
@@ -10,20 +36,20 @@
 	<div class="stats">
 		<div class="stat-card">
 			<h3>Total Records</h3>
-			<p class="stat-number">--</p>
-			<p class="stat-label">Coming soon</p>
+			<p class="stat-number">{loading ? '...' : totalRecords.toLocaleString()}</p>
+			<p class="stat-label">Bibliographic records</p>
 		</div>
 
 		<div class="stat-card">
 			<h3>Active Serials</h3>
-			<p class="stat-number">--</p>
-			<p class="stat-label">Coming soon</p>
+			<p class="stat-number">{loading ? '...' : activeSerials.toLocaleString()}</p>
+			<p class="stat-label">Current subscriptions</p>
 		</div>
 
 		<div class="stat-card">
 			<h3>Total Holdings</h3>
-			<p class="stat-number">--</p>
-			<p class="stat-label">Coming soon</p>
+			<p class="stat-number">{loading ? '...' : totalHoldings.toLocaleString()}</p>
+			<p class="stat-label">Physical/digital items</p>
 		</div>
 	</div>
 
