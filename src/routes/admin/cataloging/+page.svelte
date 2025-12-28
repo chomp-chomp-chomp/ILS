@@ -136,6 +136,11 @@
 		<div class="actions">
 			<a href="/admin/cataloging/new" class="btn-primary">Create New Record</a>
 			<a href="/admin/cataloging/isbn-lookup" class="btn-secondary">ISBN Lookup</a>
+			{#if duplicates.size > 0}
+				<a href="/admin/cataloging/duplicates" class="btn-duplicates">
+					Manage Duplicates ({duplicates.size})
+				</a>
+			{/if}
 		</div>
 	</header>
 
@@ -267,6 +272,21 @@
 
 	.btn-secondary:hover {
 		background: #d0d0d0;
+	}
+
+	.btn-duplicates {
+		padding: 0.75rem 1.5rem;
+		border-radius: 4px;
+		text-decoration: none;
+		font-size: 0.875rem;
+		transition: all 0.2s;
+		background: #f59e0b;
+		color: white;
+		font-weight: 600;
+	}
+
+	.btn-duplicates:hover {
+		background: #d97706;
 	}
 
 	.controls {
