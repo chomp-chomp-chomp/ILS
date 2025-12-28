@@ -1,6 +1,12 @@
+<script context="module" lang="ts">
+	export const prerender = false;
+</script>
+
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import type { PageData } from './$types';
 
+	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
 	function handleSearch() {
@@ -190,11 +196,3 @@
 	}
 </style>
 
-<script context="module" lang="ts">
-	export const prerender = false;
-</script>
-
-<script lang="ts">
-	import type { PageData } from './$types';
-	let { data } = $props<{ data: PageData }>();
-</script>
