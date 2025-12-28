@@ -35,43 +35,73 @@
 		};
 	}
 
-	async function tryOpenLibrary(cleanISBN: string) {
-		const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanISBN}&format=json&jscmd=data`);
-		const bookData = await response.json();
+	async function fetchWithTimeout(url: string, timeout = 10000) {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-		const key = `ISBN:${cleanISBN}`;
-		if (bookData[key]) {
-			return {
-				title: bookData[key].title,
-				subtitle: bookData[key].subtitle,
-				authors: bookData[key].authors?.map((a: any) => a.name) || [],
-				publishers: bookData[key].publishers?.map((p: any) => p.name) || [],
-				publish_date: bookData[key].publish_date,
-				number_of_pages: bookData[key].number_of_pages,
-				subjects: bookData[key].subjects?.map((s: any) => s.name) || [],
-				source: 'OpenLibrary'
-			};
+		try {
+			const response = await fetch(url, { signal: controller.signal });
+			clearTimeout(timeoutId);
+			return response;
+		} catch (error: any) {
+			clearTimeout(timeoutId);
+			if (error.name === 'AbortError') {
+				throw new Error('Request timeout');
+			}
+			throw error;
 		}
-		return null;
+	}
+
+	async function tryOpenLibrary(cleanISBN: string) {
+		try {
+			const response = await fetchWithTimeout(
+				`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanISBN}&format=json&jscmd=data`,
+				8000
+			);
+			const bookData = await response.json();
+
+			const key = `ISBN:${cleanISBN}`;
+			if (bookData[key]) {
+				return {
+					title: bookData[key].title,
+					subtitle: bookData[key].subtitle,
+					authors: bookData[key].authors?.map((a: any) => a.name) || [],
+					publishers: bookData[key].publishers?.map((p: any) => p.name) || [],
+					publish_date: bookData[key].publish_date,
+					number_of_pages: bookData[key].number_of_pages,
+					subjects: bookData[key].subjects?.map((s: any) => s.name) || [],
+					source: 'OpenLibrary'
+				};
+			}
+			return null;
+		} catch (err) {
+			console.error(`OpenLibrary error for ${cleanISBN}:`, err);
+			return null;
+		}
 	}
 
 	async function tryLibraryOfCongress(cleanISBN: string) {
-		const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
-		const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
+		try {
+			const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
+			const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
 
-		const response = await fetch(url);
-		const xmlText = await response.text();
+			const response = await fetchWithTimeout(url, 10000);
+			const xmlText = await response.text();
 
-		if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
+			if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
+				return null;
+			}
+
+			return await parseLocMarc(xmlText);
+		} catch (err) {
+			console.error(`LoC error for ${cleanISBN}:`, err);
 			return null;
 		}
-
-		return await parseLocMarc(xmlText);
 	}
 
 	async function processBulkISBNs() {
 		processing = true;
-		showResults = false;
+		showResults = true;
 		currentIndex = 0;
 		results = [];
 
@@ -85,48 +115,59 @@
 			currentIndex = i + 1;
 			const isbn = isbns[i];
 
+			// Add placeholder for current ISBN being processed
+			results = [...results, {
+				isbn,
+				status: 'processing',
+				source: null,
+				data: null
+			}];
+
 			try {
 				// Try OpenLibrary first
 				let bookData = await tryOpenLibrary(isbn);
 				let source = 'OpenLibrary';
 
-				// Fallback to LoC
+				// Fallback to LoC if OpenLibrary didn't find it
 				if (!bookData) {
 					bookData = await tryLibraryOfCongress(isbn);
 					source = 'Library of Congress';
 				}
 
+				// Update the result
 				if (bookData) {
-					results.push({
+					results[i] = {
 						isbn,
 						status: 'found',
 						source,
 						data: bookData
-					});
+					};
 				} else {
-					results.push({
+					results[i] = {
 						isbn,
 						status: 'not_found',
 						source: null,
 						data: null
-					});
+					};
 				}
 			} catch (err: any) {
-				results.push({
+				results[i] = {
 					isbn,
 					status: 'error',
-					error: err.message,
+					error: err.message || 'Unknown error',
 					source: null,
 					data: null
-				});
+				};
 			}
 
+			// Trigger reactivity
+			results = [...results];
+
 			// Small delay to avoid rate limiting
-			await new Promise(resolve => setTimeout(resolve, 500));
+			await new Promise(resolve => setTimeout(resolve, 300));
 		}
 
 		processing = false;
-		showResults = true;
 	}
 
 	async function importSelected() {
@@ -273,6 +314,10 @@
 						{:else if result.status === 'not_found'}
 							<div class="result-content">
 								<p class="error-text">ISBN {result.isbn}: Not found</p>
+							</div>
+						{:else if result.status === 'processing'}
+							<div class="result-content">
+								<p class="processing-text">ISBN {result.isbn}: Searching...</p>
 							</div>
 						{:else}
 							<div class="result-content">
@@ -423,6 +468,21 @@
 		border-color: #fecaca;
 	}
 
+	.result-card.processing {
+		background: #f0f9ff;
+		border-color: #bae6fd;
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
+	}
+
 	.result-card.error {
 		background: #fff7ed;
 		border-color: #fed7aa;
@@ -462,6 +522,13 @@
 		font-size: 0.75rem;
 		color: #10b981;
 		font-weight: 600;
+	}
+
+	.processing-text {
+		margin: 0;
+		color: #0284c7;
+		font-weight: 500;
+		font-style: italic;
 	}
 
 	.error-text {
