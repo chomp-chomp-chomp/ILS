@@ -67,6 +67,19 @@
 
 			if (error) throw error;
 
+			// Auto-create a default holding for the new record
+			if (inserted && inserted[0]) {
+				const defaultHolding = {
+					marc_record_id: inserted[0].id,
+					call_number: callNumber || null,
+					location: 'Main Library',
+					status: 'available',
+					copy_number: 1
+				};
+
+				await data.supabase.from('holdings').insert([defaultHolding]);
+			}
+
 			message = 'Record created successfully!';
 			// Reset form
 			isbn = '';

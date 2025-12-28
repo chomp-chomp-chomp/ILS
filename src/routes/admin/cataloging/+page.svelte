@@ -94,6 +94,7 @@
 					</div>
 					<div class="record-actions">
 						<a href="/admin/cataloging/edit/{record.id}" class="btn-edit">Edit</a>
+						<a href="/admin/cataloging/{record.id}/holdings" class="btn-holdings">Holdings</a>
 						<button onclick={() => deleteRecord(record.id)} class="btn-delete">
 							Delete
 						</button>
@@ -246,6 +247,7 @@
 	}
 
 	.btn-edit,
+	.btn-holdings,
 	.btn-delete {
 		padding: 0.5rem 1rem;
 		border-radius: 4px;
@@ -263,6 +265,15 @@
 
 	.btn-edit:hover {
 		background: #1976d2;
+	}
+
+	.btn-holdings {
+		background: #ff9800;
+		color: white;
+	}
+
+	.btn-holdings:hover {
+		background: #f57c00;
 	}
 
 	.btn-delete {

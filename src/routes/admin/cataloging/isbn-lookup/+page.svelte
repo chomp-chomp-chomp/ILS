@@ -84,6 +84,18 @@
 
 			if (insertError) throw insertError;
 
+			// Auto-create a default holding for the new record
+			if (inserted && inserted[0]) {
+				const defaultHolding = {
+					marc_record_id: inserted[0].id,
+					location: 'Main Library',
+					status: 'available',
+					copy_number: 1
+				};
+
+				await data.supabase.from('holdings').insert([defaultHolding]);
+			}
+
 			goto('/admin/cataloging');
 		} catch (err) {
 			error = `Error importing: ${err.message}`;
