@@ -55,54 +55,59 @@
 	}
 
 	function toggleSelection(recordId: string) {
-		if (selectedForDeletion.has(recordId)) {
-			selectedForDeletion.delete(recordId);
+		const newSelection = new Set(selectedForDeletion);
+		if (newSelection.has(recordId)) {
+			newSelection.delete(recordId);
 		} else {
-			selectedForDeletion.add(recordId);
+			newSelection.add(recordId);
 		}
-		selectedForDeletion = selectedForDeletion; // Trigger reactivity
+		selectedForDeletion = newSelection;
 	}
 
 	function selectAllButFirst(isbn: string) {
 		const records = duplicateGroups.get(isbn);
 		if (!records) return;
 
+		const newSelection = new Set(selectedForDeletion);
 		// Keep first (oldest), delete the rest
 		records.slice(1).forEach(record => {
-			selectedForDeletion.add(record.id);
+			newSelection.add(record.id);
 		});
-		selectedForDeletion = selectedForDeletion;
+		selectedForDeletion = newSelection;
 	}
 
 	function selectAllButLast(isbn: string) {
 		const records = duplicateGroups.get(isbn);
 		if (!records) return;
 
+		const newSelection = new Set(selectedForDeletion);
 		// Keep last (newest), delete the rest
 		records.slice(0, -1).forEach(record => {
-			selectedForDeletion.add(record.id);
+			newSelection.add(record.id);
 		});
-		selectedForDeletion = selectedForDeletion;
+		selectedForDeletion = newSelection;
 	}
 
 	function clearSelectionForGroup(isbn: string) {
 		const records = duplicateGroups.get(isbn);
 		if (!records) return;
 
+		const newSelection = new Set(selectedForDeletion);
 		records.forEach(record => {
-			selectedForDeletion.delete(record.id);
+			newSelection.delete(record.id);
 		});
-		selectedForDeletion = selectedForDeletion;
+		selectedForDeletion = newSelection;
 	}
 
 	function selectAllDuplicates() {
+		const newSelection = new Set(selectedForDeletion);
 		duplicateGroups.forEach((records) => {
 			// Keep first (oldest), delete the rest
 			records.slice(1).forEach(record => {
-				selectedForDeletion.add(record.id);
+				newSelection.add(record.id);
 			});
 		});
-		selectedForDeletion = selectedForDeletion;
+		selectedForDeletion = newSelection;
 	}
 
 	async function deleteSelected() {
@@ -144,8 +149,7 @@
 			}
 
 			// Reload duplicates
-			selectedForDeletion.clear();
-			selectedForDeletion = selectedForDeletion;
+			selectedForDeletion = new Set();
 			await loadDuplicates();
 
 			if (failedCount > 0) {
