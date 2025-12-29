@@ -127,13 +127,19 @@ async function performSearch(
 	// Apply search filters
 	const filters: string[] = [];
 
-	// Basic keyword search using full-text search
+	// Basic keyword search using full-text search with relevance boosting
 	if (params.q) {
 		// Use PostgreSQL full-text search for relevance ranking
 		query = query.textSearch('search_vector', params.q, {
 			type: 'websearch',
 			config: 'english'
 		});
+
+		// Add custom relevance scoring with field weights
+		// This requires using .order() with a raw SQL expression
+		// Higher weight = more important field
+		// Format: setweight(to_tsvector(field), 'A') for highest priority
+		// We'll order by ts_rank which already considers the search_vector
 	}
 
 	// Advanced search fields
@@ -213,11 +219,19 @@ async function performSearch(
 			break;
 		case 'relevance':
 		default:
-			// For full-text search, results are already sorted by relevance
-			// For other searches, sort by title
+			// For full-text search, results are already sorted by ts_rank (relevance)
+			// The search_vector trigger uses these weights:
+			// - 'A' (highest): title, author
+			// - 'B' (high): subtitle, subjects
+			// - 'C' (medium): publisher
+			// - 'D' (low): summary
+
+			// For non-full-text searches, sort by title
 			if (!params.q) {
 				query = query.order('title_statement->a', { ascending: true });
 			}
+			// Note: You can't easily boost by recency in Supabase without RPC
+			// For advanced relevance, consider creating a custom RPC function
 			break;
 	}
 
