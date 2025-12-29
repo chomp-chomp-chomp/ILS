@@ -17,7 +17,13 @@
 			</div>
 			<ul class="nav-links">
 				<li><a href="/admin" onclick={() => mobileMenuOpen = false}>Dashboard</a></li>
-				<li><a href="/admin/cataloging" onclick={() => mobileMenuOpen = false}>Cataloging</a></li>
+				<li class="section-header">Circulation</li>
+				<li><a href="/admin/circulation/checkout" onclick={() => mobileMenuOpen = false}>Checkout</a></li>
+				<li><a href="/admin/circulation/checkin" onclick={() => mobileMenuOpen = false}>Checkin</a></li>
+				<li><a href="/admin/circulation/patrons" onclick={() => mobileMenuOpen = false}>Patrons</a></li>
+				<li><a href="/admin/circulation/holds" onclick={() => mobileMenuOpen = false}>Holds</a></li>
+				<li class="section-header">Cataloging</li>
+				<li><a href="/admin/cataloging" onclick={() => mobileMenuOpen = false}>Catalog Records</a></li>
 				<li><a href="/admin/cataloging/new" onclick={() => mobileMenuOpen = false}>New MARC Record</a></li>
 				<li><a href="/admin/cataloging/isbn-lookup" onclick={() => mobileMenuOpen = false}>ISBN Lookup</a></li>
 				<li><a href="/admin/cataloging/bulk-isbn" onclick={() => mobileMenuOpen = false}>Bulk ISBN Upload</a></li>
@@ -117,6 +123,21 @@
 
 	.nav-links li {
 		margin-bottom: 0.5rem;
+	}
+
+	.nav-links .section-header {
+		color: #666;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		margin-top: 1.5rem;
+		margin-bottom: 0.75rem;
+		padding: 0 1rem;
+	}
+
+	.nav-links .section-header:first-child {
+		margin-top: 0;
 	}
 
 	.nav-links a {
