@@ -1005,6 +1005,637 @@ supabase db reset        # Reset database (dev only)
 
 ## Customization & Advanced Topics
 
+### UI-Based Customization System
+
+The ILS includes three comprehensive admin interfaces that allow librarians to customize the catalog's appearance and behavior without writing code. These features are accessible through the admin panel and store all configuration in the database.
+
+#### Overview of Customization Features
+
+1. **Branding Customization** (`/admin/branding`) - Control visual identity, colors, logos, and library information
+2. **Search Configuration** (`/admin/search-config`) - Configure search fields, behavior, and facets
+3. **Display Configuration** (`/admin/display-config`) - Control which MARC fields are displayed and how
+
+All three systems share common features:
+- Database-driven with sensible defaults
+- Live preview of changes
+- Row Level Security (RLS) for access control
+- Single active configuration enforced by database triggers
+- Audit trails (updated_by, updated_at timestamps)
+- Reset functionality to revert changes
+
+---
+
+### 1. Branding Customization
+
+**Location**: `/admin/branding`
+**Migration**: `migrations/015_branding_configuration.sql`
+**Database Table**: `branding_configuration`
+
+#### Features
+
+**Library Identity:**
+- Library name (appears as page title)
+- Tagline/subtitle
+- Logo URL
+- Favicon URL
+
+**Color Scheme:**
+- Primary color (main brand color, buttons)
+- Secondary color (accent elements)
+- Accent color (links, highlights)
+- Background color
+- Text color
+
+**Typography:**
+- Body font (CSS font-family)
+- Heading font (optional, defaults to body font)
+
+**Contact Information:**
+- Email address
+- Phone number
+- Physical address
+
+**Social Media:**
+- Facebook URL
+- Twitter/X URL
+- Instagram URL
+
+**Footer:**
+- Custom footer text
+- Toggle "Powered by" attribution
+
+**Display Features:**
+- Toggle book covers in results
+- Toggle faceted search
+- Items per page setting
+
+**Advanced:**
+- Custom CSS (inject your own styles)
+- Custom HTML (head section - for analytics, fonts, etc.)
+
+#### Database Schema
+
+```sql
+CREATE TABLE branding_configuration (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Library identity
+  library_name VARCHAR(255) DEFAULT 'Library Catalog',
+  library_tagline TEXT,
+  logo_url TEXT,
+  favicon_url TEXT,
+
+  -- Color scheme
+  primary_color VARCHAR(7) DEFAULT '#e73b42',
+  secondary_color VARCHAR(7) DEFAULT '#667eea',
+  accent_color VARCHAR(7) DEFAULT '#2c3e50',
+  background_color VARCHAR(7) DEFAULT '#ffffff',
+  text_color VARCHAR(7) DEFAULT '#333333',
+
+  -- Typography
+  font_family VARCHAR(255) DEFAULT 'system-ui, -apple-system, sans-serif',
+  heading_font VARCHAR(255),
+
+  -- Custom styling
+  custom_css TEXT,
+  custom_head_html TEXT,
+
+  -- Footer
+  footer_text VARCHAR(255) DEFAULT 'Powered by Open Library System',
+  show_powered_by BOOLEAN DEFAULT true,
+
+  -- Contact
+  contact_email VARCHAR(255),
+  contact_phone VARCHAR(50),
+  contact_address TEXT,
+
+  -- Social media
+  facebook_url TEXT,
+  twitter_url TEXT,
+  instagram_url TEXT,
+
+  -- Feature toggles
+  show_covers BOOLEAN DEFAULT true,
+  show_facets BOOLEAN DEFAULT true,
+  items_per_page INTEGER DEFAULT 20,
+
+  -- Active flag
+  is_active BOOLEAN DEFAULT true,
+  updated_by UUID REFERENCES auth.users(id)
+);
+```
+
+#### Implementation Details
+
+**Frontend Integration** (`src/routes/+layout.svelte` and `+layout.server.ts`):
+
+The root layout loads the active branding configuration on every page:
+
+```typescript
+// +layout.server.ts
+export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabase }, cookies }) => {
+  const { session } = await safeGetSession();
+
+  // Fetch active branding configuration
+  const { data: branding } = await supabase
+    .from('branding_configuration')
+    .select('*')
+    .eq('is_active', true)
+    .single();
+
+  return {
+    session,
+    cookies: cookies.getAll(),
+    branding: branding || null
+  };
+};
+```
+
+CSS variables are injected into the page:
+
+```svelte
+<!-- +layout.svelte -->
+<main
+  id="main-content"
+  style="
+    --primary-color: {branding.primary_color};
+    --secondary-color: {branding.secondary_color};
+    --accent-color: {branding.accent_color};
+    --background-color: {branding.background_color};
+    --text-color: {branding.text_color};
+    --font-family: {branding.font_family};
+    --heading-font: {branding.heading_font || branding.font_family};
+  "
+>
+  {@render children()}
+</main>
+```
+
+**API Endpoint** (`src/routes/api/branding/+server.ts`):
+
+```typescript
+export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGetSession } }) => {
+  const { session } = await safeGetSession();
+  if (!session) throw error(401, 'Unauthorized');
+
+  const config = await request.json();
+
+  // Update or create branding configuration
+  // Database trigger ensures only one active config
+};
+```
+
+#### Usage
+
+1. Navigate to `/admin/branding`
+2. Modify colors using color pickers
+3. Enter library name, logo URLs, contact info
+4. Add custom CSS if needed
+5. Preview changes in real-time in the right panel
+6. Click "Save Changes"
+7. Branding applies immediately across the entire site
+
+#### Customization Examples
+
+**Change primary color:**
+```
+1. Go to /admin/branding
+2. Click the primary color picker
+3. Select your brand color (e.g., #2c5aa0 for blue)
+4. Click Save
+5. All buttons and primary elements update immediately
+```
+
+**Add custom CSS:**
+```css
+/* In the Custom CSS field */
+.btn-primary {
+  border-radius: 20px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.card {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+```
+
+**Add Google Analytics:**
+```html
+<!-- In Custom HTML (Head) field -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'GA_MEASUREMENT_ID');
+</script>
+```
+
+---
+
+### 2. Search Form Customization
+
+**Location**: `/admin/search-config`
+**Migration**: `migrations/016_search_configuration.sql`
+**Database Tables**: `search_field_configuration`, `search_configuration`
+
+#### Features
+
+**Search Fields Configuration:**
+- 10 default fields: keyword, title, author, subject, ISBN, ISSN, publisher, series, call number, publication year
+- Drag-and-drop reordering
+- Toggle visibility in basic vs. advanced search
+- Customize labels, placeholders, help text
+- Configure search operators (contains, exact, starts with, range)
+- Enable/disable autocomplete per field
+- Set validation rules (min/max length, regex)
+
+**Search Behavior:**
+- Default search type (keyword, title, author, advanced)
+- Enable/disable spell correction
+- Spell correction threshold (0-1 similarity)
+- Minimum results before showing "Did you mean?" suggestions
+- Enable/disable advanced search
+- Enable/disable Boolean operators (AND, OR, NOT)
+
+**Results Display:**
+- Results per page (5-100)
+- Default layout (list, grid, compact)
+- Show/hide book covers
+- Show/hide availability status
+- Show/hide call numbers
+
+**Faceted Search:**
+- Enable/disable facets globally
+- Toggle individual facets:
+  - Material types
+  - Languages
+  - Publication years
+  - Locations
+  - Availability
+- Maximum facet values to display before "Show more"
+
+**Sorting:**
+- Default sort order (relevance, title, author, date)
+- Available sort options
+
+#### Database Schema
+
+```sql
+-- Individual search field configuration
+CREATE TABLE search_field_configuration (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  field_key VARCHAR(50) NOT NULL UNIQUE,
+  field_label VARCHAR(100) NOT NULL,
+  field_type VARCHAR(50) NOT NULL,
+  placeholder_text VARCHAR(255),
+  help_text TEXT,
+  is_enabled BOOLEAN DEFAULT true,
+  is_default_visible BOOLEAN DEFAULT true,
+  display_order INTEGER DEFAULT 0,
+  show_in_advanced BOOLEAN DEFAULT true,
+  operator_options JSONB,
+  enable_autocomplete BOOLEAN DEFAULT false,
+  autocomplete_source VARCHAR(100),
+  is_required BOOLEAN DEFAULT false,
+  min_length INTEGER,
+  max_length INTEGER,
+  validation_regex VARCHAR(255),
+  updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Global search configuration
+CREATE TABLE search_configuration (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  default_search_type VARCHAR(50) DEFAULT 'keyword',
+  enable_spell_correction BOOLEAN DEFAULT true,
+  spell_correction_threshold REAL DEFAULT 0.4,
+  min_results_for_suggestion INTEGER DEFAULT 5,
+  results_per_page INTEGER DEFAULT 20,
+  results_layout VARCHAR(50) DEFAULT 'list',
+  show_covers BOOLEAN DEFAULT true,
+  show_availability BOOLEAN DEFAULT true,
+  show_call_number BOOLEAN DEFAULT true,
+  enable_facets BOOLEAN DEFAULT true,
+  facet_material_types BOOLEAN DEFAULT true,
+  facet_languages BOOLEAN DEFAULT true,
+  facet_publication_years BOOLEAN DEFAULT true,
+  facet_locations BOOLEAN DEFAULT true,
+  facet_availability BOOLEAN DEFAULT true,
+  max_facet_values INTEGER DEFAULT 10,
+  enable_advanced_search BOOLEAN DEFAULT true,
+  enable_boolean_operators BOOLEAN DEFAULT true,
+  default_sort VARCHAR(50) DEFAULT 'relevance',
+  available_sort_options JSONB,
+  is_active BOOLEAN DEFAULT true,
+  updated_by UUID REFERENCES auth.users(id)
+);
+```
+
+#### Default Fields
+
+The migration creates these search fields automatically:
+
+1. **keyword** - Search across all fields (enabled, visible by default)
+2. **title** - Title search (enabled, advanced only)
+3. **author** - Author search (enabled, advanced only)
+4. **subject** - Subject search (enabled, advanced only)
+5. **isbn** - ISBN search (enabled, advanced only)
+6. **issn** - ISSN search (enabled, advanced only)
+7. **publisher** - Publisher search (enabled, advanced only)
+8. **series** - Series search (enabled, advanced only)
+9. **call_number** - Call number search (enabled, advanced only)
+10. **publication_year** - Year search (enabled, advanced only)
+
+#### Usage
+
+**To configure search fields:**
+1. Go to `/admin/search-config`
+2. Click "Search Fields" tab
+3. Drag fields to reorder
+4. Toggle "Enabled" to show/hide fields
+5. Toggle "Show in basic search" to display in homepage search
+6. Edit labels and placeholders
+7. Click "Save Configuration"
+
+**To configure search behavior:**
+1. Go to `/admin/search-config`
+2. Click "Search Settings" tab
+3. Adjust spell correction threshold
+4. Set results per page
+5. Choose default layout (list/grid)
+6. Click "Save Configuration"
+
+**To configure facets:**
+1. Go to `/admin/search-config`
+2. Click "Facets & Filters" tab
+3. Toggle facets on/off
+4. Set maximum values to show
+5. Click "Save Configuration"
+
+#### API Endpoints
+
+**Save search configuration:**
+```typescript
+PUT /api/search-config
+Body: { config object }
+```
+
+**Save search fields:**
+```typescript
+PUT /api/search-config/fields
+Body: { fields: [...] }
+```
+
+---
+
+### 3. Display Configuration
+
+**Location**: `/admin/display-config`
+**Migration**: `migrations/017_display_configuration.sql`
+**Database Tables**: `display_field_configuration`, `display_configuration`
+
+#### Features
+
+**MARC Field Display:**
+- 15 default display fields with MARC mappings
+- Drag-and-drop field reordering
+- Toggle visibility per context:
+  - Search results
+  - Detail page
+  - Brief view
+  - Public OPAC
+  - Staff catalog
+- Configure display style:
+  - Plain text
+  - Link (clickable)
+  - Badge (colored tag)
+  - Heading (emphasized)
+  - List (multiple values)
+- Clickable field behavior:
+  - Search by author
+  - Search by subject
+  - Search by series
+  - External URL
+- Field prefixes/suffixes (e.g., "ISBN: ")
+- Separator for multi-value fields
+- Conditional display (show only for certain material types)
+
+**Search Results Appearance:**
+- Show/hide book covers
+- Cover size (small, medium, large)
+- Show/hide availability status
+- Show/hide location
+- Show/hide call number
+- Show/hide material type badge
+- Compact mode toggle
+
+**Record Detail Appearance:**
+- Show/hide book cover
+- Cover size (medium, large, extra large)
+- Show/hide raw MARC view (staff only)
+- Show/hide holdings section
+- Show/hide related records
+- Display subjects as clickable tags
+- Group fields by category
+
+**Holdings Display:**
+- Show/hide barcode
+- Show/hide call number
+- Show/hide location
+- Show/hide status
+- Show/hide notes
+- Show/hide electronic access links
+
+**Cover Images:**
+- Cover source (Open Library, Google Books, local)
+- Fallback placeholder icon
+
+#### Database Schema
+
+```sql
+-- Display field configuration
+CREATE TABLE display_field_configuration (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  field_key VARCHAR(50) NOT NULL UNIQUE,
+  field_label VARCHAR(100) NOT NULL,
+  marc_field VARCHAR(10),
+  show_in_results BOOLEAN DEFAULT true,
+  show_in_detail BOOLEAN DEFAULT true,
+  show_in_brief BOOLEAN DEFAULT true,
+  show_in_opac BOOLEAN DEFAULT true,
+  show_in_staff BOOLEAN DEFAULT true,
+  display_order INTEGER DEFAULT 0,
+  display_style VARCHAR(50) DEFAULT 'text',
+  css_class VARCHAR(100),
+  prefix_text VARCHAR(50),
+  suffix_text VARCHAR(50),
+  separator VARCHAR(10) DEFAULT ', ',
+  max_values INTEGER,
+  make_clickable BOOLEAN DEFAULT false,
+  link_type VARCHAR(50),
+  link_pattern VARCHAR(255),
+  hide_if_empty BOOLEAN DEFAULT true,
+  show_only_if_material_type VARCHAR(255)[],
+  updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Global display configuration
+CREATE TABLE display_configuration (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  results_show_covers BOOLEAN DEFAULT true,
+  results_cover_size VARCHAR(50) DEFAULT 'medium',
+  results_show_availability BOOLEAN DEFAULT true,
+  results_show_location BOOLEAN DEFAULT true,
+  results_show_call_number BOOLEAN DEFAULT true,
+  results_show_material_badge BOOLEAN DEFAULT true,
+  results_compact_mode BOOLEAN DEFAULT false,
+  detail_show_cover BOOLEAN DEFAULT true,
+  detail_cover_size VARCHAR(50) DEFAULT 'large',
+  detail_show_marc BOOLEAN DEFAULT false,
+  detail_show_holdings BOOLEAN DEFAULT true,
+  detail_show_related BOOLEAN DEFAULT true,
+  detail_show_subjects_as_tags BOOLEAN DEFAULT true,
+  detail_group_by_category BOOLEAN DEFAULT true,
+  holdings_show_barcode BOOLEAN DEFAULT true,
+  holdings_show_call_number BOOLEAN DEFAULT true,
+  holdings_show_location BOOLEAN DEFAULT true,
+  holdings_show_status BOOLEAN DEFAULT true,
+  holdings_show_notes BOOLEAN DEFAULT true,
+  holdings_show_electronic_access BOOLEAN DEFAULT true,
+  cover_source VARCHAR(50) DEFAULT 'openlibrary',
+  cover_fallback_icon BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT true,
+  updated_by UUID REFERENCES auth.users(id)
+);
+```
+
+#### Default Display Fields
+
+The migration creates these display fields:
+
+1. **title** (MARC 245) - Heading style, show everywhere
+2. **author** (MARC 100) - Link style, clickable (search by author)
+3. **publication** (MARC 260/264) - Text style
+4. **isbn** (MARC 020) - Text style, detail only
+5. **issn** (MARC 022) - Text style, detail only
+6. **material_type** - Badge style
+7. **subjects** (MARC 650) - List style, clickable (search by subject)
+8. **series** (MARC 490/830) - Link style, clickable (search by series)
+9. **summary** (MARC 520) - Text style, detail only
+10. **contents** (MARC 505) - Text style, detail only
+11. **notes** (MARC 5XX) - Text style, detail only
+12. **physical** (MARC 300) - Text style, detail only
+13. **language** (MARC 041) - Text style, detail only
+14. **publisher** (MARC 260/264) - Text style, detail only
+15. **edition** (MARC 250) - Text style, detail only
+
+#### Usage
+
+**To configure field display:**
+1. Go to `/admin/display-config`
+2. Click "Field Configuration" tab
+3. Drag fields to reorder
+4. Toggle visibility for each context (results/detail/brief)
+5. Select display style (text/link/badge/heading/list)
+6. Choose clickable behavior if applicable
+7. Edit labels, prefixes, suffixes
+8. Click "Save Configuration"
+
+**To configure search results:**
+1. Go to `/admin/display-config`
+2. Click "Search Results" tab
+3. Toggle covers, availability, call numbers
+4. Choose cover size
+5. Enable/disable compact mode
+6. Click "Save Configuration"
+
+**To configure record details:**
+1. Go to `/admin/display-config`
+2. Click "Record Details" tab
+3. Toggle cover display
+4. Choose cover size
+5. Toggle holdings, related records, MARC view
+6. Configure holdings display options
+7. Click "Save Configuration"
+
+#### API Endpoints
+
+**Save display configuration:**
+```typescript
+PUT /api/display-config
+Body: { config object }
+```
+
+**Save display fields:**
+```typescript
+PUT /api/display-config/fields
+Body: { fields: [...] }
+```
+
+---
+
+### Migration Instructions
+
+To enable these customization features, run the following migrations in Supabase SQL Editor in order:
+
+1. **Branding Configuration:**
+   ```bash
+   Run migrations/015_branding_configuration.sql
+   ```
+
+2. **Search Configuration:**
+   ```bash
+   Run migrations/016_search_configuration.sql
+   ```
+
+3. **Display Configuration:**
+   ```bash
+   Run migrations/017_display_configuration.sql
+   ```
+
+Each migration:
+- Creates necessary tables with RLS policies
+- Inserts default configurations
+- Creates database triggers for data integrity
+- Includes helpful comments and documentation
+
+After running migrations, the admin interfaces are immediately accessible at:
+- `/admin/branding`
+- `/admin/search-config`
+- `/admin/display-config`
+
+### Important Notes
+
+**Security:**
+- All customization tables use Row Level Security (RLS)
+- Only authenticated users can modify configurations
+- Public users can view active configurations
+- Changes are tracked with `updated_by` and `updated_at` fields
+
+**Performance:**
+- Branding config is loaded on every page (cached by browser)
+- Search config is loaded when rendering search forms
+- Display config is loaded when rendering results/details
+- Consider implementing Redis caching for high-traffic sites
+
+**Best Practices:**
+- Always test configuration changes in a staging environment first
+- Use the "Reset" button to revert to defaults if needed
+- Custom CSS should be minimal - prefer using the color scheme
+- Avoid heavy JavaScript in custom HTML (performance impact)
+- Keep field configurations simple for better user experience
+
+**Backup & Export:**
+- Configuration is stored in PostgreSQL (backed up with database)
+- Future enhancement: Import/export configuration as JSON
+- To backup manually: Export tables via Supabase dashboard
+
+---
+
 ### Modifying Search Relevancy Rankings
 
 The search system uses PostgreSQL full-text search with weighted rankings. Understanding and modifying these weights is crucial for tuning search quality.
