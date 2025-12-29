@@ -16,6 +16,8 @@
 	let showCopiedToast = $state(false);
 	let exportModalOpen = $state(false);
 	let qrCodeDataUrl = $state('');
+	let searchShortUrl = $state('');
+	let generatingShortUrl = $state(false);
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let exportFields = $state({
@@ -123,14 +125,44 @@
 		shareMenuOpen = !shareMenuOpen;
 	}
 
+	async function generateSearchShortUrl(): Promise<string> {
+		const fullUrl = window.location.href;
+
+		try {
+			const response = await fetch('/api/shorten', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					fullUrl,
+					resourceType: 'search',
+					resourceId: null
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				return data.shortUrl;
+			}
+		} catch (error) {
+			console.error('Failed to create short URL:', error);
+		}
+
+		// Fallback to full URL
+		return fullUrl;
+	}
+
 	async function openShareModal() {
 		shareModalOpen = true;
 		shareMenuOpen = false;
+		generatingShortUrl = true;
 
-		// Generate QR code
-		const url = window.location.href;
 		try {
-			const qrDataUrl = await QRCode.toDataURL(url, {
+			// Generate short URL for the search
+			const shortUrl = await generateSearchShortUrl();
+			searchShortUrl = shortUrl;
+
+			// Generate QR code with short URL
+			const qrDataUrl = await QRCode.toDataURL(shortUrl, {
 				width: 300,
 				margin: 2,
 				color: {
@@ -140,19 +172,25 @@
 			});
 			qrCodeDataUrl = qrDataUrl;
 		} catch (err) {
-			console.error('Failed to generate QR code:', err);
+			console.error('Failed to generate share content:', err);
+			// Fallback to full URL
+			searchShortUrl = window.location.href;
+		} finally {
+			generatingShortUrl = false;
 		}
 	}
 
 	function closeShareModal() {
 		shareModalOpen = false;
 		qrCodeDataUrl = '';
+		searchShortUrl = '';
 	}
 
 	async function copySearchLink() {
-		const url = window.location.href;
 		try {
-			await navigator.clipboard.writeText(url);
+			// Generate short URL
+			const shortUrl = await generateSearchShortUrl();
+			await navigator.clipboard.writeText(shortUrl);
 			showCopiedToast = true;
 			shareMenuOpen = false;
 			setTimeout(() => {
@@ -161,7 +199,7 @@
 		} catch (err) {
 			console.error('Failed to copy:', err);
 			// Fallback for older browsers
-			fallbackCopyTextToClipboard(url);
+			fallbackCopyTextToClipboard(window.location.href);
 		}
 	}
 
@@ -200,11 +238,11 @@
 		document.body.removeChild(textArea);
 	}
 
-	function shareViaEmail() {
-		const url = window.location.href;
+	async function shareViaEmail() {
+		const shortUrl = await generateSearchShortUrl();
 		const subject = encodeURIComponent(`Library Search: ${queryDescription}`);
 		const body = encodeURIComponent(
-			`I found this search in the library catalog:\n\n${queryDescription}\n\n${url}`
+			`I found this search in the library catalog:\n\n${queryDescription}\n\n${shortUrl}`
 		);
 		window.location.href = `mailto:?subject=${subject}&body=${body}`;
 		shareMenuOpen = false;
@@ -247,8 +285,8 @@
 				};
 			});
 
-			// Include search URL
-			const searchUrl = window.location.href;
+			// Generate short URL for search
+			const searchUrl = await generateSearchShortUrl();
 
 			// Format and open mailto
 			const { subject, body } = formatRecordsEmail(recordsForEmail, searchUrl);
@@ -884,16 +922,16 @@
 			</p>
 
 			<div class="share-url-section">
-				<label for="share-url">Search URL</label>
+				<label for="share-url">Search URL {#if generatingShortUrl}<span class="generating-label">(generating...)</span>{/if}</label>
 				<div class="url-input-group">
 					<input
 						id="share-url"
 						type="text"
 						readonly
-						value={typeof window !== 'undefined' ? window.location.href : ''}
+						value={searchShortUrl || 'Generating short URL...'}
 						onclick={(e) => e.currentTarget.select()}
 					/>
-					<button class="copy-url-btn" onclick={copySearchLink}>
+					<button class="copy-url-btn" onclick={copySearchLink} disabled={generatingShortUrl}>
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
 							<rect
 								x="9"
@@ -1825,6 +1863,13 @@
 		font-size: 0.875rem;
 	}
 
+	.generating-label {
+		font-weight: 400;
+		color: #666;
+		font-style: italic;
+		font-size: 0.75rem;
+	}
+
 	.url-input-group {
 		display: flex;
 		gap: 0.5rem;
@@ -1864,6 +1909,11 @@
 
 	.copy-url-btn:hover {
 		background: #5568d3;
+	}
+
+	.copy-url-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	.qr-code-section {
