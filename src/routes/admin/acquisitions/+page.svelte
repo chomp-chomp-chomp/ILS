@@ -168,6 +168,16 @@
 			<p>Process invoices and record payments to vendors</p>
 		</a>
 
+		<a href="/admin/acquisitions/claims" class="module-card">
+			<h3>Claims</h3>
+			<p>Track overdue orders and manage vendor claims</p>
+		</a>
+
+		<a href="/admin/acquisitions/reports" class="module-card">
+			<h3>Reports</h3>
+			<p>Receiving history and vendor performance analytics</p>
+		</a>
+
 		<a href="/admin/acquisitions/contracts" class="module-card">
 			<h3>Contracts</h3>
 			<p>Manage vendor contracts, licenses, and renewals</p>
