@@ -11,6 +11,18 @@
 	let mobileFiltersOpen = $state(false);
 	let shareMenuOpen = $state(false);
 	let showCopiedToast = $state(false);
+	let exportModalOpen = $state(false);
+	let exportFields = $state({
+		title: true,
+		author: true,
+		isbn: true,
+		publisher: true,
+		year: true,
+		material_type: true,
+		call_number: false,
+		location: false,
+		status: false
+	});
 
 	// Computed values
 	let hasActiveFilters = $derived(
@@ -146,6 +158,116 @@
 		);
 		window.location.href = `mailto:?subject=${subject}&body=${body}`;
 		shareMenuOpen = false;
+	}
+
+	function toggleExportModal() {
+		exportModalOpen = !exportModalOpen;
+	}
+
+	function exportToCSV() {
+		// Generate CSV from current results
+		const headers: string[] = [];
+		const fieldKeys: string[] = [];
+
+		if (exportFields.title) {
+			headers.push('Title');
+			fieldKeys.push('title');
+		}
+		if (exportFields.author) {
+			headers.push('Author');
+			fieldKeys.push('author');
+		}
+		if (exportFields.isbn) {
+			headers.push('ISBN');
+			fieldKeys.push('isbn');
+		}
+		if (exportFields.publisher) {
+			headers.push('Publisher');
+			fieldKeys.push('publisher');
+		}
+		if (exportFields.year) {
+			headers.push('Publication Year');
+			fieldKeys.push('year');
+		}
+		if (exportFields.material_type) {
+			headers.push('Material Type');
+			fieldKeys.push('material_type');
+		}
+		if (exportFields.call_number) {
+			headers.push('Call Number');
+			fieldKeys.push('call_number');
+		}
+		if (exportFields.location) {
+			headers.push('Location');
+			fieldKeys.push('location');
+		}
+		if (exportFields.status) {
+			headers.push('Status');
+			fieldKeys.push('status');
+		}
+
+		// Build CSV content
+		let csvContent = headers.map((h) => `"${h}"`).join(',') + '\n';
+
+		data.results.forEach((record) => {
+			const row: string[] = [];
+
+			fieldKeys.forEach((key) => {
+				let value = '';
+				switch (key) {
+					case 'title':
+						value = record.title_statement?.a || '';
+						break;
+					case 'author':
+						value = record.main_entry_personal_name?.a || '';
+						break;
+					case 'isbn':
+						value = record.isbn || '';
+						break;
+					case 'publisher':
+						value = record.publication_info?.b || '';
+						break;
+					case 'year':
+						value = record.publication_info?.c || '';
+						break;
+					case 'material_type':
+						value = record.material_type || '';
+						break;
+					case 'call_number':
+						value = record.items?.[0]?.call_number || '';
+						break;
+					case 'location':
+						value =
+							record.items?.map((item: any) => item.location).filter(Boolean).join('; ') || '';
+						break;
+					case 'status':
+						value =
+							record.items?.map((item: any) => item.status).filter(Boolean).join('; ') || '';
+						break;
+				}
+				// Escape quotes and wrap in quotes
+				value = value.replace(/"/g, '""');
+				row.push(`"${value}"`);
+			});
+
+			csvContent += row.join(',') + '\n';
+		});
+
+		// Trigger download
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const link = document.createElement('a');
+		const url = URL.createObjectURL(blob);
+
+		const filename = `search-results-${new Date().toISOString().split('T')[0]}.csv`;
+
+		link.setAttribute('href', url);
+		link.setAttribute('download', filename);
+		link.style.visibility = 'hidden';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+
+		exportModalOpen = false;
 	}
 
 	// Calculate pagination
@@ -346,6 +468,32 @@
 						<span class="results-range"
 							>Showing {startResult}-{endResult} of {data.total.toLocaleString()}</span
 						>
+						<button class="export-btn" onclick={toggleExportModal}>
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+								<path
+									d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/>
+								<polyline
+									points="7 10 12 15 17 10"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/>
+								<line
+									x1="12"
+									y1="15"
+									x2="12"
+									y2="3"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/>
+							</svg>
+							Export
+						</button>
 					</div>
 				</div>
 
@@ -458,6 +606,67 @@
 <!-- Share menu overlay -->
 {#if shareMenuOpen}
 	<div class="share-overlay" onclick={toggleShareMenu}></div>
+{/if}
+
+<!-- Export Modal -->
+{#if exportModalOpen}
+	<div class="modal-overlay" onclick={toggleExportModal}></div>
+	<div class="modal">
+		<div class="modal-header">
+			<h2>Export Search Results</h2>
+			<button class="modal-close" onclick={toggleExportModal}>×</button>
+		</div>
+		<div class="modal-body">
+			<p class="modal-description">
+				Select which fields to include in your CSV export. Exporting {data.results.length} result{data.results
+					.length === 1
+					? ''
+					: 's'} from this page.
+			</p>
+			<div class="export-fields">
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.title} />
+					<span>Title</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.author} />
+					<span>Author</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.isbn} />
+					<span>ISBN</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.publisher} />
+					<span>Publisher</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.year} />
+					<span>Publication Year</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.material_type} />
+					<span>Material Type</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.call_number} />
+					<span>Call Number</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.location} />
+					<span>Location</span>
+				</label>
+				<label class="export-field-item">
+					<input type="checkbox" bind:checked={exportFields.status} />
+					<span>Availability Status</span>
+				</label>
+			</div>
+		</div>
+		<div class="modal-footer">
+			<button class="btn-secondary" onclick={toggleExportModal}>Cancel</button>
+			<button class="btn-primary" onclick={exportToCSV}>Download CSV</button>
+		</div>
+	</div>
 {/if}
 
 <!-- Copy confirmation toast -->
@@ -658,6 +867,135 @@
 		flex-shrink: 0;
 	}
 
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 2000;
+		animation: fadeIn 0.2s ease-out;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	.modal {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background: white;
+		border-radius: 8px;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+		max-width: 500px;
+		width: 90%;
+		max-height: 80vh;
+		overflow: hidden;
+		z-index: 2001;
+		animation: modalSlideIn 0.3s ease-out;
+	}
+
+	@keyframes modalSlideIn {
+		from {
+			transform: translate(-50%, -60%);
+			opacity: 0;
+		}
+		to {
+			transform: translate(-50%, -50%);
+			opacity: 1;
+		}
+	}
+
+	.modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.modal-header h2 {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+
+	.modal-close {
+		background: none;
+		border: none;
+		font-size: 2rem;
+		cursor: pointer;
+		color: #666;
+		padding: 0;
+		width: 32px;
+		height: 32px;
+		line-height: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		transition: background 0.2s;
+	}
+
+	.modal-close:hover {
+		background: #f0f0f0;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+		overflow-y: auto;
+		max-height: calc(80vh - 180px);
+	}
+
+	.modal-description {
+		margin: 0 0 1.5rem 0;
+		color: #666;
+		font-size: 0.875rem;
+	}
+
+	.export-fields {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.75rem;
+	}
+
+	.export-field-item {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		cursor: pointer;
+		border-radius: 4px;
+		transition: background 0.2s;
+	}
+
+	.export-field-item:hover {
+		background: #f8f9fa;
+	}
+
+	.export-field-item input[type='checkbox'] {
+		cursor: pointer;
+	}
+
+	.export-field-item span {
+		font-size: 0.875rem;
+	}
+
+	.modal-footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		border-top: 1px solid #e0e0e0;
+	}
+
 	.active-filters-bar {
 		display: flex;
 		flex-wrap: wrap;
@@ -786,9 +1124,37 @@
 		cursor: pointer;
 	}
 
+	.view-controls {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
 	.results-range {
 		font-size: 0.875rem;
 		color: #666;
+	}
+
+	.export-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: #667eea;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.export-btn:hover {
+		background: #5568d3;
+	}
+
+	.export-btn svg {
+		flex-shrink: 0;
 	}
 
 	.results-list {
@@ -1072,6 +1438,26 @@
 
 		.sort-controls select {
 			flex: 1;
+		}
+
+		.view-controls {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.75rem;
+		}
+
+		.export-btn {
+			width: 100%;
+			justify-content: center;
+		}
+
+		.export-fields {
+			grid-template-columns: 1fr;
+		}
+
+		.modal {
+			width: 95%;
+			max-height: 90vh;
 		}
 
 		.page-numbers {
