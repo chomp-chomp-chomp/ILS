@@ -5,12 +5,84 @@
 
 	const record = $derived(data.record);
 	const holdings = $derived(data.holdings || []);
+
+	let copyingLink = $state(false);
+	let showCopiedToast = $state(false);
+
+	async function copyPermalink() {
+		if (!record?.id || copyingLink) return;
+
+		copyingLink = true;
+
+		try {
+			const origin = window.location.origin;
+			const fullUrl = `${origin}/catalog/record/${record.id}`;
+
+			// Generate short URL
+			const response = await fetch('/api/shorten', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					fullUrl,
+					resourceType: 'record',
+					resourceId: record.id
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				await navigator.clipboard.writeText(data.shortUrl);
+			} else {
+				// Fallback to full URL if short URL creation fails
+				await navigator.clipboard.writeText(fullUrl);
+			}
+
+			// Show toast
+			showCopiedToast = true;
+			setTimeout(() => {
+				showCopiedToast = false;
+			}, 3000);
+		} catch (error) {
+			console.error('Failed to copy link:', error);
+			// Try fallback copy
+			try {
+				const fullUrl = `${window.location.origin}/catalog/record/${record.id}`;
+				await navigator.clipboard.writeText(fullUrl);
+				showCopiedToast = true;
+				setTimeout(() => {
+					showCopiedToast = false;
+				}, 3000);
+			} catch (fallbackError) {
+				alert('Failed to copy link. Please try again.');
+			}
+		} finally {
+			copyingLink = false;
+		}
+	}
 </script>
 
 {#if record}
 	<div class="record-page">
 		<div class="record-header">
-			<a href="/catalog" class="back-link">← Back to Catalog</a>
+			<div class="header-top">
+				<a href="/catalog" class="back-link">← Back to Catalog</a>
+				<button
+					class="copy-link-btn"
+					onclick={copyPermalink}
+					disabled={copyingLink}
+					aria-label="Copy permalink to this record"
+				>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+					</svg>
+					{#if copyingLink}
+						Copying...
+					{:else}
+						Copy Link
+					{/if}
+				</button>
+			</div>
 			<h1>{record.title_statement?.a || 'Untitled'}</h1>
 			{#if record.title_statement?.b}
 				<h2 class="subtitle">{record.title_statement.b}</h2>
@@ -119,6 +191,16 @@
 	</div>
 {/if}
 
+<!-- Copy confirmation toast -->
+{#if showCopiedToast}
+	<div class="toast">
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+			<polyline points="20 6 9 17 4 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+		</svg>
+		Link copied to clipboard!
+	</div>
+{/if}
+
 <style>
 	.record-page {
 		max-width: 1400px;
@@ -130,15 +212,48 @@
 		margin-bottom: 2rem;
 	}
 
+	.header-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+	}
+
 	.back-link {
 		display: inline-block;
 		color: #667eea;
 		text-decoration: none;
-		margin-bottom: 1rem;
 	}
 
 	.back-link:hover {
 		text-decoration: underline;
+	}
+
+	.copy-link-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: #667eea;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.copy-link-btn:hover {
+		background: #5568d3;
+	}
+
+	.copy-link-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.copy-link-btn svg {
+		flex-shrink: 0;
 	}
 
 	h1 {
@@ -302,6 +417,40 @@
 		text-decoration: underline;
 	}
 
+	.toast {
+		position: fixed;
+		bottom: 2rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #2e7d32;
+		color: white;
+		padding: 1rem 1.5rem;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		z-index: 2000;
+		animation: slideUp 0.3s ease-out;
+	}
+
+	@keyframes slideUp {
+		from {
+			transform: translateX(-50%) translateY(100px);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(-50%) translateY(0);
+			opacity: 1;
+		}
+	}
+
+	.toast svg {
+		flex-shrink: 0;
+	}
+
 	@media (max-width: 768px) {
 		.record-body {
 			grid-template-columns: 1fr;
@@ -314,6 +463,34 @@
 		.field {
 			grid-template-columns: 1fr;
 			gap: 0.25rem;
+		}
+
+		.header-top {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.75rem;
+		}
+
+		.copy-link-btn {
+			width: 100%;
+			justify-content: center;
+		}
+
+		.toast {
+			left: 1rem;
+			right: 1rem;
+			transform: none;
+		}
+
+		@keyframes slideUp {
+			from {
+				transform: translateY(100px);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
 		}
 	}
 </style>
