@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import type { LayoutData } from './$types';
 	import favicon from '$lib/assets/favicon.svg';
+	import AccessibilitySettings from '$lib/components/AccessibilitySettings.svelte';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 
@@ -22,4 +23,8 @@
 	<title>Library Catalog System</title>
 </svelte:head>
 
-{@render children()}
+<AccessibilitySettings />
+
+<main id="main-content">
+	{@render children()}
+</main>
