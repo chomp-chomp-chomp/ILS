@@ -5,6 +5,7 @@
 	import FacetSidebar from './FacetSidebar.svelte';
 	import BookCover from '$lib/components/BookCover.svelte';
 	import QRCode from 'qrcode';
+	import { generateShortUrls, formatRecordsEmail, openMailto, canFitInEmail } from '$lib/utils/emailFormatter';
 
 	let { data }: { data: PageData } = $props();
 
@@ -15,6 +16,8 @@
 	let showCopiedToast = $state(false);
 	let exportModalOpen = $state(false);
 	let qrCodeDataUrl = $state('');
+	let selectedRecords = $state<string[]>([]);
+	let emailingRecords = $state(false);
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -209,6 +212,74 @@
 
 	function toggleExportModal() {
 		exportModalOpen = !exportModalOpen;
+	}
+
+	async function emailSelectedRecords() {
+		if (selectedRecords.length === 0) {
+			alert('Please select at least one record to email.');
+			return;
+		}
+
+		// Check if selection fits in email
+		const { fits, maxRecords } = canFitInEmail(selectedRecords.length);
+		if (!fits) {
+			alert(`Too many records selected. Maximum ${maxRecords} records can fit in an email. Please select fewer records.`);
+			return;
+		}
+
+		emailingRecords = true;
+
+		try {
+			// Get origin for URLs
+			const origin = window.location.origin;
+
+			// Generate short URLs for selected records
+			const shortUrls = await generateShortUrls(selectedRecords, origin);
+
+			// Format records for email
+			const recordsForEmail = selectedRecords.map(id => {
+				const record = data.results.find(r => r.id === id);
+				return {
+					id,
+					title: record?.title_statement?.a || 'Untitled',
+					author: record?.main_entry_personal_name?.a,
+					shortUrl: shortUrls.get(id)
+				};
+			});
+
+			// Include search URL
+			const searchUrl = window.location.href;
+
+			// Format and open mailto
+			const { subject, body } = formatRecordsEmail(recordsForEmail, searchUrl);
+			openMailto(subject, body);
+
+			// Clear selection after sending
+			setTimeout(() => {
+				selectedRecords = [];
+			}, 1000);
+		} catch (error) {
+			console.error('Error emailing records:', error);
+			alert('Failed to prepare email. Please try again.');
+		} finally {
+			emailingRecords = false;
+		}
+	}
+
+	function toggleRecordSelection(recordId: string) {
+		if (selectedRecords.includes(recordId)) {
+			selectedRecords = selectedRecords.filter(id => id !== recordId);
+		} else {
+			selectedRecords = [...selectedRecords, recordId];
+		}
+	}
+
+	function selectAllRecords() {
+		selectedRecords = data.results.map(r => r.id);
+	}
+
+	function clearSelection() {
+		selectedRecords = [];
 	}
 
 	function exportToCSV() {
@@ -566,8 +637,31 @@
 						<span class="results-range"
 							>Showing {startResult}-{endResult} of {data.total.toLocaleString()}</span
 						>
-						<button class="export-btn" onclick={toggleExportModal}>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+						{#if selectedRecords.length > 0}
+							<button class="email-btn" onclick={emailSelectedRecords} disabled={emailingRecords} aria-label="Email {selectedRecords.length} selected records">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+									<path
+										d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+									<polyline
+										points="22,6 12,13 2,6"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+								{#if emailingRecords}
+									Preparing...
+								{:else}
+									Email ({selectedRecords.length})
+								{/if}
+							</button>
+						{/if}
+						<button class="export-btn" onclick={toggleExportModal} aria-label="Export search results to CSV">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
 								<path
 									d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
 									stroke-width="2"
@@ -598,7 +692,16 @@
 				<!-- Results List -->
 				<div class="results-list">
 					{#each data.results as record}
-						<article class="result-card">
+						<article class="result-card" class:selected={selectedRecords.includes(record.id)}>
+							<div class="result-checkbox">
+								<input
+									type="checkbox"
+									id="select-{record.id}"
+									checked={selectedRecords.includes(record.id)}
+									onchange={() => toggleRecordSelection(record.id)}
+									aria-label="Select {record.title_statement?.a || 'Untitled'}"
+								/>
+							</div>
 							<div class="result-cover">
 								<BookCover isbn={record.isbn} size="medium" />
 							</div>
@@ -1454,6 +1557,33 @@
 		flex-shrink: 0;
 	}
 
+	.email-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: #e73b42;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.email-btn:hover {
+		background: #c62828;
+	}
+
+	.email-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.email-btn svg {
+		flex-shrink: 0;
+	}
+
 	.results-list {
 		display: flex;
 		flex-direction: column;
@@ -1462,7 +1592,7 @@
 
 	.result-card {
 		display: grid;
-		grid-template-columns: 120px 1fr;
+		grid-template-columns: 40px 120px 1fr;
 		gap: 1.5rem;
 		padding: 1.5rem;
 		background: white;
@@ -1474,6 +1604,30 @@
 	.result-card:hover {
 		border-color: #667eea;
 		box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+	}
+
+	.result-card.selected {
+		border-color: #e73b42;
+		background: #fff5f5;
+		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.15);
+	}
+
+	.result-checkbox {
+		display: flex;
+		align-items: flex-start;
+		padding-top: 0.25rem;
+	}
+
+	.result-checkbox input[type="checkbox"] {
+		width: 20px;
+		height: 20px;
+		cursor: pointer;
+		accent-color: #e73b42;
+	}
+
+	.result-checkbox input[type="checkbox"]:focus {
+		outline: 2px solid #667eea;
+		outline-offset: 2px;
 	}
 
 	.result-cover {
@@ -1862,9 +2016,14 @@
 		}
 
 		.result-card {
-			grid-template-columns: 80px 1fr;
+			grid-template-columns: 30px 80px 1fr;
 			gap: 1rem;
 			padding: 1rem;
+		}
+
+		.result-checkbox input[type="checkbox"] {
+			width: 18px;
+			height: 18px;
 		}
 
 		.result-cover {
@@ -1895,7 +2054,8 @@
 			gap: 0.75rem;
 		}
 
-		.export-btn {
+		.export-btn,
+		.email-btn {
 			width: 100%;
 			justify-content: center;
 		}
