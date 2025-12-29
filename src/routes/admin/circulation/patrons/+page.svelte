@@ -92,12 +92,58 @@
 			default: return '';
 		}
 	}
+
+	let selectedPatrons = $state<Set<string>>(new Set());
+
+	function togglePatron(id: string) {
+		if (selectedPatrons.has(id)) {
+			selectedPatrons.delete(id);
+		} else {
+			selectedPatrons.add(id);
+		}
+		selectedPatrons = new Set(selectedPatrons); // Trigger reactivity
+	}
+
+	function toggleAll() {
+		if (selectedPatrons.size === filteredPatrons.length) {
+			selectedPatrons.clear();
+		} else {
+			selectedPatrons = new Set(filteredPatrons.map(p => p.id));
+		}
+	}
+
+	async function bulkDelete() {
+		if (selectedPatrons.size === 0) {
+			alert('No patrons selected');
+			return;
+		}
+
+		if (!confirm(`Delete ${selectedPatrons.size} selected patron(s)? This will also delete their checkout history.`)) {
+			return;
+		}
+
+		try {
+			const ids = Array.from(selectedPatrons);
+			const { error: deleteError } = await data.supabase
+				.from('patrons')
+				.delete()
+				.in('id', ids);
+
+			if (deleteError) throw deleteError;
+
+			selectedPatrons.clear();
+			await loadPatrons();
+		} catch (err: any) {
+			alert(`Error deleting patrons: ${err.message}`);
+		}
+	}
 </script>
 
 <div class="patrons-page">
 	<header class="page-header">
 		<h1>Patron Management</h1>
 		<div class="actions">
+			<a href="/admin/circulation/patrons/bulk-upload" class="btn-upload">Bulk Upload</a>
 			<a href="/admin/circulation/patrons/new" class="btn-primary">Add New Patron</a>
 		</div>
 	</header>
@@ -124,6 +170,11 @@
 					<option value="blocked">Blocked</option>
 					<option value="suspended">Suspended</option>
 				</select>
+				{#if selectedPatrons.size > 0}
+					<button onclick={bulkDelete} class="btn-bulk-delete">
+						Delete Selected ({selectedPatrons.size})
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -141,6 +192,13 @@
 					<table class="patrons-table">
 						<thead>
 							<tr>
+								<th class="checkbox-col">
+									<input
+										type="checkbox"
+										checked={selectedPatrons.size === filteredPatrons.length && filteredPatrons.length > 0}
+										onchange={toggleAll}
+									/>
+								</th>
 								<th>Barcode</th>
 								<th>Name</th>
 								<th>Email</th>
@@ -155,6 +213,13 @@
 						<tbody>
 							{#each filteredPatrons as patron}
 								<tr>
+									<td class="checkbox-col">
+										<input
+											type="checkbox"
+											checked={selectedPatrons.has(patron.id)}
+											onchange={() => togglePatron(patron.id)}
+										/>
+									</td>
 									<td class="barcode">{patron.barcode}</td>
 									<td class="name">
 										<a href="/admin/circulation/patrons/{patron.id}">
@@ -228,6 +293,36 @@
 
 	.btn-primary:hover {
 		background: #d12d34;
+	}
+
+	.btn-upload {
+		padding: 0.75rem 1.5rem;
+		border-radius: 4px;
+		text-decoration: none;
+		font-size: 0.875rem;
+		transition: all 0.2s;
+		background: #f59e0b;
+		color: white;
+	}
+
+	.btn-upload:hover {
+		background: #d97706;
+	}
+
+	.btn-bulk-delete {
+		padding: 0.5rem 1rem;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		border: none;
+		transition: all 0.2s;
+		background: #f44336;
+		color: white;
+		font-weight: 500;
+	}
+
+	.btn-bulk-delete:hover {
+		background: #d32f2f;
 	}
 
 	.controls {
@@ -338,6 +433,17 @@
 
 	.patrons-table tbody tr:hover {
 		background: #f8f9fa;
+	}
+
+	.checkbox-col {
+		width: 40px;
+		text-align: center;
+	}
+
+	.checkbox-col input[type="checkbox"] {
+		width: 18px;
+		height: 18px;
+		cursor: pointer;
 	}
 
 	.barcode {
