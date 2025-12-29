@@ -95,6 +95,10 @@
 		updateUrl({ sort: newSort });
 	}
 
+	function searchWithSuggestion(suggestion: string) {
+		updateUrl({ q: suggestion, page: 1 });
+	}
+
 	function clearAllFilters() {
 		updateUrl({
 			material_types: null,
@@ -359,6 +363,26 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Spell Suggestion -->
+		{#if data.spellSuggestion}
+			<div class="spell-suggestion">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+					<circle cx="12" cy="12" r="10" stroke-width="2" />
+					<path d="M12 16h.01M12 8v4" stroke-width="2" stroke-linecap="round" />
+				</svg>
+				<span class="suggestion-text">Did you mean:</span>
+				<button
+					class="suggestion-link"
+					onclick={() => searchWithSuggestion(data.spellSuggestion!.suggested_query)}
+				>
+					{data.spellSuggestion.suggested_query}
+				</button>
+				<span class="suggestion-confidence"
+					>({Math.round(data.spellSuggestion.confidence * 100)}% match)</span
+				>
+			</div>
+		{/if}
 
 		{#if hasActiveFilters}
 			<div class="active-filters-bar">
@@ -994,6 +1018,62 @@
 		gap: 0.75rem;
 		padding: 1.5rem;
 		border-top: 1px solid #e0e0e0;
+	}
+
+	.spell-suggestion {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1rem;
+		background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+		border: 1px solid #ffb74d;
+		border-radius: 8px;
+		margin-bottom: 1rem;
+		animation: slideDown 0.3s ease-out;
+	}
+
+	@keyframes slideDown {
+		from {
+			opacity: 0;
+			transform: translateY(-10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.spell-suggestion svg {
+		color: #f57c00;
+		flex-shrink: 0;
+	}
+
+	.suggestion-text {
+		font-size: 0.875rem;
+		color: #e65100;
+		font-weight: 500;
+	}
+
+	.suggestion-link {
+		background: none;
+		border: none;
+		color: #1565c0;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		text-decoration: underline;
+		padding: 0;
+		transition: color 0.2s;
+	}
+
+	.suggestion-link:hover {
+		color: #0d47a1;
+	}
+
+	.suggestion-confidence {
+		font-size: 0.75rem;
+		color: #f57c00;
+		font-style: italic;
 	}
 
 	.active-filters-bar {

@@ -37,6 +37,11 @@ export interface FacetGroup {
 	locations: Facet[];
 }
 
+export interface SpellSuggestion {
+	suggested_query: string;
+	confidence: number;
+}
+
 export interface SearchResult {
 	results: any[];
 	facets: FacetGroup;
@@ -44,6 +49,7 @@ export interface SearchResult {
 	page: number;
 	per_page: number;
 	query: SearchParams;
+	spellSuggestion?: SpellSuggestion;
 }
 
 export const load: PageServerLoad = async ({ url, locals }) => {
@@ -77,10 +83,22 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			computeFacets(supabase, params)
 		]);
 
+		// Check if we should suggest spell corrections
+		let spellSuggestion: SpellSuggestion | undefined;
+
+		// Only suggest corrections for keyword searches with few/no results
+		if (params.q && results.total < 5) {
+			const suggestion = await getSpellSuggestion(supabase, params.q);
+			if (suggestion) {
+				spellSuggestion = suggestion;
+			}
+		}
+
 		return {
 			...results,
 			facets,
-			query: params
+			query: params,
+			spellSuggestion
 		};
 	} catch (error) {
 		console.error('Search error:', error);
@@ -587,4 +605,38 @@ function formatLanguage(code: string): string {
 		// Add more as needed
 	};
 	return languageMap[code] || code.toUpperCase();
+}
+
+async function getSpellSuggestion(
+	supabase: SupabaseClient,
+	query: string
+): Promise<SpellSuggestion | null> {
+	try {
+		// Call the PostgreSQL function for spell correction
+		const { data, error } = await supabase.rpc('suggest_query_correction', {
+			search_query: query
+		});
+
+		if (error) {
+			console.error('Spell suggestion error:', error);
+			return null;
+		}
+
+		// Return the first suggestion if available and confidence is reasonable
+		if (data && data.length > 0) {
+			const suggestion = data[0];
+			// Only suggest if confidence is above threshold (40%)
+			if (suggestion.confidence >= 0.4) {
+				return {
+					suggested_query: suggestion.suggested_query,
+					confidence: suggestion.confidence
+				};
+			}
+		}
+
+		return null;
+	} catch (error) {
+		console.error('Spell suggestion exception:', error);
+		return null;
+	}
 }
