@@ -1,48 +1,99 @@
 -- Serials Management System Migration
 -- Comprehensive serials tracking with prediction patterns, check-in, claiming, and binding
+-- This migration safely updates existing serials table and adds new tables
 
--- 1. Serial Titles Table
-CREATE TABLE serials (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
+-- 1. Update or Create Serials Table
+DO $$
+BEGIN
+    -- Check if serials table exists
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'serials') THEN
+        -- Create table if it doesn't exist
+        CREATE TABLE serials (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW(),
+            title VARCHAR(500) NOT NULL,
+            issn VARCHAR(20),
+            frequency VARCHAR(50) DEFAULT 'monthly',
+            format VARCHAR(50) DEFAULT 'print',
+            url TEXT,
+            email_list VARCHAR(255),
+            vendor_id UUID REFERENCES vendors(id),
+            budget_id UUID REFERENCES budgets(id),
+            subscription_start DATE,
+            subscription_end DATE,
+            status VARCHAR(50) DEFAULT 'active',
+            is_active BOOLEAN DEFAULT TRUE,
+            public_display BOOLEAN DEFAULT TRUE,
+            public_notes TEXT,
+            notes TEXT
+        );
+    END IF;
 
-  -- Basic Information
-  title VARCHAR(500) NOT NULL,
-  issn VARCHAR(20),
-  frequency VARCHAR(50) DEFAULT 'monthly', -- daily, weekly, monthly, quarterly, annual, irregular
-  format VARCHAR(50) DEFAULT 'print', -- print, electronic, email_newsletter
+    -- Add columns if they don't exist (for existing tables)
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'vendor_id') THEN
+        ALTER TABLE serials ADD COLUMN vendor_id UUID REFERENCES vendors(id);
+    END IF;
 
-  -- Electronic Access
-  url TEXT,
-  email_list VARCHAR(255),
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'budget_id') THEN
+        ALTER TABLE serials ADD COLUMN budget_id UUID REFERENCES budgets(id);
+    END IF;
 
-  -- Subscription Details
-  vendor_id UUID REFERENCES vendors(id),
-  budget_id UUID REFERENCES budgets(id),
-  subscription_start DATE,
-  subscription_end DATE,
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'status') THEN
+        ALTER TABLE serials ADD COLUMN status VARCHAR(50) DEFAULT 'active';
+    END IF;
 
-  -- Status
-  status VARCHAR(50) DEFAULT 'active', -- active, cancelled, trial, lapsed
-  is_active BOOLEAN DEFAULT TRUE,
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'public_display') THEN
+        ALTER TABLE serials ADD COLUMN public_display BOOLEAN DEFAULT TRUE;
+    END IF;
 
-  -- Public Display
-  public_display BOOLEAN DEFAULT TRUE,
-  public_notes TEXT,
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'public_notes') THEN
+        ALTER TABLE serials ADD COLUMN public_notes TEXT;
+    END IF;
 
-  -- Internal Notes
-  notes TEXT
-);
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'notes') THEN
+        ALTER TABLE serials ADD COLUMN notes TEXT;
+    END IF;
 
-CREATE INDEX idx_serials_title ON serials(title);
-CREATE INDEX idx_serials_issn ON serials(issn);
-CREATE INDEX idx_serials_status ON serials(status);
-CREATE INDEX idx_serials_vendor ON serials(vendor_id);
-CREATE INDEX idx_serials_budget ON serials(budget_id);
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'created_at') THEN
+        ALTER TABLE serials ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+
+    IF NOT EXISTS (SELECT FROM information_schema.columns
+                   WHERE table_name = 'serials' AND column_name = 'updated_at') THEN
+        ALTER TABLE serials ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+END $$;
+
+-- Create indexes for serials if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_serials_title') THEN
+        CREATE INDEX idx_serials_title ON serials(title);
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_serials_issn') THEN
+        CREATE INDEX idx_serials_issn ON serials(issn);
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_serials_status') THEN
+        CREATE INDEX idx_serials_status ON serials(status);
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_serials_vendor') THEN
+        CREATE INDEX idx_serials_vendor ON serials(vendor_id);
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_serials_budget') THEN
+        CREATE INDEX idx_serials_budget ON serials(budget_id);
+    END IF;
+END $$;
 
 -- 2. Prediction Patterns Table
-CREATE TABLE serial_prediction_patterns (
+CREATE TABLE IF NOT EXISTS serial_prediction_patterns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   serial_id UUID NOT NULL REFERENCES serials(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -53,47 +104,47 @@ CREATE TABLE serial_prediction_patterns (
   is_active BOOLEAN DEFAULT TRUE,
 
   -- Frequency & Schedule
-  frequency VARCHAR(50) NOT NULL, -- daily, weekly, monthly, quarterly, annual, irregular
+  frequency VARCHAR(50) NOT NULL,
   issues_per_year INTEGER,
 
-  -- Enumeration Pattern (Volume/Issue numbering)
-  enum_type VARCHAR(50), -- sequential, calendar, seasonal, custom
+  -- Enumeration Pattern
+  enum_type VARCHAR(50),
   volume_start INTEGER DEFAULT 1,
   volume_increment INTEGER DEFAULT 1,
   issue_start INTEGER DEFAULT 1,
   issue_increment INTEGER DEFAULT 1,
   reset_issue_on_volume_change BOOLEAN DEFAULT TRUE,
 
-  -- Chronology Pattern (Year/Month/Season)
-  chron_type VARCHAR(50), -- year, year_month, year_season, custom
+  -- Chronology Pattern
+  chron_type VARCHAR(50),
   use_publication_date BOOLEAN DEFAULT TRUE,
 
-  -- Season enumeration (for quarterly/seasonal publications)
-  season_pattern VARCHAR(50), -- spring_summer_fall_winter, quarterly, custom
+  -- Season enumeration
+  season_pattern VARCHAR(50),
 
   -- Combined Issues Support
   allow_combined_issues BOOLEAN DEFAULT FALSE,
-  combined_months TEXT[], -- e.g., ['7-8', '12-1'] for July/August, December/January
+  combined_months TEXT[],
 
   -- Irregular Schedule
-  irregular_schedule JSONB, -- For irregular publications, store expected dates
+  irregular_schedule JSONB,
 
   -- Generation Settings
   start_date DATE NOT NULL,
   end_date DATE,
-  generate_ahead_months INTEGER DEFAULT 12, -- How many months ahead to generate
+  generate_ahead_months INTEGER DEFAULT 12,
 
-  -- Pattern Template (for display)
-  display_template VARCHAR(500), -- e.g., "Vol. {volume} No. {issue} ({month} {year})"
+  -- Pattern Template
+  display_template VARCHAR(500),
 
   notes TEXT
 );
 
-CREATE INDEX idx_prediction_patterns_serial ON serial_prediction_patterns(serial_id);
-CREATE INDEX idx_prediction_patterns_active ON serial_prediction_patterns(is_active);
+CREATE INDEX IF NOT EXISTS idx_prediction_patterns_serial ON serial_prediction_patterns(serial_id);
+CREATE INDEX IF NOT EXISTS idx_prediction_patterns_active ON serial_prediction_patterns(is_active);
 
--- 3. Serial Issues Table (Expected and Received)
-CREATE TABLE serial_issues (
+-- 3. Serial Issues Table
+CREATE TABLE IF NOT EXISTS serial_issues (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   serial_id UUID NOT NULL REFERENCES serials(id) ON DELETE CASCADE,
   prediction_pattern_id UUID REFERENCES serial_prediction_patterns(id) ON DELETE SET NULL,
@@ -110,20 +161,20 @@ CREATE TABLE serial_issues (
   season VARCHAR(50),
 
   -- Display
-  display_text VARCHAR(500), -- e.g., "Vol. 45 No. 3 (March 2025)"
+  display_text VARCHAR(500),
 
   -- Expected Information
   expected_date DATE,
   is_combined BOOLEAN DEFAULT FALSE,
-  combined_with TEXT, -- Description of combination, e.g., "July/August"
+  combined_with TEXT,
 
   -- Receiving Status
-  status VARCHAR(50) DEFAULT 'expected', -- expected, received, late, claimed, missing, cancelled
+  status VARCHAR(50) DEFAULT 'expected',
   received_date DATE,
   received_by TEXT,
 
   -- Condition & Notes
-  condition VARCHAR(50), -- excellent, good, damaged, incomplete
+  condition VARCHAR(50),
   condition_notes TEXT,
   notes TEXT,
 
@@ -137,21 +188,21 @@ CREATE TABLE serial_issues (
   last_claim_date DATE,
 
   -- Binding
-  binding_status VARCHAR(50) DEFAULT 'unbound', -- unbound, marked_for_binding, in_binding, bound
+  binding_status VARCHAR(50) DEFAULT 'unbound',
   binding_batch_id UUID,
-  bound_volume_id UUID -- Reference to catalog record for bound volume
+  bound_volume_id UUID
 );
 
-CREATE INDEX idx_serial_issues_serial ON serial_issues(serial_id);
-CREATE INDEX idx_serial_issues_pattern ON serial_issues(prediction_pattern_id);
-CREATE INDEX idx_serial_issues_status ON serial_issues(status);
-CREATE INDEX idx_serial_issues_expected_date ON serial_issues(expected_date);
-CREATE INDEX idx_serial_issues_received_date ON serial_issues(received_date);
-CREATE INDEX idx_serial_issues_binding_status ON serial_issues(binding_status);
-CREATE INDEX idx_serial_issues_binding_batch ON serial_issues(binding_batch_id);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_serial ON serial_issues(serial_id);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_pattern ON serial_issues(prediction_pattern_id);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_status ON serial_issues(status);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_expected_date ON serial_issues(expected_date);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_received_date ON serial_issues(received_date);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_binding_status ON serial_issues(binding_status);
+CREATE INDEX IF NOT EXISTS idx_serial_issues_binding_batch ON serial_issues(binding_batch_id);
 
 -- 4. Serial Claims Table
-CREATE TABLE serial_claims (
+CREATE TABLE IF NOT EXISTS serial_claims (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   serial_id UUID NOT NULL REFERENCES serials(id) ON DELETE CASCADE,
   serial_issue_id UUID NOT NULL REFERENCES serial_issues(id) ON DELETE CASCADE,
@@ -159,12 +210,12 @@ CREATE TABLE serial_claims (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Claim Information
-  claim_number INTEGER NOT NULL, -- 1st claim, 2nd claim, etc.
+  claim_number INTEGER NOT NULL,
   claim_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  claim_type VARCHAR(50) DEFAULT 'missing', -- missing, late, damaged
+  claim_type VARCHAR(50) DEFAULT 'missing',
 
   -- Contact Information
-  claim_method VARCHAR(50), -- email, phone, form, letter
+  claim_method VARCHAR(50),
   claimed_by TEXT NOT NULL,
   vendor_id UUID REFERENCES vendors(id),
 
@@ -174,8 +225,8 @@ CREATE TABLE serial_claims (
   expected_resolution_date DATE,
 
   -- Status
-  status VARCHAR(50) DEFAULT 'pending', -- pending, acknowledged, resolved, escalated, cancelled
-  resolution VARCHAR(50), -- received, replaced, refunded, cancelled, credited
+  status VARCHAR(50) DEFAULT 'pending',
+  resolution VARCHAR(50),
 
   -- Escalation
   escalation_level INTEGER DEFAULT 1,
@@ -184,14 +235,14 @@ CREATE TABLE serial_claims (
   notes TEXT
 );
 
-CREATE INDEX idx_serial_claims_serial ON serial_claims(serial_id);
-CREATE INDEX idx_serial_claims_issue ON serial_claims(serial_issue_id);
-CREATE INDEX idx_serial_claims_status ON serial_claims(status);
-CREATE INDEX idx_serial_claims_date ON serial_claims(claim_date);
-CREATE INDEX idx_serial_claims_vendor ON serial_claims(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_serial_claims_serial ON serial_claims(serial_id);
+CREATE INDEX IF NOT EXISTS idx_serial_claims_issue ON serial_claims(serial_issue_id);
+CREATE INDEX IF NOT EXISTS idx_serial_claims_status ON serial_claims(status);
+CREATE INDEX IF NOT EXISTS idx_serial_claims_date ON serial_claims(claim_date);
+CREATE INDEX IF NOT EXISTS idx_serial_claims_vendor ON serial_claims(vendor_id);
 
 -- 5. Binding Batches Table
-CREATE TABLE serial_binding_batches (
+CREATE TABLE IF NOT EXISTS serial_binding_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -209,7 +260,7 @@ CREATE TABLE serial_binding_batches (
   returned_date DATE,
 
   -- Status
-  status VARCHAR(50) DEFAULT 'preparing', -- preparing, sent, in_binding, returned, complete
+  status VARCHAR(50) DEFAULT 'preparing',
 
   -- Costs
   estimated_cost DECIMAL(10,2),
@@ -223,12 +274,12 @@ CREATE TABLE serial_binding_batches (
   notes TEXT
 );
 
-CREATE INDEX idx_binding_batches_status ON serial_binding_batches(status);
-CREATE INDEX idx_binding_batches_bindery ON serial_binding_batches(bindery_vendor_id);
-CREATE INDEX idx_binding_batches_sent_date ON serial_binding_batches(sent_date);
+CREATE INDEX IF NOT EXISTS idx_binding_batches_status ON serial_binding_batches(status);
+CREATE INDEX IF NOT EXISTS idx_binding_batches_bindery ON serial_binding_batches(bindery_vendor_id);
+CREATE INDEX IF NOT EXISTS idx_binding_batches_sent_date ON serial_binding_batches(sent_date);
 
--- 6. Binding Items Table (issues in a batch)
-CREATE TABLE serial_binding_items (
+-- 6. Binding Items Table
+CREATE TABLE IF NOT EXISTS serial_binding_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   binding_batch_id UUID NOT NULL REFERENCES serial_binding_batches(id) ON DELETE CASCADE,
   serial_id UUID NOT NULL REFERENCES serials(id) ON DELETE CASCADE,
@@ -241,23 +292,32 @@ CREATE TABLE serial_binding_items (
   spine_label TEXT,
 
   -- Cataloging
-  marc_record_id UUID REFERENCES marc_records(id),
+  marc_record_id UUID,
   call_number VARCHAR(255),
 
   -- Status
-  status VARCHAR(50) DEFAULT 'included', -- included, returned, missing
+  status VARCHAR(50) DEFAULT 'included',
 
   notes TEXT
 );
 
-CREATE INDEX idx_binding_items_batch ON serial_binding_items(binding_batch_id);
-CREATE INDEX idx_binding_items_serial ON serial_binding_items(serial_id);
-CREATE INDEX idx_binding_items_issue ON serial_binding_items(serial_issue_id);
+CREATE INDEX IF NOT EXISTS idx_binding_items_batch ON serial_binding_items(binding_batch_id);
+CREATE INDEX IF NOT EXISTS idx_binding_items_serial ON serial_binding_items(serial_id);
+CREATE INDEX IF NOT EXISTS idx_binding_items_issue ON serial_binding_items(serial_issue_id);
 
--- Add foreign key to serial_issues for binding batch
-ALTER TABLE serial_issues
-ADD CONSTRAINT fk_serial_issues_binding_batch
-FOREIGN KEY (binding_batch_id) REFERENCES serial_binding_batches(id) ON DELETE SET NULL;
+-- Add foreign key constraint for binding_batch_id if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'fk_serial_issues_binding_batch'
+        AND table_name = 'serial_issues'
+    ) THEN
+        ALTER TABLE serial_issues
+        ADD CONSTRAINT fk_serial_issues_binding_batch
+        FOREIGN KEY (binding_batch_id) REFERENCES serial_binding_batches(id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- Row Level Security
 ALTER TABLE serials ENABLE ROW LEVEL SECURITY;
@@ -267,49 +327,57 @@ ALTER TABLE serial_claims ENABLE ROW LEVEL SECURITY;
 ALTER TABLE serial_binding_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE serial_binding_items ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for authenticated users
+-- Drop existing policies if they exist and recreate
+DROP POLICY IF EXISTS "Authenticated users can manage serials" ON serials;
 CREATE POLICY "Authenticated users can manage serials"
   ON serials FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage prediction patterns" ON serial_prediction_patterns;
 CREATE POLICY "Authenticated users can manage prediction patterns"
   ON serial_prediction_patterns FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage issues" ON serial_issues;
 CREATE POLICY "Authenticated users can manage issues"
   ON serial_issues FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage claims" ON serial_claims;
 CREATE POLICY "Authenticated users can manage claims"
   ON serial_claims FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage binding batches" ON serial_binding_batches;
 CREATE POLICY "Authenticated users can manage binding batches"
   ON serial_binding_batches FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage binding items" ON serial_binding_items;
 CREATE POLICY "Authenticated users can manage binding items"
   ON serial_binding_items FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
--- RLS Policies for public display (read-only)
+-- Public access policies
+DROP POLICY IF EXISTS "Public can view active serials" ON serials;
 CREATE POLICY "Public can view active serials"
   ON serials FOR SELECT
   TO anon
   USING (public_display = true AND is_active = true);
 
+DROP POLICY IF EXISTS "Public can view received issues" ON serial_issues;
 CREATE POLICY "Public can view received issues"
   ON serial_issues FOR SELECT
   TO anon
@@ -324,8 +392,6 @@ CREATE POLICY "Public can view received issues"
   );
 
 -- Triggers
-
--- Update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_serials_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -334,44 +400,49 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_serials_updated_at ON serials;
 CREATE TRIGGER trigger_serials_updated_at
   BEFORE UPDATE ON serials
   FOR EACH ROW
   EXECUTE FUNCTION update_serials_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_prediction_patterns_updated_at ON serial_prediction_patterns;
 CREATE TRIGGER trigger_prediction_patterns_updated_at
   BEFORE UPDATE ON serial_prediction_patterns
   FOR EACH ROW
   EXECUTE FUNCTION update_serials_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_serial_issues_updated_at ON serial_issues;
 CREATE TRIGGER trigger_serial_issues_updated_at
   BEFORE UPDATE ON serial_issues
   FOR EACH ROW
   EXECUTE FUNCTION update_serials_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_serial_claims_updated_at ON serial_claims;
 CREATE TRIGGER trigger_serial_claims_updated_at
   BEFORE UPDATE ON serial_claims
   FOR EACH ROW
   EXECUTE FUNCTION update_serials_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_binding_batches_updated_at ON serial_binding_batches;
 CREATE TRIGGER trigger_binding_batches_updated_at
   BEFORE UPDATE ON serial_binding_batches
   FOR EACH ROW
   EXECUTE FUNCTION update_serials_updated_at();
 
--- Auto-update issue status to 'late' when expected date passes
+-- Function to check late issues
 CREATE OR REPLACE FUNCTION check_late_serial_issues()
 RETURNS void AS $$
 BEGIN
   UPDATE serial_issues
   SET status = 'late'
   WHERE status = 'expected'
-    AND expected_date < CURRENT_DATE - INTERVAL '7 days' -- Grace period
+    AND expected_date < CURRENT_DATE - INTERVAL '7 days'
     AND expected_date IS NOT NULL;
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to generate predicted issues based on pattern
+-- Function to generate predicted issues
 CREATE OR REPLACE FUNCTION generate_predicted_issues(
   p_pattern_id UUID,
   p_months_ahead INTEGER DEFAULT 12
@@ -399,7 +470,7 @@ BEGIN
   -- Get serial details
   SELECT * INTO v_serial FROM serials WHERE id = v_pattern.serial_id;
 
-  -- Get last generated issue to continue numbering
+  -- Get last generated issue
   SELECT * INTO v_last_issue
   FROM serial_issues
   WHERE serial_id = v_pattern.serial_id
@@ -427,7 +498,6 @@ BEGIN
 
     -- Check if we need to reset issue and increment volume
     IF v_pattern.reset_issue_on_volume_change THEN
-      -- Reset based on frequency
       IF (v_pattern.frequency = 'monthly' AND v_issue > 12) OR
          (v_pattern.frequency = 'quarterly' AND v_issue > 4) OR
          (v_pattern.frequency = 'weekly' AND v_issue > 52) THEN
@@ -449,7 +519,7 @@ BEGIN
     v_display_text := REPLACE(v_display_text, '{year}', v_year::TEXT);
     v_display_text := REPLACE(v_display_text, '{month}', TO_CHAR(v_current_date, 'Month'));
 
-    -- Insert issue if it doesn't already exist
+    -- Insert issue if it doesn't exist
     INSERT INTO serial_issues (
       serial_id,
       prediction_pattern_id,
@@ -489,7 +559,7 @@ BEGIN
       WHEN 'monthly' THEN v_current_date := v_current_date + INTERVAL '1 month';
       WHEN 'quarterly' THEN v_current_date := v_current_date + INTERVAL '3 months';
       WHEN 'annual' THEN v_current_date := v_current_date + INTERVAL '1 year';
-      ELSE EXIT; -- Exit for irregular frequencies
+      ELSE EXIT;
     END CASE;
   END LOOP;
 
@@ -497,6 +567,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Comments
 COMMENT ON TABLE serials IS 'Serial publication titles (journals, magazines, newspapers)';
 COMMENT ON TABLE serial_prediction_patterns IS 'Patterns for generating expected serial issues';
 COMMENT ON TABLE serial_issues IS 'Expected and received serial issues';
