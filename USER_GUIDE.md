@@ -25,7 +25,8 @@
 11. [Circulation](#circulation)
 12. [Serials Management](#serials-management)
 13. [Acquisitions](#acquisitions)
-14. [Reports & Analytics](#reports--analytics)
+14. [System Customization](#system-customization)
+15. [Reports & Analytics](#reports--analytics)
 
 ---
 
@@ -2524,6 +2525,556 @@ Complete workflow for purchasing library materials.
 - PDF for printing
 - Excel for analysis
 - CSV for import to other systems
+
+---
+
+## System Customization
+
+The ILS includes powerful customization features that allow you to tailor the catalog's appearance and behavior to your library's specific needs—all without writing code. These features are accessible through three admin interfaces.
+
+### Overview
+
+**Customization Features:**
+1. **Branding & Appearance** - Control colors, logos, and visual identity
+2. **Search Configuration** - Customize search fields and behavior
+3. **Display Settings** - Control which catalog fields appear and how
+
+**Access:**
+- Navigate to the Admin Dashboard
+- Look for "Branding," "Search Config," or "Display Config" in the navigation
+- All changes save to the database and apply immediately
+
+---
+
+### Branding & Appearance
+
+**Location:** `/admin/branding`
+
+Customize your library's visual identity to match your brand.
+
+#### Library Identity
+
+**Set basic information:**
+- **Library Name** - Appears as the page title and header
+- **Tagline** - Optional subtitle (e.g., "Serving our community since 1985")
+- **Logo** - URL to your library's logo image
+- **Favicon** - Small icon shown in browser tabs
+
+**Example:**
+```
+Library Name: Riverside Public Library
+Tagline: Knowledge for Everyone
+Logo URL: https://yourlibrary.org/images/logo.png
+Favicon URL: https://yourlibrary.org/images/favicon.ico
+```
+
+#### Color Scheme
+
+**Customize the five-color theme:**
+
+1. **Primary Color** - Main brand color used for buttons and headers
+   - Default: `#e73b42` (red)
+   - Example: `#2c5aa0` (blue) for a different look
+
+2. **Secondary Color** - Accent elements and secondary buttons
+   - Default: `#667eea` (purple)
+
+3. **Accent Color** - Links and highlights
+   - Default: `#2c3e50` (dark blue)
+
+4. **Background Color** - Page background
+   - Default: `#ffffff` (white)
+   - Tip: Use `#f5f5f5` for a subtle gray
+
+5. **Text Color** - Main text
+   - Default: `#333333` (dark gray)
+
+**How to change colors:**
+1. Click on a color box to open the color picker
+2. Select your desired color
+3. See the preview update in real-time on the right
+4. Click "Save Changes" when satisfied
+
+**Pro tip:** Use your library's official brand colors to maintain consistency with other materials.
+
+#### Typography
+
+**Customize fonts:**
+- **Body Font** - Main text font (CSS font-family value)
+  - Default: `system-ui, -apple-system, sans-serif`
+  - Example: `'Georgia', serif` for a traditional look
+  - Example: `'Roboto', sans-serif` (requires custom HTML to load Google Fonts)
+
+- **Heading Font** - Optional separate font for headings
+  - Leave empty to use body font
+  - Example: `'Merriweather', serif`
+
+**Using Google Fonts:**
+1. Go to [Google Fonts](https://fonts.google.com/)
+2. Select a font and click "Get embed code"
+3. Copy the `<link>` tag
+4. Paste it in "Custom HTML (Head)" field
+5. Set font-family to the font name (e.g., `'Roboto', sans-serif`)
+
+#### Contact Information
+
+**Add your library's contact details:**
+- Email address (displayed in footer/contact page)
+- Phone number
+- Physical address (can be multi-line)
+
+These appear automatically on contact pages and in the footer.
+
+#### Social Media
+
+**Link to your social media:**
+- Facebook URL (e.g., `https://facebook.com/yourlibrarypage`)
+- Twitter/X URL
+- Instagram URL
+
+Social icons will appear in the footer when URLs are provided.
+
+#### Footer
+
+**Customize the footer:**
+- **Footer Text** - Custom message or copyright notice
+  - Default: "Powered by Open Library System"
+  - Example: "© 2025 Riverside Public Library. All rights reserved."
+- **Show "Powered By"** - Toggle attribution display
+
+#### Advanced Customization
+
+**Custom CSS:**
+Add your own styles to override defaults. Useful for fine-tuning appearance.
+
+```css
+/* Example: Round all buttons */
+.btn-primary, .btn-secondary {
+  border-radius: 20px;
+}
+
+/* Example: Add shadow to cards */
+.card {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Example: Change search box appearance */
+.search-input {
+  border: 2px solid #2c5aa0;
+  border-radius: 10px;
+}
+```
+
+**Custom HTML (Head):**
+Inject code into the page header. Use for analytics, fonts, or scripts.
+
+```html
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=YOUR-ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'YOUR-ID');
+</script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+```
+
+**Important:** Only use trusted code in these fields. Malicious code can compromise security.
+
+#### Live Preview
+
+The right panel shows a live preview of your changes:
+- See how buttons and text look with your colors
+- Preview the logo display
+- See font changes in real-time
+- Make adjustments before saving
+
+**Workflow:**
+1. Make changes in the form
+2. Watch the preview update
+3. Adjust as needed
+4. Click "Save Changes" when satisfied
+5. Changes apply immediately to the entire site
+
+---
+
+### Search Configuration
+
+**Location:** `/admin/search-config`
+
+Control how search works and which fields are available to users.
+
+#### Search Fields
+
+**Configure individual search fields:**
+
+The system includes 10 default fields:
+1. **Keyword** - Searches all fields (always visible on homepage)
+2. **Title** - Search book/item titles
+3. **Author** - Search by author name
+4. **Subject** - Search subject headings
+5. **ISBN** - Search by ISBN number
+6. **ISSN** - Search by ISSN (for serials)
+7. **Publisher** - Search by publisher name
+8. **Series** - Search series titles
+9. **Call Number** - Search by library location
+10. **Publication Year** - Search by date
+
+**For each field, you can:**
+- **Enable/Disable** - Turn fields on or off
+- **Show in Basic Search** - Display on homepage (most show in advanced search only)
+- **Show in Advanced Search** - Include in advanced search form
+- **Reorder** - Drag fields to change their order
+- **Customize Label** - Change the field name (e.g., "Author" → "Creator")
+- **Customize Placeholder** - Change hint text (e.g., "Enter author name")
+- **Add Help Text** - Provide additional guidance
+
+**Example customization:**
+```
+Field: Author
+Label: Author or Creator
+Placeholder: Enter last name, first name
+Help Text: Search for works by a specific author or creator
+```
+
+**Drag-and-drop reordering:**
+1. Click and hold the ⋮⋮ handle on the left
+2. Drag the field up or down
+3. Release to drop in new position
+4. Fields display in this order in advanced search
+
+#### Search Behavior
+
+**Configure how search works:**
+
+**Default Search Type:**
+- Keyword (recommended) - Searches all fields
+- Title - Homepage search defaults to title only
+- Author - Homepage search defaults to author only
+- Advanced - Opens advanced search by default
+
+**Spell Correction:**
+- **Enable "Did You Mean?" suggestions** - Show spelling suggestions for typos
+- **Threshold** - Similarity required (0-1)
+  - `0.3` - Very lenient (more suggestions, some wrong)
+  - `0.4` - Balanced (recommended default)
+  - `0.5` - Moderate (fewer suggestions, more accurate)
+  - `0.6` - Strict (very few suggestions, very accurate)
+- **Show suggestions when results <** - Number of results threshold
+  - `0` - Only when no results
+  - `5` - When fewer than 5 results (default)
+  - `10` - More lenient
+
+**Advanced Features:**
+- **Enable Advanced Search** - Show/hide advanced search link
+- **Enable Boolean Operators** - Allow AND, OR, NOT in searches
+  - Example: `cats AND dogs`, `fiction OR nonfiction`
+
+#### Results Display
+
+**Control how search results appear:**
+
+**Results Per Page:**
+- Choose between 5 and 100 results per page
+- Default: 20 (good balance)
+- Higher numbers load more slowly
+
+**Default Layout:**
+- **List** - Vertical list with details (recommended)
+- **Grid** - Card-based grid view (more visual)
+- **Compact** - Dense list with minimal spacing
+
+**Display Options:**
+- **Show Book Covers** - Display cover images
+- **Show Availability** - Display "Available" or "Checked Out" status
+- **Show Call Numbers** - Display shelving location
+
+#### Faceted Search (Filters)
+
+**Configure search filters:**
+
+**Enable Facets:**
+Turn faceted search on or off globally.
+
+**Individual Facets:**
+Toggle each filter type:
+- **Material Types** - Filter by book, DVD, CD, etc.
+- **Languages** - Filter by language
+- **Publication Years** - Filter by date ranges
+- **Locations** - Filter by library branch or collection
+- **Availability** - Filter to available items only
+
+**Maximum Facet Values:**
+Set how many options show before "Show more" button (3-50).
+- Fewer = cleaner interface
+- More = more options visible
+
+**Example setup:**
+```
+Enable Facets: ✓
+Material Types: ✓
+Languages: ✓
+Publication Years: ✓
+Locations: ✓ (useful for multi-branch libraries)
+Availability: ✓
+Max Values: 10
+```
+
+#### Saving Changes
+
+1. Make changes in any tab (Fields / Settings / Facets)
+2. Click "Save Configuration" at the bottom
+3. Changes apply immediately
+4. Click "Reset" to undo unsaved changes
+
+**Pro tip:** Test search behavior after making changes to ensure it works as expected.
+
+---
+
+### Display Configuration
+
+**Location:** `/admin/display-config`
+
+Control which MARC fields appear in search results and record detail pages.
+
+#### Field Configuration
+
+**Customize individual MARC fields:**
+
+The system includes 15 default display fields:
+1. **Title** (MARC 245)
+2. **Author** (MARC 100)
+3. **Publication Info** (MARC 260/264)
+4. **ISBN** (MARC 020)
+5. **ISSN** (MARC 022)
+6. **Material Type**
+7. **Subjects** (MARC 650)
+8. **Series** (MARC 490/830)
+9. **Summary** (MARC 520)
+10. **Contents** (MARC 505)
+11. **Notes** (MARC 5XX)
+12. **Physical Description** (MARC 300)
+13. **Language** (MARC 041)
+14. **Publisher** (MARC 260/264)
+15. **Edition** (MARC 250)
+
+**For each field:**
+
+**Show In Contexts:**
+- ☐ **Search Results** - Display in search results list
+- ☐ **Detail Page** - Display on individual record pages
+- ☐ **Brief View** - Display in compact/brief displays
+
+**Display Style:**
+- **Plain Text** - Simple text display
+- **Link** - Clickable (opens search or URL)
+- **Badge** - Colored tag/label (good for material types)
+- **Heading** - Emphasized heading style
+- **List** - Bullet list for multiple values
+
+**Clickable Behavior:**
+(Only if "Make Clickable" is enabled)
+- **Search by Author** - Click to find other works by author
+- **Search by Subject** - Click to browse subject
+- **Search by Series** - Click to see series entries
+- **External URL** - Link to external resource
+
+**Labels and Formatting:**
+- **Label** - Field name (e.g., "Author" or "Written by")
+- **Prefix** - Text before value (e.g., "ISBN: ")
+- **Suffix** - Text after value (e.g., " pages")
+
+**Example configuration:**
+```
+Field: Author
+Label: Author
+Show in Results: ✓
+Show in Detail: ✓
+Display Style: Link
+Make Clickable: ✓
+Link Type: Search by Author
+```
+
+**Reordering fields:**
+Drag fields using the ⋮⋮ handle to change display order.
+
+#### Search Results Appearance
+
+**Customize how results look:**
+
+**Book Covers:**
+- **Show Covers** - Display cover images
+- **Cover Size** - Small, Medium, or Large
+- **Source** - Open Library, Google Books, or Local Files
+- **Fallback Icon** - Show placeholder when cover unavailable
+
+**Display Elements:**
+- ☐ Show Availability Status
+- ☐ Show Location
+- ☐ Show Call Number
+- ☐ Show Material Type Badge
+- ☐ Compact Mode (tighter spacing)
+
+**Example for visual catalog:**
+```
+Show Covers: ✓
+Cover Size: Large
+Show Availability: ✓
+Show Call Number: ✗ (cleaner look)
+Compact Mode: ✗
+```
+
+#### Record Detail Appearance
+
+**Customize individual record pages:**
+
+**Cover Display:**
+- **Show Cover** - Display cover image
+- **Cover Size** - Medium, Large, or Extra Large
+
+**Sections:**
+- ☐ **Show Holdings** - Display copies/availability
+- ☐ **Show Related Records** - Display "See Also" links
+- ☐ **Display Subjects as Tags** - Clickable tag style vs. plain list
+- ☐ **Group by Category** - Organize fields into sections (Description, Physical, etc.)
+- ☐ **Show MARC View** - Raw MARC for staff (catalogers)
+
+**Holdings Display:**
+Control which information shows for each copy:
+- ☐ Barcode
+- ☐ Call Number
+- ☐ Location
+- ☐ Status (Available, Checked Out, etc.)
+- ☐ Notes
+- ☐ Electronic Access Links
+
+**Example for public catalog:**
+```
+Show Cover: ✓ (Large)
+Show Holdings: ✓
+Show Related Records: ✓
+Subjects as Tags: ✓ (more interactive)
+Group by Category: ✓
+Show MARC: ✗ (staff view only)
+
+Holdings:
+  Show Call Number: ✓
+  Show Location: ✓
+  Show Status: ✓
+  Show Barcode: ✗ (not useful for public)
+  Show Electronic Access: ✓
+```
+
+#### Best Practices
+
+**For Public Catalogs:**
+- Show covers (more engaging)
+- Display availability prominently
+- Use clickable subjects/authors (better discovery)
+- Hide staff-only fields (barcodes, detailed MARC)
+- Use clear, friendly labels
+
+**For Academic Libraries:**
+- Show more detailed bibliographic info
+- Include ISBN/ISSN for citations
+- Display contents/summary
+- Show subjects as tags for browsing
+- Consider showing MARC for researchers
+
+**For Special Collections:**
+- Emphasize physical description
+- Show notes and provenance
+- Display series information
+- Use larger cover images
+- Include detailed publication info
+
+---
+
+### Tips for Customization
+
+#### Start Small
+1. Begin with branding (colors, logo, name)
+2. Test search with default settings
+3. Adjust display based on user feedback
+4. Gradually refine advanced settings
+
+#### Test Thoroughly
+- Check both public and staff views
+- Test on mobile devices (responsive design)
+- Search for various material types
+- Verify clickable links work correctly
+- Test with different browsers
+
+#### Use the Preview
+- Branding has live preview panel
+- Make multiple changes before saving
+- Revert with "Reset" button if needed
+- Save frequently to avoid losing work
+
+#### Get User Feedback
+- Ask patrons what they think
+- Monitor search analytics (future feature)
+- Adjust based on usage patterns
+- Iterate over time
+
+#### Keep Accessibility in Mind
+- Use sufficient color contrast
+- Avoid very small fonts
+- Test with screen readers
+- Keep layouts simple and clean
+- Use clear, descriptive labels
+
+#### Document Your Changes
+Keep notes on:
+- Why you made specific changes
+- Custom CSS/HTML added
+- Colors used (for brand consistency)
+- Field configurations
+- Any issues encountered
+
+---
+
+### Troubleshooting Customization
+
+**Changes don't appear:**
+- Click "Save Changes" button
+- Refresh your browser (Ctrl+F5 or Cmd+Shift+R)
+- Clear browser cache
+- Check if configuration is marked "active" in database
+
+**Colors look wrong:**
+- Verify hex codes are valid (6 characters, starts with #)
+- Check color contrast for readability
+- Test on different devices/browsers
+- Some elements may inherit colors differently
+
+**Custom CSS not working:**
+- Ensure CSS syntax is correct
+- Use browser dev tools (F12) to inspect elements
+- Check for typos in class names
+- More specific selectors may be needed to override defaults
+
+**Search fields missing:**
+- Check field is marked "Enabled"
+- Verify "Show in Advanced Search" is checked
+- Ensure field has a label
+- Save configuration after changes
+
+**Display fields not showing:**
+- Verify field is enabled for the context (results/detail)
+- Check if field has data in your records
+- Ensure "Hide if Empty" isn't hiding fields
+- Save configuration and refresh
+
+**Preview doesn't update:**
+- Make sure you've edited the field
+- Try clicking elsewhere in the form
+- Preview updates may have slight delay
+- Refresh the admin page if needed
 
 ---
 
