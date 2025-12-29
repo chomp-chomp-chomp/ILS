@@ -1,8 +1,14 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import SubjectHeadingInput from '$lib/components/SubjectHeadingInput.svelte';
+	import { onMount } from 'svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	// Templates state
+	let templates = $state<any[]>([]);
+	let selectedTemplateId = $state('');
+	let loadingTemplates = $state(true);
 
 	// MARC record fields
 	let isbn = $state('');
@@ -20,6 +26,53 @@
 
 	let saving = $state(false);
 	let message = $state('');
+
+	onMount(async () => {
+		await loadTemplates();
+	});
+
+	async function loadTemplates() {
+		try {
+			const { data: templatesData, error } = await data.supabase
+				.from('cataloging_templates')
+				.select('*')
+				.eq('is_active', true)
+				.order('name');
+
+			if (error) throw error;
+
+			templates = templatesData || [];
+		} catch (err: any) {
+			console.error('Error loading templates:', err.message);
+		} finally {
+			loadingTemplates = false;
+		}
+	}
+
+	function applyTemplate() {
+		if (!selectedTemplateId) return;
+
+		const template = templates.find(t => t.id === selectedTemplateId);
+		if (!template) return;
+
+		// Pre-fill fields from template
+		materialType = template.material_type || 'book';
+		publisher = template.publication_info?.b || '';
+		publicationPlace = template.publication_info?.a || '';
+
+		// Apply subjects
+		if (template.subject_topical && template.subject_topical.length > 0) {
+			subjects = template.subject_topical.map((s: any) => s.a);
+		}
+
+		// Apply note to summary if exists
+		if (template.general_note && template.general_note.length > 0) {
+			summary = template.general_note[0];
+		}
+
+		message = `Template "${template.name}" applied! Fields pre-filled.`;
+		setTimeout(() => { message = ''; }, 3000);
+	}
 
 	function addSubject() {
 		subjects = [...subjects, ''];
@@ -104,6 +157,35 @@
 
 <div class="cataloging-form">
 	<h1>Create New MARC Record</h1>
+
+	{#if !loadingTemplates && templates.length > 0}
+		<div class="template-selector">
+			<div class="template-selector-header">
+				<label for="templateSelect">Start from a template:</label>
+				<a href="/admin/cataloging/templates" class="manage-templates-link">
+					Manage Templates
+				</a>
+			</div>
+			<div class="template-selector-row">
+				<select id="templateSelect" bind:value={selectedTemplateId}>
+					<option value="">-- No template (blank form) --</option>
+					{#each templates as template}
+						<option value={template.id}>
+							{template.name} ({template.category})
+						</option>
+					{/each}
+				</select>
+				<button
+					type="button"
+					class="btn-apply-template"
+					onclick={applyTemplate}
+					disabled={!selectedTemplateId}
+				>
+					Apply Template
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	{#if message}
 		<div class={message.startsWith('Error') ? 'message error' : 'message success'}>
@@ -242,6 +324,73 @@
 
 	h1 {
 		margin: 0 0 1.5rem 0;
+	}
+
+	.template-selector {
+		background: #f0f9ff;
+		border: 1px solid #e73b42;
+		border-radius: 8px;
+		padding: 1.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.template-selector-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.template-selector-header label {
+		font-weight: 600;
+		color: #2c3e50;
+		margin-bottom: 0;
+	}
+
+	.manage-templates-link {
+		color: #e73b42;
+		font-size: 0.875rem;
+		text-decoration: none;
+	}
+
+	.manage-templates-link:hover {
+		text-decoration: underline;
+	}
+
+	.template-selector-row {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+	}
+
+	.template-selector-row select {
+		flex: 1;
+		padding: 0.75rem;
+		border: 1px solid #d0d0d0;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		background: white;
+	}
+
+	.btn-apply-template {
+		padding: 0.75rem 1.5rem;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		background: #e73b42;
+		color: white;
+		border: none;
+		cursor: pointer;
+		transition: all 0.2s;
+		white-space: nowrap;
+	}
+
+	.btn-apply-template:hover:not(:disabled) {
+		background: #d12d34;
+	}
+
+	.btn-apply-template:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.message {

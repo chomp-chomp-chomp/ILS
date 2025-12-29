@@ -79,6 +79,62 @@
 		}
 	}
 
+	async function duplicateRecord() {
+		if (!confirm('Create a copy of this record? You will be taken to edit the new copy.')) {
+			return;
+		}
+
+		saving = true;
+		message = '';
+
+		try {
+			// Create a copy of the record, excluding unique fields
+			const duplicateData = {
+				// Copy all MARC fields
+				isbn: record.isbn,
+				issn: record.issn,
+				material_type: record.material_type,
+				leader: record.leader,
+				date_entered: record.date_entered,
+
+				// MARC content fields
+				main_entry_personal_name: record.main_entry_personal_name,
+				main_entry_corporate_name: record.main_entry_corporate_name,
+				title_statement: record.title_statement,
+				publication_info: record.publication_info,
+				physical_description: record.physical_description,
+				series_statement: record.series_statement,
+				general_note: record.general_note,
+				bibliography_note: record.bibliography_note,
+				summary: record.summary,
+				subject_topical: record.subject_topical,
+				subject_geographic: record.subject_geographic,
+				added_entry_personal_name: record.added_entry_personal_name,
+				added_entry_corporate_name: record.added_entry_corporate_name,
+				marc_json: record.marc_json,
+
+				// Timestamps will be auto-generated
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString()
+				// Note: control_number is NOT copied (should be unique)
+			};
+
+			const { data: newRecord, error: insertError } = await data.supabase
+				.from('marc_records')
+				.insert([duplicateData])
+				.select()
+				.single();
+
+			if (insertError) throw insertError;
+
+			// Redirect to edit the new record
+			goto(`/admin/cataloging/edit/${newRecord.id}`);
+		} catch (error) {
+			message = `Error duplicating record: ${error.message}`;
+			saving = false;
+		}
+	}
+
 	async function deleteRecord() {
 		if (!confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
 			return;
@@ -104,9 +160,14 @@
 <div class="cataloging-form">
 	<div class="header">
 		<h1>Edit MARC Record</h1>
-		<button class="btn-delete" onclick={deleteRecord} disabled={saving}>
-			Delete Record
-		</button>
+		<div class="header-actions">
+			<button class="btn-secondary" onclick={duplicateRecord} disabled={saving}>
+				📋 Duplicate Record
+			</button>
+			<button class="btn-delete" onclick={deleteRecord} disabled={saving}>
+				Delete Record
+			</button>
+		</div>
 	</div>
 
 	{#if message}
@@ -249,6 +310,11 @@
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 1.5rem;
+	}
+
+	.header-actions {
+		display: flex;
+		gap: 0.75rem;
 	}
 
 	h1 {
