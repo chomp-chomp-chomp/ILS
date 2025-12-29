@@ -12,14 +12,15 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
     throw error(404, 'Record not found');
   }
 
-  const { data: holdings } = await supabase
-    .from('holdings')
+  // Load items instead of holdings
+  const { data: items } = await supabase
+    .from('items')
     .select('*')
     .eq('marc_record_id', params.id)
     .order('created_at', { ascending: false });
 
   return {
     record,
-    holdings: holdings || [],
+    items: items || [],
   };
 };
