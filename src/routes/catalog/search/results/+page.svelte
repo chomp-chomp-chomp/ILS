@@ -9,6 +9,8 @@
 
 	let showFilters = $state(true);
 	let mobileFiltersOpen = $state(false);
+	let shareMenuOpen = $state(false);
+	let showCopiedToast = $state(false);
 
 	// Computed values
 	let hasActiveFilters = $derived(
@@ -95,6 +97,57 @@
 		mobileFiltersOpen = !mobileFiltersOpen;
 	}
 
+	function toggleShareMenu() {
+		shareMenuOpen = !shareMenuOpen;
+	}
+
+	async function copySearchLink() {
+		const url = window.location.href;
+		try {
+			await navigator.clipboard.writeText(url);
+			showCopiedToast = true;
+			shareMenuOpen = false;
+			setTimeout(() => {
+				showCopiedToast = false;
+			}, 3000);
+		} catch (err) {
+			console.error('Failed to copy:', err);
+			// Fallback for older browsers
+			fallbackCopyTextToClipboard(url);
+		}
+	}
+
+	function fallbackCopyTextToClipboard(text: string) {
+		const textArea = document.createElement('textarea');
+		textArea.value = text;
+		textArea.style.position = 'fixed';
+		textArea.style.left = '-999999px';
+		document.body.appendChild(textArea);
+		textArea.focus();
+		textArea.select();
+		try {
+			document.execCommand('copy');
+			showCopiedToast = true;
+			shareMenuOpen = false;
+			setTimeout(() => {
+				showCopiedToast = false;
+			}, 3000);
+		} catch (err) {
+			console.error('Fallback: Could not copy text');
+		}
+		document.body.removeChild(textArea);
+	}
+
+	function shareViaEmail() {
+		const url = window.location.href;
+		const subject = encodeURIComponent(`Library Search: ${queryDescription}`);
+		const body = encodeURIComponent(
+			`I found this search in the library catalog:\n\n${queryDescription}\n\n${url}`
+		);
+		window.location.href = `mailto:?subject=${subject}&body=${body}`;
+		shareMenuOpen = false;
+	}
+
 	// Calculate pagination
 	const totalPages = $derived(Math.ceil(data.total / data.per_page));
 	const startResult = $derived((data.page - 1) * data.per_page + 1);
@@ -120,15 +173,69 @@
 		</div>
 
 		<div class="query-display">
-			<p class="query-text">{queryDescription}</p>
-			{#if data.total > 0}
-				<p class="results-count">
-					{data.total.toLocaleString()} result{data.total === 1 ? '' : 's'}
-					{#if totalPages > 1}
-						· Page {data.page} of {totalPages}
+			<div class="query-display-top">
+				<div>
+					<p class="query-text">{queryDescription}</p>
+					{#if data.total > 0}
+						<p class="results-count">
+							{data.total.toLocaleString()} result{data.total === 1 ? '' : 's'}
+							{#if totalPages > 1}
+								· Page {data.page} of {totalPages}
+							{/if}
+						</p>
 					{/if}
-				</p>
-			{/if}
+				</div>
+				<div class="share-button-container">
+					<button class="share-button" onclick={toggleShareMenu}>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+							<circle cx="18" cy="5" r="3" stroke-width="2" />
+							<circle cx="6" cy="12" r="3" stroke-width="2" />
+							<circle cx="18" cy="19" r="3" stroke-width="2" />
+							<line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke-width="2" />
+							<line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke-width="2" />
+						</svg>
+						Share Search
+					</button>
+					{#if shareMenuOpen}
+						<div class="share-menu">
+							<button class="share-menu-item" onclick={copySearchLink}>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+									<path
+										d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+									<path
+										d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+								Copy Link
+							</button>
+							<button class="share-menu-item" onclick={shareViaEmail}>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+									<path
+										d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+									<polyline
+										points="22,6 12,13 2,6"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+								Share via Email
+							</button>
+						</div>
+					{/if}
+				</div>
+			</div>
 		</div>
 
 		{#if hasActiveFilters}
@@ -348,6 +455,21 @@
 	<div class="mobile-overlay" onclick={toggleMobileFilters}></div>
 {/if}
 
+<!-- Share menu overlay -->
+{#if shareMenuOpen}
+	<div class="share-overlay" onclick={toggleShareMenu}></div>
+{/if}
+
+<!-- Copy confirmation toast -->
+{#if showCopiedToast}
+	<div class="toast">
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+			<polyline points="20 6 9 17 4 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+		</svg>
+		Link copied to clipboard!
+	</div>
+{/if}
+
 <style>
 	.search-results-page {
 		max-width: 1400px;
@@ -408,6 +530,13 @@
 		margin-bottom: 1rem;
 	}
 
+	.query-display-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+	}
+
 	.query-text {
 		font-size: 1.125rem;
 		color: #333;
@@ -418,6 +547,115 @@
 		color: #666;
 		margin: 0;
 		font-size: 0.875rem;
+	}
+
+	.share-button-container {
+		position: relative;
+	}
+
+	.share-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		color: #333;
+		cursor: pointer;
+		font-size: 0.875rem;
+		transition: all 0.2s;
+		white-space: nowrap;
+	}
+
+	.share-button:hover {
+		border-color: #667eea;
+		color: #667eea;
+	}
+
+	.share-button svg {
+		flex-shrink: 0;
+	}
+
+	.share-menu {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		right: 0;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		min-width: 200px;
+		z-index: 1001;
+		overflow: hidden;
+	}
+
+	.share-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: white;
+		border: none;
+		color: #333;
+		cursor: pointer;
+		font-size: 0.875rem;
+		text-align: left;
+		transition: background 0.2s;
+	}
+
+	.share-menu-item:hover {
+		background: #f8f9fa;
+	}
+
+	.share-menu-item svg {
+		flex-shrink: 0;
+		color: #667eea;
+	}
+
+	.share-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: transparent;
+		z-index: 1000;
+	}
+
+	.toast {
+		position: fixed;
+		bottom: 2rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #2e7d32;
+		color: white;
+		padding: 1rem 1.5rem;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		z-index: 2000;
+		animation: slideUp 0.3s ease-out;
+	}
+
+	@keyframes slideUp {
+		from {
+			transform: translateX(-50%) translateY(100px);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(-50%) translateY(0);
+			opacity: 1;
+		}
+	}
+
+	.toast svg {
+		flex-shrink: 0;
 	}
 
 	.active-filters-bar {
@@ -838,6 +1076,42 @@
 
 		.page-numbers {
 			flex-wrap: wrap;
+		}
+
+		.query-display-top {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+
+		.share-button-container {
+			width: 100%;
+		}
+
+		.share-button {
+			width: 100%;
+			justify-content: center;
+		}
+
+		.share-menu {
+			left: 0;
+			right: 0;
+		}
+
+		.toast {
+			left: 1rem;
+			right: 1rem;
+			transform: none;
+		}
+
+		@keyframes slideUp {
+			from {
+				transform: translateY(100px);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
 		}
 	}
 </style>
