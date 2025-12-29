@@ -11,7 +11,7 @@
 
 	function handleSearch() {
 		if (query.trim()) {
-			goto(`/catalog/search?q=${encodeURIComponent(query)}`);
+			goto(`/catalog/search/results?q=${encodeURIComponent(query)}`);
 		}
 	}
 </script>
