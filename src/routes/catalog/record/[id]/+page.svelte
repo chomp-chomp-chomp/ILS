@@ -5,9 +5,31 @@
 
 	const record = $derived(data.record);
 	const holdings = $derived(data.holdings || []);
+	const relatedRecords = $derived(data.relatedRecords || []);
 
 	let copyingLink = $state(false);
 	let showCopiedToast = $state(false);
+
+	// Helper function to get relationship label
+	function getRelationshipLabel(type: string): string {
+		const labels: Record<string, string> = {
+			related_work: 'Related Work',
+			translation: 'Translation',
+			original: 'Original Work',
+			earlier_edition: 'Earlier Edition',
+			later_edition: 'Later Edition',
+			adaptation: 'Adaptation',
+			adapted_from: 'Adapted From',
+			companion: 'Companion Volume',
+			part_of: 'Part Of',
+			has_part: 'Contains',
+			supplement: 'Supplement',
+			supplement_to: 'Supplement To',
+			continues: 'Continues',
+			continued_by: 'Continued By'
+		};
+		return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+	}
 
 	async function copyPermalink() {
 		if (!record?.id || copyingLink) return;
@@ -172,6 +194,35 @@
 								>
 									{subject.a}
 								</a>
+							{/each}
+						</div>
+					</section>
+				{/if}
+
+				{#if relatedRecords.length > 0}
+					<section class="info-section">
+						<h3>Related Records</h3>
+						<div class="related-records">
+							{#each relatedRecords as related}
+								<div class="related-item">
+									<span class="relationship-label">{getRelationshipLabel(related.relationship_type)}:</span>
+									<div class="related-record-info">
+										<a href="/catalog/record/{related.target_record.id}" class="related-title">
+											{related.target_record.title_statement?.a || 'Untitled'}
+										</a>
+										{#if related.target_record.main_entry_personal_name?.a}
+											<span class="related-author">
+												by {related.target_record.main_entry_personal_name.a}
+											</span>
+										{/if}
+										{#if related.target_record.publication_info?.c}
+											<span class="related-year">({related.target_record.publication_info.c})</span>
+										{/if}
+										{#if related.relationship_note}
+											<p class="relationship-note">{related.relationship_note}</p>
+										{/if}
+									</div>
+								</div>
 							{/each}
 						</div>
 					</section>
@@ -400,6 +451,69 @@
 		color: #303f9f;
 		transform: translateY(-2px);
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.related-records {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.related-item {
+		padding: 1rem;
+		background: #f8f9fa;
+		border-radius: 8px;
+		border-left: 4px solid #667eea;
+	}
+
+	.relationship-label {
+		display: block;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		color: #667eea;
+		font-weight: 600;
+		letter-spacing: 0.5px;
+		margin-bottom: 0.5rem;
+	}
+
+	.related-record-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.related-title {
+		color: #2c3e50;
+		text-decoration: none;
+		font-weight: 500;
+		font-size: 1rem;
+		transition: color 0.2s;
+	}
+
+	.related-title:hover {
+		color: #667eea;
+		text-decoration: underline;
+	}
+
+	.related-author {
+		color: #666;
+		font-size: 0.875rem;
+		font-style: italic;
+	}
+
+	.related-year {
+		color: #999;
+		font-size: 0.875rem;
+	}
+
+	.relationship-note {
+		margin: 0.5rem 0 0 0;
+		padding: 0.5rem;
+		background: white;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		color: #666;
+		font-style: italic;
 	}
 
 	.sidebar {
