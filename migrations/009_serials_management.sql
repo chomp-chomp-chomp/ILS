@@ -140,30 +140,77 @@ CREATE TABLE IF NOT EXISTS serial_issues (
 -- Add missing columns to existing serial_issues table
 DO $$
 BEGIN
+    -- Core columns
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'created_at') THEN
+        ALTER TABLE serial_issues ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'updated_at') THEN
+        ALTER TABLE serial_issues ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'volume') THEN
+        ALTER TABLE serial_issues ADD COLUMN volume INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'issue') THEN
+        ALTER TABLE serial_issues ADD COLUMN issue INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'year') THEN
+        ALTER TABLE serial_issues ADD COLUMN year INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'month') THEN
+        ALTER TABLE serial_issues ADD COLUMN month INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'season') THEN
+        ALTER TABLE serial_issues ADD COLUMN season VARCHAR(50);
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'display_text') THEN
+        ALTER TABLE serial_issues ADD COLUMN display_text VARCHAR(500);
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'expected_date') THEN
+        ALTER TABLE serial_issues ADD COLUMN expected_date DATE;
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'status') THEN
+        ALTER TABLE serial_issues ADD COLUMN status VARCHAR(50) DEFAULT 'expected';
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'received_date') THEN
+        ALTER TABLE serial_issues ADD COLUMN received_date DATE;
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'notes') THEN
+        ALTER TABLE serial_issues ADD COLUMN notes TEXT;
+    END IF;
+
+    -- Reference columns
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'prediction_pattern_id') THEN
         ALTER TABLE serial_issues ADD COLUMN prediction_pattern_id UUID;
     END IF;
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'binding_batch_id') THEN
         ALTER TABLE serial_issues ADD COLUMN binding_batch_id UUID;
     END IF;
+
+    -- Claiming columns
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'claim_count') THEN
         ALTER TABLE serial_issues ADD COLUMN claim_count INTEGER DEFAULT 0;
     END IF;
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'last_claim_date') THEN
         ALTER TABLE serial_issues ADD COLUMN last_claim_date DATE;
     END IF;
+
+    -- Binding columns
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'binding_status') THEN
         ALTER TABLE serial_issues ADD COLUMN binding_status VARCHAR(50) DEFAULT 'unbound';
     END IF;
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'bound_volume_id') THEN
         ALTER TABLE serial_issues ADD COLUMN bound_volume_id UUID;
     END IF;
+
+    -- Condition columns
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'condition') THEN
         ALTER TABLE serial_issues ADD COLUMN condition VARCHAR(50);
     END IF;
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'condition_notes') THEN
         ALTER TABLE serial_issues ADD COLUMN condition_notes TEXT;
     END IF;
+
+    -- Special issue columns
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'is_supplement') THEN
         ALTER TABLE serial_issues ADD COLUMN is_supplement BOOLEAN DEFAULT FALSE;
     END IF;
@@ -173,12 +220,16 @@ BEGIN
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'supplement_description') THEN
         ALTER TABLE serial_issues ADD COLUMN supplement_description TEXT;
     END IF;
+
+    -- Combined issue columns
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'is_combined') THEN
         ALTER TABLE serial_issues ADD COLUMN is_combined BOOLEAN DEFAULT FALSE;
     END IF;
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'combined_with') THEN
         ALTER TABLE serial_issues ADD COLUMN combined_with TEXT;
     END IF;
+
+    -- Receiving column
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'serial_issues' AND column_name = 'received_by') THEN
         ALTER TABLE serial_issues ADD COLUMN received_by TEXT;
     END IF;
