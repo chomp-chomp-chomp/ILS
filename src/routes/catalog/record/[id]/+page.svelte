@@ -97,7 +97,14 @@
 					{#if record.main_entry_personal_name?.a}
 						<div class="field">
 							<span class="label">Author:</span>
-							<span class="value">{record.main_entry_personal_name.a}</span>
+							<span class="value">
+								<a
+									href="/catalog/search/results?author={encodeURIComponent(
+										record.main_entry_personal_name.a
+									)}"
+									class="link-value">{record.main_entry_personal_name.a}</a
+								>
+							</span>
 						</div>
 					{/if}
 
@@ -132,6 +139,19 @@
 							<span class="value">{record.material_type}</span>
 						</div>
 					{/if}
+
+					{#if record.series_statement?.a}
+						<div class="field">
+							<span class="label">Series:</span>
+							<span class="value">
+								<a
+									href="/catalog/search/results?q={encodeURIComponent(record.series_statement.a)}"
+									class="link-value">{record.series_statement.a}</a
+								>
+								{#if record.series_statement?.v} ; {record.series_statement.v}{/if}
+							</span>
+						</div>
+					{/if}
 				</section>
 
 				{#if record.summary}
@@ -146,7 +166,12 @@
 						<h3>Subjects</h3>
 						<div class="subjects">
 							{#each record.subject_topical as subject}
-								<span class="subject-tag">{subject.a}</span>
+								<a
+									href="/catalog/search/results?subject={encodeURIComponent(subject.a)}"
+									class="subject-tag"
+								>
+									{subject.a}
+								</a>
 							{/each}
 						</div>
 					</section>
@@ -162,12 +187,41 @@
 							{#each holdings as holding}
 								<li class="holding-item">
 									<div class="holding-info">
-										{#if holding.call_number}
-											<p class="call-number">{holding.call_number}</p>
-										{/if}
-										<p class="location">{holding.location || 'Main Library'}</p>
-										{#if holding.copy_number}
-											<p class="copy">Copy {holding.copy_number}</p>
+										{#if holding.is_electronic && holding.url}
+											<p class="electronic-access">
+												<svg
+													width="16"
+													height="16"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													style="display: inline; vertical-align: middle; margin-right: 4px;"
+												>
+													<circle cx="12" cy="12" r="10" stroke-width="2" />
+													<line x1="2" y1="12" x2="22" y2="12" stroke-width="2" />
+													<path
+														d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+														stroke-width="2"
+													/>
+												</svg>
+												<a
+													href={holding.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="electronic-link">Access Online</a
+												>
+											</p>
+											{#if holding.access_restrictions}
+												<p class="access-note">{holding.access_restrictions}</p>
+											{/if}
+										{:else}
+											{#if holding.call_number}
+												<p class="call-number">{holding.call_number}</p>
+											{/if}
+											<p class="location">{holding.location || 'Main Library'}</p>
+											{#if holding.copy_number}
+												<p class="copy">Copy {holding.copy_number}</p>
+											{/if}
 										{/if}
 									</div>
 									<span class="status" class:available={holding.status === 'available'}>
@@ -312,6 +366,17 @@
 		color: #333;
 	}
 
+	.link-value {
+		color: #667eea;
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+
+	.link-value:hover {
+		color: #5568d3;
+		text-decoration: underline;
+	}
+
 	.subjects {
 		display: flex;
 		flex-wrap: wrap;
@@ -325,6 +390,16 @@
 		color: #3f51b5;
 		border-radius: 16px;
 		font-size: 0.875rem;
+		text-decoration: none;
+		transition: all 0.2s;
+		cursor: pointer;
+	}
+
+	.subject-tag:hover {
+		background: #c5cae9;
+		color: #303f9f;
+		transform: translateY(-2px);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
 	.sidebar {
@@ -379,6 +454,31 @@
 	.copy {
 		color: #999;
 		font-size: 0.875rem;
+	}
+
+	.electronic-access {
+		font-size: 0.875rem;
+		color: #2e7d32;
+		font-weight: 500;
+		margin: 0 0 0.25rem 0;
+	}
+
+	.electronic-link {
+		color: #2e7d32;
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+
+	.electronic-link:hover {
+		color: #1b5e20;
+		text-decoration: underline;
+	}
+
+	.access-note {
+		font-size: 0.75rem;
+		color: #666;
+		margin: 0.25rem 0 0 0;
+		font-style: italic;
 	}
 
 	.status {

@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
   }
 
   const { data: holdings } = await supabase
-    .from('holdings')
+    .from('items')
     .select('*')
     .eq('marc_record_id', params.id);
 

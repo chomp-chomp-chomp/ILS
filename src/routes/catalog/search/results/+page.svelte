@@ -753,7 +753,14 @@
 									<p class="subtitle">{record.title_statement.b}</p>
 								{/if}
 								{#if record.main_entry_personal_name?.a}
-									<p class="author">by {record.main_entry_personal_name.a}</p>
+									<p class="author">
+										by <a
+											href="/catalog/search/results?author={encodeURIComponent(
+												record.main_entry_personal_name.a
+											)}"
+											class="author-link">{record.main_entry_personal_name.a}</a
+										>
+									</p>
 								{/if}
 								{#if record.publication_info}
 									<p class="publication">
@@ -763,6 +770,43 @@
 										{#if record.publication_info.c}
 											{#if record.publication_info.b}, {/if}{record.publication_info.c}
 										{/if}
+									</p>
+								{/if}
+								{#if record.series_statement?.a}
+									<p class="series">
+										Series: <a
+											href="/catalog/search/results?q={encodeURIComponent(record.series_statement.a)}"
+											class="series-link">{record.series_statement.a}</a
+										>
+										{#if record.series_statement?.v}
+											; {record.series_statement.v}
+										{/if}
+									</p>
+								{/if}
+								{#if record.items && record.items.some((item) => item.is_electronic && item.url)}
+									{@const electronicItem = record.items.find((item) => item.is_electronic && item.url)}
+									<p class="electronic-access">
+										<svg
+											width="16"
+											height="16"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											style="display: inline; vertical-align: middle; margin-right: 4px;"
+										>
+											<circle cx="12" cy="12" r="10" stroke-width="2" />
+											<line x1="2" y1="12" x2="22" y2="12" stroke-width="2" />
+											<path
+												d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+												stroke-width="2"
+											/>
+										</svg>
+										<a
+											href={electronicItem.url}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="url-link">Electronic Resource</a
+										>
 									</p>
 								{/if}
 								{#if record.summary}
@@ -1704,10 +1748,57 @@
 		font-size: 0.875rem;
 	}
 
+	.author-link {
+		color: #667eea;
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+
+	.author-link:hover {
+		color: #5568d3;
+		text-decoration: underline;
+	}
+
 	.publication {
 		margin: 0 0 0.75rem 0;
 		color: #666;
 		font-size: 0.875rem;
+	}
+
+	.series {
+		margin: 0 0 0.5rem 0;
+		color: #333;
+		font-size: 0.875rem;
+	}
+
+	.series-link {
+		color: #667eea;
+		text-decoration: none;
+		font-weight: 500;
+		transition: color 0.2s;
+	}
+
+	.series-link:hover {
+		color: #5568d3;
+		text-decoration: underline;
+	}
+
+	.electronic-access {
+		margin: 0 0 0.5rem 0;
+		font-size: 0.875rem;
+		color: #2e7d32;
+	}
+
+	.url-link {
+		color: #2e7d32;
+		text-decoration: none;
+		font-weight: 500;
+		transition: color 0.2s;
+	}
+
+	.url-link:hover {
+		color: #1b5e20;
+		text-decoration: underline;
 	}
 
 	.summary {
