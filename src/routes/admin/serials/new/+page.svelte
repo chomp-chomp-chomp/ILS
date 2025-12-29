@@ -12,10 +12,36 @@
 	let emailList = $state('');
 	let subscriptionStart = $state('');
 	let subscriptionEnd = $state('');
-	let isActive = $state(true);
+	let status = $state('active');
+	let vendorId = $state('');
+	let budgetId = $state('');
+	let publicDisplay = $state(true);
+	let notes = $state('');
 
+	let vendors = $state<any[]>([]);
+	let budgets = $state<any[]>([]);
 	let saving = $state(false);
 	let error = $state('');
+
+	import { onMount } from 'svelte';
+
+	onMount(async () => {
+		// Load vendors
+		const { data: vendorData } = await data.supabase
+			.from('vendors')
+			.select('id, name')
+			.eq('is_active', true)
+			.order('name');
+		vendors = vendorData || [];
+
+		// Load budgets
+		const { data: budgetData } = await data.supabase
+			.from('budgets')
+			.select('id, name, code')
+			.eq('status', 'active')
+			.order('name');
+		budgets = budgetData || [];
+	});
 
 	async function saveSerial() {
 		saving = true;
@@ -31,7 +57,12 @@
 				email_list: emailList || null,
 				subscription_start: subscriptionStart || null,
 				subscription_end: subscriptionEnd || null,
-				is_active: isActive,
+				status,
+				vendor_id: vendorId || null,
+				budget_id: budgetId || null,
+				public_display: publicDisplay,
+				is_active: status === 'active',
+				notes: notes || null
 			};
 
 			const { error: insertError } = await data.supabase.from('serials').insert([serialData]);
@@ -115,6 +146,28 @@
 
 			<div class="form-row">
 				<div class="form-group">
+					<label for="vendor">Vendor</label>
+					<select id="vendor" bind:value={vendorId}>
+						<option value="">Select vendor...</option>
+						{#each vendors as vendor}
+							<option value={vendor.id}>{vendor.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="form-group">
+					<label for="budget">Budget/Fund</label>
+					<select id="budget" bind:value={budgetId}>
+						<option value="">Select budget...</option>
+						{#each budgets as budget}
+							<option value={budget.id}>{budget.name} ({budget.code})</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+
+			<div class="form-row">
+				<div class="form-group">
 					<label for="subscriptionStart">Start Date</label>
 					<input id="subscriptionStart" type="date" bind:value={subscriptionStart} />
 				</div>
@@ -125,11 +178,32 @@
 				</div>
 			</div>
 
+			<div class="form-row">
+				<div class="form-group">
+					<label for="status">Status</label>
+					<select id="status" bind:value={status}>
+						<option value="active">Active</option>
+						<option value="trial">Trial</option>
+						<option value="cancelled">Cancelled</option>
+						<option value="lapsed">Lapsed</option>
+					</select>
+				</div>
+
+				<div class="form-group">
+					<label class="checkbox-label">
+						<input type="checkbox" bind:checked={publicDisplay} />
+						<span>Display in Public Catalog</span>
+					</label>
+				</div>
+			</div>
+		</section>
+
+		<section class="form-section">
+			<h2>Notes</h2>
+
 			<div class="form-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={isActive} />
-					<span>Active Subscription</span>
-				</label>
+				<label for="notes">Internal Notes</label>
+				<textarea id="notes" bind:value={notes} rows="4" placeholder="Internal notes..."></textarea>
 			</div>
 		</section>
 
@@ -195,19 +269,26 @@
 	}
 
 	input,
-	select {
+	select,
+	textarea {
 		width: 100%;
 		padding: 0.75rem;
 		border: 1px solid #ddd;
 		border-radius: 4px;
 		font-size: 1rem;
 		box-sizing: border-box;
+		font-family: inherit;
 	}
 
 	input:focus,
-	select:focus {
+	select:focus,
+	textarea:focus {
 		outline: none;
 		border-color: #667eea;
+	}
+
+	textarea {
+		resize: vertical;
 	}
 
 	.checkbox-label {
