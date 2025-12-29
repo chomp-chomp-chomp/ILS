@@ -31,20 +31,50 @@
 			<p>No records in the catalog yet.</p>
 		</div>
 	{:else}
-		<div class="records-grid">
+		<div class="records-list">
 			{#each records as record}
-				<a href="/catalog/record/{record.id}" class="record-card">
-					<h3>{record.title_statement?.a || 'Untitled'}</h3>
-					{#if record.main_entry_personal_name?.a}
-						<p class="author">{record.main_entry_personal_name.a}</p>
-					{/if}
-					{#if record.publication_info?.c}
-						<p class="year">{record.publication_info.c}</p>
-					{/if}
-					{#if record.material_type}
-						<span class="type-badge">{record.material_type}</span>
-					{/if}
-				</a>
+				<article class="record-card">
+					<div class="record-content">
+						<h3>
+							<a href="/catalog/record/{record.id}">{record.title_statement?.a || 'Untitled'}</a>
+						</h3>
+						{#if record.title_statement?.b}
+							<p class="subtitle">{record.title_statement.b}</p>
+						{/if}
+						{#if record.main_entry_personal_name?.a}
+							<p class="author">
+								by <a
+									href="/catalog/search/results?author={encodeURIComponent(
+										record.main_entry_personal_name.a
+									)}"
+									class="author-link">{record.main_entry_personal_name.a}</a
+								>
+							</p>
+						{/if}
+						{#if record.publication_info?.b || record.publication_info?.c}
+							<p class="publication">
+								{#if record.publication_info.b}{record.publication_info.b}{/if}
+								{#if record.publication_info.c}
+									{#if record.publication_info.b}, {/if}{record.publication_info.c}
+								{/if}
+							</p>
+						{/if}
+						{#if record.series_statement?.a}
+							<p class="series">
+								Series: <a
+									href="/catalog/search/results?q={encodeURIComponent(record.series_statement.a)}"
+									class="series-link">{record.series_statement.a}</a
+								>
+								{#if record.series_statement?.v}; {record.series_statement.v}{/if}
+							</p>
+						{/if}
+						<div class="badges">
+							{#if record.material_type}
+								<span class="badge type">{record.material_type}</span>
+							{/if}
+						</div>
+					</div>
+				</article>
 			{/each}
 		</div>
 	{/if}
@@ -85,56 +115,109 @@
 		color: var(--text-muted);
 	}
 
-	.records-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	.records-list {
+		display: flex;
+		flex-direction: column;
 		gap: 1.5rem;
 	}
 
 	.record-card {
 		background: white;
 		padding: 1.5rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		text-decoration: none;
-		color: inherit;
-		transition: var(--transition-smooth);
-		display: flex;
-		flex-direction: column;
+		border: 1px solid #e0e0e0;
+		border-radius: 8px;
+		transition: all 0.2s;
 	}
 
 	.record-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-		transform: translateY(-2px);
-		border-color: var(--accent);
+		border-color: #667eea;
+		box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 	}
 
-	.record-card h3 {
+	.record-content {
+		min-width: 0;
+	}
+
+	.record-content h3 {
 		margin: 0 0 0.5rem 0;
-		font-size: 1.125rem;
-		color: var(--text-primary);
+		font-size: 1.25rem;
+	}
+
+	.record-content h3 a {
+		color: #2c3e50;
+		text-decoration: none;
+	}
+
+	.record-content h3 a:hover {
+		color: #667eea;
+		text-decoration: underline;
+	}
+
+	.subtitle {
+		margin: 0 0 0.5rem 0;
+		color: #666;
+		font-style: italic;
+		font-size: 1rem;
 	}
 
 	.author {
-		font-style: italic;
-		color: var(--text-muted);
-		margin: 0.25rem 0;
+		margin: 0 0 0.5rem 0;
+		color: #333;
 		font-size: 0.875rem;
 	}
 
-	.year {
-		color: var(--text-light);
-		margin: 0.25rem 0;
+	.author-link {
+		color: #667eea;
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+
+	.author-link:hover {
+		color: #5568d3;
+		text-decoration: underline;
+	}
+
+	.publication {
+		margin: 0 0 0.5rem 0;
+		color: #666;
 		font-size: 0.875rem;
 	}
 
-	.type-badge {
-		display: inline-block;
-		margin-top: auto;
-		padding-top: 0.75rem;
-		font-size: 0.75rem;
-		color: var(--accent);
-		text-transform: uppercase;
+	.series {
+		margin: 0 0 0.5rem 0;
+		color: #333;
+		font-size: 0.875rem;
+	}
+
+	.series-link {
+		color: #667eea;
+		text-decoration: none;
 		font-weight: 500;
+		transition: color 0.2s;
+	}
+
+	.series-link:hover {
+		color: #5568d3;
+		text-decoration: underline;
+	}
+
+	.badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+
+	.badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		border-radius: 12px;
+		font-size: 0.75rem;
+		font-weight: 500;
+	}
+
+	.badge.type {
+		background: #e3f2fd;
+		color: #1976d2;
 	}
 </style>

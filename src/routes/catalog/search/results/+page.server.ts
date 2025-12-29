@@ -136,7 +136,10 @@ async function performSearch(
 				location,
 				collection,
 				material_type,
-				call_number
+				call_number,
+				is_electronic,
+				url,
+				access_restrictions
 			)
 		`,
 			{ count: 'exact' }
