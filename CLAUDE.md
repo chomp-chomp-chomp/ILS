@@ -1003,6 +1003,593 @@ supabase db reset        # Reset database (dev only)
 
 ---
 
+## Customization & Advanced Topics
+
+### Modifying Search Relevancy Rankings
+
+The search system uses PostgreSQL full-text search with weighted rankings. Understanding and modifying these weights is crucial for tuning search quality.
+
+#### Current Search Vector Configuration
+
+**Location**: Database trigger in `DATABASE_SCHEMA.md` or directly in Supabase SQL Editor
+
+**Current weighting** (from `update_marc_search_vector()` function):
+
+```sql
+CREATE OR REPLACE FUNCTION update_marc_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.search_vector :=
+    setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
+    setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
+    setweight(to_tsvector('english', COALESCE(NEW.publication_info->>'b', '')), 'C') ||
+    setweight(to_tsvector('english', COALESCE(NEW.summary, '')), 'D');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Weight levels** (highest to lowest priority):
+- **'A'** - Weight 1.0 - Currently: Title (`title_statement->>'a'`)
+- **'B'** - Weight 0.4 - Currently: Author (`main_entry_personal_name->>'a'`)
+- **'C'** - Weight 0.2 - Currently: Publisher (`publication_info->>'b'`)
+- **'D'** - Weight 0.1 - Currently: Summary
+
+#### How to Change Search Weights
+
+**To modify field weights:**
+
+1. Open Supabase SQL Editor
+2. Run this modified function with your desired weights:
+
+```sql
+CREATE OR REPLACE FUNCTION update_marc_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.search_vector :=
+    -- HIGHEST PRIORITY: Title and subjects
+    setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
+    setweight(to_tsvector('english', COALESCE(array_to_string(
+      ARRAY(SELECT jsonb_array_elements_text(NEW.subject_topical)->'a'), ' '
+    ), '')), 'A') ||
+
+    -- HIGH PRIORITY: Author and subtitle
+    setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
+    setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'b', '')), 'B') ||
+
+    -- MEDIUM PRIORITY: Publisher and series
+    setweight(to_tsvector('english', COALESCE(NEW.publication_info->>'b', '')), 'C') ||
+    setweight(to_tsvector('english', COALESCE(NEW.series_statement->>'a', '')), 'C') ||
+
+    -- LOW PRIORITY: Summary and notes
+    setweight(to_tsvector('english', COALESCE(NEW.summary, '')), 'D') ||
+    setweight(to_tsvector('english', COALESCE(array_to_string(NEW.general_note, ' '), '')), 'D');
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+3. **Rebuild search vectors** for existing records:
+
+```sql
+UPDATE marc_records SET updated_at = NOW();
+```
+
+This triggers the function for all records.
+
+#### Adding New Fields to Search
+
+**Example: Add ISBN to search** (weight 'B' - high priority for exact matches)
+
+```sql
+CREATE OR REPLACE FUNCTION update_marc_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.search_vector :=
+    setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
+    setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
+    setweight(to_tsvector('simple', COALESCE(NEW.isbn, '')), 'B') ||  -- Note: 'simple' config for ISBN
+    setweight(to_tsvector('english', COALESCE(NEW.publication_info->>'b', '')), 'C') ||
+    setweight(to_tsvector('english', COALESCE(NEW.summary, '')), 'D');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Note**: Use `'simple'` config for ISBNs, ISSNs, and other identifiers to prevent stemming.
+
+#### Removing Fields from Search
+
+Simply remove the line from the concatenation:
+
+```sql
+-- Remove publisher from search
+NEW.search_vector :=
+  setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
+  setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
+  -- Removed publisher line
+  setweight(to_tsvector('english', COALESCE(NEW.summary, '')), 'D');
+```
+
+### Advanced Search Ranking
+
+#### Custom Relevance Scoring
+
+**Location**: `src/routes/catalog/search/results/+page.server.ts`
+
+For more control than the built-in `ts_rank`, create a custom scoring function.
+
+**Method 1: Create a Supabase RPC function**
+
+```sql
+CREATE OR REPLACE FUNCTION search_records_ranked(
+  search_query TEXT,
+  boost_recent BOOLEAN DEFAULT FALSE
+)
+RETURNS TABLE (
+  record JSONB,
+  rank REAL
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    to_jsonb(m.*) as record,
+    -- Custom ranking formula
+    ts_rank(m.search_vector, websearch_to_tsquery('english', search_query)) *
+    CASE
+      WHEN boost_recent THEN
+        -- Boost by recency (records from last 5 years get higher scores)
+        CASE
+          WHEN EXTRACT(YEAR FROM NOW()) - CAST(m.publication_info->>'c' AS INTEGER) <= 5
+          THEN 1.5
+          ELSE 1.0
+        END
+      ELSE 1.0
+    END as rank
+  FROM marc_records m
+  WHERE m.search_vector @@ websearch_to_tsquery('english', search_query)
+  ORDER BY rank DESC;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Method 2: Multi-factor scoring**
+
+```sql
+CREATE OR REPLACE FUNCTION advanced_search_rank(
+  search_query TEXT
+)
+RETURNS TABLE (
+  record JSONB,
+  relevance_score REAL,
+  popularity_score INTEGER,
+  recency_score REAL,
+  final_score REAL
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    to_jsonb(m.*),
+    ts_rank(m.search_vector, websearch_to_tsquery('english', search_query)) as relevance_score,
+    -- Popularity from checkout count (requires circulation integration)
+    COALESCE((SELECT COUNT(*) FROM checkouts c WHERE c.marc_record_id = m.id), 0)::INTEGER as popularity_score,
+    -- Recency score (1.0 for this year, decreasing)
+    GREATEST(0, 1.0 - ((EXTRACT(YEAR FROM NOW()) - COALESCE(CAST(m.publication_info->>'c' AS INTEGER), 1900)) / 100.0)) as recency_score,
+    -- Final weighted score (adjust weights as needed)
+    (
+      ts_rank(m.search_vector, websearch_to_tsquery('english', search_query)) * 10.0 +  -- Relevance: 10x
+      COALESCE((SELECT COUNT(*) FROM checkouts c WHERE c.marc_record_id = m.id), 0) * 0.1 +  -- Popularity: 0.1x
+      GREATEST(0, 1.0 - ((EXTRACT(YEAR FROM NOW()) - COALESCE(CAST(m.publication_info->>'c' AS INTEGER), 1900)) / 100.0)) * 2.0  -- Recency: 2x
+    ) as final_score
+  FROM marc_records m
+  WHERE m.search_vector @@ websearch_to_tsquery('english', search_query)
+  ORDER BY final_score DESC;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Call from TypeScript**:
+
+```typescript
+const { data, error } = await supabase.rpc('advanced_search_rank', {
+  search_query: params.q
+});
+```
+
+#### Boosting Specific Material Types
+
+Prefer books over DVDs in results:
+
+```sql
+SELECT
+  *,
+  ts_rank(search_vector, query) *
+  CASE material_type
+    WHEN 'book' THEN 1.5
+    WHEN 'ebook' THEN 1.3
+    WHEN 'serial' THEN 1.2
+    WHEN 'dvd' THEN 0.8
+    ELSE 1.0
+  END as adjusted_rank
+FROM marc_records
+WHERE search_vector @@ query
+ORDER BY adjusted_rank DESC;
+```
+
+### Spell Correction Customization
+
+**Location**: `migrations/010_spell_correction.sql`
+
+#### Adjusting Similarity Threshold
+
+The default threshold is **0.4 (40%)** similarity. To make it more or less strict:
+
+```sql
+CREATE OR REPLACE FUNCTION suggest_spell_correction(input_term TEXT)
+RETURNS TABLE (suggestion TEXT, confidence REAL) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    candidate,
+    similarity(input_term, candidate) as conf
+  FROM (
+    SELECT DISTINCT title_statement->>'a' as candidate FROM marc_records
+    UNION
+    SELECT DISTINCT main_entry_personal_name->>'a' FROM marc_records
+    UNION
+    SELECT DISTINCT jsonb_array_elements(subject_topical)->>'a' FROM marc_records
+  ) candidates
+  WHERE similarity(input_term, candidate) > 0.5  -- Changed from 0.4 to 0.5 (stricter)
+  ORDER BY conf DESC
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Threshold guidelines**:
+- **0.3** - Very lenient (more suggestions, some wrong)
+- **0.4** - Default (balanced)
+- **0.5** - Moderate (fewer suggestions, more accurate)
+- **0.6** - Strict (very few suggestions, very accurate)
+
+#### When to Show Spell Suggestions
+
+**Location**: `src/routes/catalog/search/results/+page.server.ts:90`
+
+Current: Shows when results < 5
+
+```typescript
+// Only suggest corrections for keyword searches with few/no results
+if (params.q && results.total < 5) {  // Change this number
+  const suggestion = await getSpellSuggestion(supabase, params.q);
+  if (suggestion) {
+    spellSuggestion = suggestion;
+  }
+}
+```
+
+**Options**:
+- `results.total === 0` - Only when no results (strictest)
+- `results.total < 3` - When fewer than 3 results
+- `results.total < 10` - More lenient
+- Always show if confidence > threshold (regardless of result count)
+
+#### Multi-word Spell Correction
+
+The system already handles multi-word queries via `suggest_query_correction()`. To adjust:
+
+```sql
+CREATE OR REPLACE FUNCTION suggest_query_correction(input_query TEXT)
+RETURNS TABLE (suggested_query TEXT, confidence REAL) AS $$
+DECLARE
+  words TEXT[];
+  corrected_words TEXT[] := ARRAY[]::TEXT[];
+  word TEXT;
+  correction RECORD;
+  total_confidence REAL := 0;
+  word_count INTEGER := 0;
+BEGIN
+  -- Split into words
+  words := string_to_array(lower(input_query), ' ');
+
+  -- Correct each word
+  FOREACH word IN ARRAY words LOOP
+    word_count := word_count + 1;
+
+    SELECT * INTO correction FROM suggest_spell_correction(word);
+
+    IF correction.confidence > 0.4 AND correction.suggestion IS NOT NULL THEN
+      corrected_words := array_append(corrected_words, correction.suggestion);
+      total_confidence := total_confidence + correction.confidence;
+    ELSE
+      -- Keep original if no good correction
+      corrected_words := array_append(corrected_words, word);
+      total_confidence := total_confidence + 0.5;  -- Assume original is partially correct
+    END IF;
+  END LOOP;
+
+  -- Average confidence
+  suggested_query := array_to_string(corrected_words, ' ');
+  confidence := total_confidence / word_count;
+
+  -- Only return if different from input and confidence is reasonable
+  IF suggested_query != lower(input_query) AND confidence > 0.4 THEN
+    RETURN QUERY SELECT suggested_query, confidence;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Faceted Search Customization
+
+**Location**: `src/routes/catalog/search/results/+page.server.ts`
+
+#### Adding New Facets
+
+To add a new facet (e.g., "Publication Decade"):
+
+1. **Update the interface** in `+page.server.ts`:
+
+```typescript
+export interface FacetGroup {
+  material_types: Facet[];
+  languages: Facet[];
+  publication_years: Facet[];
+  publication_decades: Facet[];  // NEW
+  availability: Facet[];
+  locations: Facet[];
+}
+```
+
+2. **Add to computeFacets function**:
+
+```typescript
+async function computeFacets(
+  supabase: SupabaseClient,
+  params: SearchParams
+): Promise<FacetGroup> {
+  // ... existing facet queries ...
+
+  // Publication Decades facet
+  const { data: decadeData } = await supabase
+    .from('marc_records')
+    .select('publication_info->c')
+    .not('publication_info->c', 'is', null);
+
+  const decadeCounts = new Map<string, number>();
+  decadeData?.forEach(record => {
+    const year = parseInt(record['publication_info']?.c);
+    if (year) {
+      const decade = Math.floor(year / 10) * 10;
+      const label = `${decade}s`;
+      decadeCounts.set(label, (decadeCounts.get(label) || 0) + 1);
+    }
+  });
+
+  const publication_decades = Array.from(decadeCounts.entries())
+    .map(([label, count]) => ({ value: label, label, count }))
+    .sort((a, b) => b.value.localeCompare(a.value));  // Newest first
+
+  return {
+    material_types,
+    languages,
+    publication_years,
+    publication_decades,  // Include new facet
+    availability,
+    locations
+  };
+}
+```
+
+3. **Update UI** in `FacetSidebar.svelte`:
+
+```svelte
+{#if facets.publication_decades.length > 0}
+  <div class="facet-group">
+    <h3>Publication Decade</h3>
+    {#each facets.publication_decades as facet}
+      <label>
+        <input type="checkbox" value={facet.value} />
+        {facet.label} ({facet.count})
+      </label>
+    {/each}
+  </div>
+{/if}
+```
+
+#### Changing Facet Order
+
+Reorder the facets in the UI by changing the order in the Svelte component, or change the sort in the `computeFacets` function.
+
+### Performance Tuning
+
+#### Optimizing Full-Text Search
+
+**1. Index optimization**
+
+Check index usage:
+
+```sql
+-- See if search_vector index is being used
+EXPLAIN ANALYZE
+SELECT * FROM marc_records
+WHERE search_vector @@ websearch_to_tsquery('english', 'history');
+```
+
+**2. Add covering indexes** for common queries:
+
+```sql
+-- Index for title + material_type queries (common filter)
+CREATE INDEX idx_marc_title_type ON marc_records(
+  (title_statement->>'a'),
+  material_type
+);
+
+-- Index for author queries
+CREATE INDEX idx_marc_author ON marc_records(
+  (main_entry_personal_name->>'a')
+);
+
+-- Partial index for available items (faster than full table scan)
+CREATE INDEX idx_available_items ON items(marc_record_id)
+WHERE status = 'available';
+```
+
+**3. Partition large tables** (if catalog grows beyond 100K records):
+
+```sql
+-- Partition by material type for faster filtered queries
+CREATE TABLE marc_records_books PARTITION OF marc_records
+  FOR VALUES IN ('book', 'ebook');
+
+CREATE TABLE marc_records_serials PARTITION OF marc_records
+  FOR VALUES IN ('serial', 'newspaper', 'magazine');
+```
+
+#### Query Optimization
+
+**Use materialized views** for expensive facet calculations:
+
+```sql
+CREATE MATERIALIZED VIEW facet_material_types AS
+SELECT
+  material_type,
+  COUNT(*) as count
+FROM marc_records
+GROUP BY material_type;
+
+-- Refresh periodically (e.g., nightly)
+REFRESH MATERIALIZED VIEW facet_material_types;
+
+-- Query the view instead of the table
+SELECT * FROM facet_material_types;
+```
+
+**Implement caching** in the application:
+
+```typescript
+// Simple in-memory cache for facets
+const facetCache = new Map<string, { facets: FacetGroup; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedFacets(supabase: SupabaseClient, cacheKey: string) {
+  const cached = facetCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.facets;
+  }
+
+  const facets = await computeFacets(supabase, params);
+  facetCache.set(cacheKey, { facets, timestamp: Date.now() });
+  return facets;
+}
+```
+
+### Custom Search Configurations
+
+#### Searching Different Languages
+
+The default is `'english'` configuration. For multi-language catalogs:
+
+```sql
+-- Detect language and use appropriate config
+CREATE OR REPLACE FUNCTION update_marc_search_vector()
+RETURNS TRIGGER AS $$
+DECLARE
+  lang_config TEXT := 'english';  -- default
+BEGIN
+  -- Determine language configuration
+  IF NEW.language_code = 'spa' THEN
+    lang_config := 'spanish';
+  ELSIF NEW.language_code = 'fre' THEN
+    lang_config := 'french';
+  ELSIF NEW.language_code = 'ger' THEN
+    lang_config := 'german';
+  -- Add more languages as needed
+  END IF;
+
+  NEW.search_vector :=
+    setweight(to_tsvector(lang_config, COALESCE(NEW.title_statement->>'a', '')), 'A') ||
+    setweight(to_tsvector(lang_config, COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
+    setweight(to_tsvector(lang_config, COALESCE(NEW.publication_info->>'b', '')), 'C') ||
+    setweight(to_tsvector(lang_config, COALESCE(NEW.summary, '')), 'D');
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+#### Case-Insensitive Exact Matches
+
+For identifiers (ISBN, ISSN, call numbers):
+
+```typescript
+// ISBN exact match (case-insensitive, ignore hyphens)
+const normalizedISBN = isbn.replace(/[-\s]/g, '').toLowerCase();
+
+const { data } = await supabase
+  .from('marc_records')
+  .select('*')
+  .ilike('isbn', normalizedISBN);
+```
+
+Or create a functional index:
+
+```sql
+-- Index for normalized ISBN searches
+CREATE INDEX idx_marc_isbn_normalized ON marc_records(
+  LOWER(REPLACE(isbn, '-', ''))
+);
+```
+
+### Debugging Search Issues
+
+#### Enable Query Logging
+
+**In Supabase Dashboard**: Settings → Database → Enable query logging
+
+**Or add logging to your functions**:
+
+```typescript
+async function performSearch(supabase: SupabaseClient, params: SearchParams) {
+  console.log('Search params:', JSON.stringify(params, null, 2));
+
+  const query = supabase.from('marc_records').select('*');
+
+  // Log the generated query (if using raw SQL)
+  console.log('Query:', query);
+
+  const { data, error } = await query;
+
+  console.log('Results:', data?.length, 'Error:', error);
+
+  return { results: data || [], total: data?.length || 0 };
+}
+```
+
+#### Test Search Queries Directly
+
+In Supabase SQL Editor:
+
+```sql
+-- Test full-text search
+SELECT
+  title_statement->>'a' as title,
+  ts_rank(search_vector, websearch_to_tsquery('english', 'american history')) as rank
+FROM marc_records
+WHERE search_vector @@ websearch_to_tsquery('english', 'american history')
+ORDER BY rank DESC
+LIMIT 10;
+
+-- Test spell correction
+SELECT * FROM suggest_spell_correction('shakespear');
+
+-- Test multi-word correction
+SELECT * FROM suggest_query_correction('amarican histery');
+```
+
+---
+
 ## Key Takeaways for AI Assistants
 
 ### When Working on This Codebase:
