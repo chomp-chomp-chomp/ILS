@@ -1,0 +1,681 @@
+<script lang="ts">
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	let branding = $state({ ...data.branding });
+	let message = $state('');
+	let saving = $state(false);
+
+	async function saveBranding() {
+		saving = true;
+		message = '';
+
+		try {
+			const response = await fetch('/api/branding', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(branding)
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.message || 'Failed to save branding');
+			}
+
+			message = 'Branding settings saved successfully!';
+			setTimeout(() => (message = ''), 3000);
+		} catch (error) {
+			message = error instanceof Error ? error.message : 'Error saving branding';
+			console.error('Save error:', error);
+		} finally {
+			saving = false;
+		}
+	}
+</script>
+
+<div class="branding-page">
+	<header class="page-header">
+		<h1>Branding & Appearance</h1>
+		<p class="subtitle">Customize your library's visual identity and appearance</p>
+	</header>
+
+	{#if message}
+		<div class="message" class:success={message.includes('success')} class:error={!message.includes('success')}>
+			{message}
+		</div>
+	{/if}
+
+	<div class="branding-layout">
+		<div class="settings-panel">
+			<form onsubmit={(e) => { e.preventDefault(); saveBranding(); }}>
+				<!-- Library Identity -->
+				<section class="settings-section">
+					<h2>Library Identity</h2>
+
+					<div class="form-group">
+						<label for="library_name">Library Name</label>
+						<input
+							id="library_name"
+							type="text"
+							bind:value={branding.library_name}
+							placeholder="Library Catalog"
+							required
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="library_tagline">Tagline (optional)</label>
+						<input
+							id="library_tagline"
+							type="text"
+							bind:value={branding.library_tagline}
+							placeholder="Explore our collection"
+						/>
+					</div>
+				</section>
+
+				<!-- Logos -->
+				<section class="settings-section">
+					<h2>Logos & Icons</h2>
+
+					<div class="form-group">
+						<label for="logo_url">Logo URL</label>
+						<input
+							id="logo_url"
+							type="url"
+							bind:value={branding.logo_url}
+							placeholder="https://example.com/logo.png"
+						/>
+						<small>URL to your library's logo image</small>
+					</div>
+
+					<div class="form-group">
+						<label for="favicon_url">Favicon URL</label>
+						<input
+							id="favicon_url"
+							type="url"
+							bind:value={branding.favicon_url}
+							placeholder="https://example.com/favicon.ico"
+						/>
+						<small>Small icon shown in browser tabs</small>
+					</div>
+				</section>
+
+				<!-- Color Scheme -->
+				<section class="settings-section">
+					<h2>Color Scheme</h2>
+
+					<div class="color-grid">
+						<div class="form-group">
+							<label for="primary_color">
+								Primary Color
+								<span class="color-preview" style="background: {branding.primary_color}"></span>
+							</label>
+							<input
+								id="primary_color"
+								type="color"
+								bind:value={branding.primary_color}
+							/>
+						</div>
+
+						<div class="form-group">
+							<label for="secondary_color">
+								Secondary Color
+								<span class="color-preview" style="background: {branding.secondary_color}"></span>
+							</label>
+							<input
+								id="secondary_color"
+								type="color"
+								bind:value={branding.secondary_color}
+							/>
+						</div>
+
+						<div class="form-group">
+							<label for="accent_color">
+								Accent Color
+								<span class="color-preview" style="background: {branding.accent_color}"></span>
+							</label>
+							<input
+								id="accent_color"
+								type="color"
+								bind:value={branding.accent_color}
+							/>
+						</div>
+
+						<div class="form-group">
+							<label for="background_color">
+								Background Color
+								<span class="color-preview" style="background: {branding.background_color}"></span>
+							</label>
+							<input
+								id="background_color"
+								type="color"
+								bind:value={branding.background_color}
+							/>
+						</div>
+
+						<div class="form-group">
+							<label for="text_color">
+								Text Color
+								<span class="color-preview" style="background: {branding.text_color}"></span>
+							</label>
+							<input
+								id="text_color"
+								type="color"
+								bind:value={branding.text_color}
+							/>
+						</div>
+					</div>
+				</section>
+
+				<!-- Typography -->
+				<section class="settings-section">
+					<h2>Typography</h2>
+
+					<div class="form-group">
+						<label for="font_family">Body Font</label>
+						<input
+							id="font_family"
+							type="text"
+							bind:value={branding.font_family}
+							placeholder="system-ui, -apple-system, sans-serif"
+						/>
+						<small>CSS font-family value</small>
+					</div>
+
+					<div class="form-group">
+						<label for="heading_font">Heading Font (optional)</label>
+						<input
+							id="heading_font"
+							type="text"
+							bind:value={branding.heading_font}
+							placeholder="Leave empty to use body font"
+						/>
+					</div>
+				</section>
+
+				<!-- Contact Information -->
+				<section class="settings-section">
+					<h2>Contact Information</h2>
+
+					<div class="form-group">
+						<label for="contact_email">Email</label>
+						<input
+							id="contact_email"
+							type="email"
+							bind:value={branding.contact_email}
+							placeholder="library@example.com"
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="contact_phone">Phone</label>
+						<input
+							id="contact_phone"
+							type="tel"
+							bind:value={branding.contact_phone}
+							placeholder="(555) 123-4567"
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="contact_address">Address</label>
+						<textarea
+							id="contact_address"
+							bind:value={branding.contact_address}
+							placeholder="123 Library St, City, State 12345"
+							rows="3"
+						></textarea>
+					</div>
+				</section>
+
+				<!-- Social Media -->
+				<section class="settings-section">
+					<h2>Social Media</h2>
+
+					<div class="form-group">
+						<label for="facebook_url">Facebook URL</label>
+						<input
+							id="facebook_url"
+							type="url"
+							bind:value={branding.facebook_url}
+							placeholder="https://facebook.com/yourlibrary"
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="twitter_url">Twitter/X URL</label>
+						<input
+							id="twitter_url"
+							type="url"
+							bind:value={branding.twitter_url}
+							placeholder="https://twitter.com/yourlibrary"
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="instagram_url">Instagram URL</label>
+						<input
+							id="instagram_url"
+							type="url"
+							bind:value={branding.instagram_url}
+							placeholder="https://instagram.com/yourlibrary"
+						/>
+					</div>
+				</section>
+
+				<!-- Footer -->
+				<section class="settings-section">
+					<h2>Footer</h2>
+
+					<div class="form-group">
+						<label for="footer_text">Footer Text</label>
+						<input
+							id="footer_text"
+							type="text"
+							bind:value={branding.footer_text}
+							placeholder="Powered by Open Library System"
+						/>
+					</div>
+
+					<div class="form-group checkbox">
+						<label>
+							<input type="checkbox" bind:checked={branding.show_powered_by} />
+							Show "Powered by" footer
+						</label>
+					</div>
+				</section>
+
+				<!-- Feature Toggles -->
+				<section class="settings-section">
+					<h2>Display Features</h2>
+
+					<div class="form-group checkbox">
+						<label>
+							<input type="checkbox" bind:checked={branding.show_covers} />
+							Show book covers in search results
+						</label>
+					</div>
+
+					<div class="form-group checkbox">
+						<label>
+							<input type="checkbox" bind:checked={branding.show_facets} />
+							Show faceted search filters
+						</label>
+					</div>
+
+					<div class="form-group">
+						<label for="items_per_page">Items per page</label>
+						<input
+							id="items_per_page"
+							type="number"
+							bind:value={branding.items_per_page}
+							min="5"
+							max="100"
+						/>
+					</div>
+				</section>
+
+				<!-- Advanced -->
+				<section class="settings-section">
+					<h2>Advanced</h2>
+
+					<div class="form-group">
+						<label for="custom_css">Custom CSS</label>
+						<textarea
+							id="custom_css"
+							bind:value={branding.custom_css}
+							placeholder=".my-class { color: red; }"
+							rows="6"
+							style="font-family: monospace;"
+						></textarea>
+						<small>Advanced: Add custom CSS to override default styles</small>
+					</div>
+
+					<div class="form-group">
+						<label for="custom_head_html">Custom HTML (Head)</label>
+						<textarea
+							id="custom_head_html"
+							bind:value={branding.custom_head_html}
+							placeholder="<script>...</script>"
+							rows="4"
+							style="font-family: monospace;"
+						></textarea>
+						<small>Advanced: Add analytics, fonts, or other head elements</small>
+					</div>
+				</section>
+
+				<!-- Actions -->
+				<div class="form-actions">
+					<button type="submit" class="btn-primary" disabled={saving}>
+						{saving ? 'Saving...' : 'Save Changes'}
+					</button>
+					<button type="button" class="btn-secondary" onclick={() => (branding = { ...data.branding })}>
+						Reset
+					</button>
+				</div>
+			</form>
+		</div>
+
+		<!-- Live Preview -->
+		<div class="preview-panel">
+			<h2>Preview</h2>
+			<div class="preview-container">
+				<div class="preview-sample" style="
+					--primary: {branding.primary_color};
+					--secondary: {branding.secondary_color};
+					--accent: {branding.accent_color};
+					--bg: {branding.background_color};
+					--text: {branding.text_color};
+					font-family: {branding.font_family};
+				">
+					{#if branding.logo_url}
+						<img src={branding.logo_url} alt="Logo" class="preview-logo" />
+					{/if}
+
+					<h1 style="font-family: {branding.heading_font || branding.font_family}">
+						{branding.library_name || 'Library Catalog'}
+					</h1>
+
+					{#if branding.library_tagline}
+						<p class="preview-tagline">{branding.library_tagline}</p>
+					{/if}
+
+					<button class="preview-btn-primary">Primary Button</button>
+					<button class="preview-btn-secondary">Secondary Button</button>
+
+					<p class="preview-text">Sample body text in your chosen font and color.</p>
+
+					<a href="#" class="preview-link">Sample link with accent color</a>
+
+					{#if branding.footer_text}
+						<footer class="preview-footer">{branding.footer_text}</footer>
+					{/if}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.branding-page {
+		max-width: 1600px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	.page-header {
+		margin-bottom: 2rem;
+	}
+
+	.page-header h1 {
+		margin: 0 0 0.5rem 0;
+		font-size: 2rem;
+		color: #2c3e50;
+	}
+
+	.subtitle {
+		margin: 0;
+		color: #666;
+		font-size: 1.125rem;
+	}
+
+	.message {
+		padding: 1rem 1.5rem;
+		border-radius: 8px;
+		margin-bottom: 2rem;
+		font-weight: 500;
+	}
+
+	.message.success {
+		background: #d4edda;
+		border: 1px solid #c3e6cb;
+		color: #155724;
+	}
+
+	.message.error {
+		background: #f8d7da;
+		border: 1px solid #f5c6cb;
+		color: #721c24;
+	}
+
+	.branding-layout {
+		display: grid;
+		grid-template-columns: 1fr 400px;
+		gap: 2rem;
+	}
+
+	.settings-panel {
+		background: white;
+		border-radius: 8px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		padding: 2rem;
+	}
+
+	.settings-section {
+		margin-bottom: 2rem;
+		padding-bottom: 2rem;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.settings-section:last-of-type {
+		border-bottom: none;
+	}
+
+	.settings-section h2 {
+		margin: 0 0 1.5rem 0;
+		font-size: 1.25rem;
+		color: #2c3e50;
+	}
+
+	.form-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.form-group:last-child {
+		margin-bottom: 0;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: #333;
+	}
+
+	.form-group input[type='text'],
+	.form-group input[type='url'],
+	.form-group input[type='email'],
+	.form-group input[type='tel'],
+	.form-group input[type='number'],
+	.form-group textarea {
+		width: 100%;
+		padding: 0.75rem;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		font-size: 1rem;
+		font-family: inherit;
+	}
+
+	.form-group input[type='color'] {
+		width: 80px;
+		height: 40px;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		cursor: pointer;
+	}
+
+	.form-group.checkbox label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+	}
+
+	.form-group.checkbox input[type='checkbox'] {
+		width: auto;
+		cursor: pointer;
+	}
+
+	.form-group small {
+		display: block;
+		margin-top: 0.25rem;
+		color: #666;
+		font-size: 0.875rem;
+	}
+
+	.color-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+		gap: 1rem;
+	}
+
+	.color-preview {
+		display: inline-block;
+		width: 20px;
+		height: 20px;
+		border-radius: 3px;
+		border: 1px solid #ddd;
+		margin-left: 0.5rem;
+		vertical-align: middle;
+	}
+
+	.form-actions {
+		display: flex;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding-top: 2rem;
+		border-top: 2px solid #e0e0e0;
+	}
+
+	.btn-primary,
+	.btn-secondary {
+		padding: 0.75rem 2rem;
+		border: none;
+		border-radius: 4px;
+		font-size: 1rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.btn-primary {
+		background: #e73b42;
+		color: white;
+	}
+
+	.btn-primary:hover:not(:disabled) {
+		background: #d12d34;
+	}
+
+	.btn-primary:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.btn-secondary {
+		background: white;
+		color: #333;
+		border: 1px solid #ddd;
+	}
+
+	.btn-secondary:hover {
+		background: #f5f5f5;
+	}
+
+	.preview-panel {
+		position: sticky;
+		top: 2rem;
+		height: fit-content;
+	}
+
+	.preview-panel h2 {
+		margin: 0 0 1rem 0;
+		font-size: 1.25rem;
+		color: #2c3e50;
+	}
+
+	.preview-container {
+		background: white;
+		border-radius: 8px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		padding: 2rem;
+	}
+
+	.preview-sample {
+		text-align: center;
+		padding: 2rem;
+		background: var(--bg);
+		color: var(--text);
+		border-radius: 8px;
+		border: 2px solid #e0e0e0;
+	}
+
+	.preview-logo {
+		max-width: 200px;
+		max-height: 100px;
+		margin-bottom: 1rem;
+	}
+
+	.preview-sample h1 {
+		margin: 0 0 0.5rem 0;
+		color: var(--primary);
+	}
+
+	.preview-tagline {
+		margin: 0 0 2rem 0;
+		color: var(--text);
+		opacity: 0.8;
+	}
+
+	.preview-btn-primary,
+	.preview-btn-secondary {
+		padding: 0.75rem 1.5rem;
+		border: none;
+		border-radius: 4px;
+		font-weight: 500;
+		margin: 0.5rem;
+		cursor: pointer;
+	}
+
+	.preview-btn-primary {
+		background: var(--primary);
+		color: white;
+	}
+
+	.preview-btn-secondary {
+		background: var(--secondary);
+		color: white;
+	}
+
+	.preview-text {
+		margin: 2rem 0;
+		color: var(--text);
+	}
+
+	.preview-link {
+		display: block;
+		color: var(--accent);
+		text-decoration: underline;
+		margin: 1rem 0;
+	}
+
+	.preview-footer {
+		margin-top: 2rem;
+		padding-top: 1rem;
+		border-top: 1px solid currentColor;
+		opacity: 0.7;
+		font-size: 0.875rem;
+	}
+
+	@media (max-width: 1200px) {
+		.branding-layout {
+			grid-template-columns: 1fr;
+		}
+
+		.preview-panel {
+			position: static;
+		}
+	}
+</style>

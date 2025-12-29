@@ -45,6 +45,14 @@
 			</div>
 		</div>
 	</header>
+
+	{#if data.homepage}
+		<section class="homepage-content">
+			<div class="content-wrapper">
+				{@html data.homepage.content}
+			</div>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -194,6 +202,77 @@
 		color: #888;
 	}
 
+	.homepage-content {
+		background: white;
+		padding: 4rem 2rem;
+	}
+
+	.content-wrapper {
+		max-width: 1200px;
+		margin: 0 auto;
+		line-height: 1.8;
+		color: #333;
+	}
+
+	.content-wrapper :global(h1) {
+		font-size: 2.5em;
+		font-weight: bold;
+		margin-top: 1em;
+		margin-bottom: 0.5em;
+		color: #2c3e50;
+	}
+
+	.content-wrapper :global(h2) {
+		font-size: 2em;
+		font-weight: bold;
+		margin-top: 1.5em;
+		margin-bottom: 0.75em;
+		color: #2c3e50;
+	}
+
+	.content-wrapper :global(h3) {
+		font-size: 1.5em;
+		font-weight: bold;
+		margin-top: 1.25em;
+		margin-bottom: 0.5em;
+		color: #2c3e50;
+	}
+
+	.content-wrapper :global(p) {
+		margin: 1em 0;
+	}
+
+	.content-wrapper :global(a) {
+		color: #667eea;
+		text-decoration: underline;
+	}
+
+	.content-wrapper :global(a:hover) {
+		color: #5568d3;
+	}
+
+	.content-wrapper :global(ul),
+	.content-wrapper :global(ol) {
+		padding-left: 2em;
+		margin: 1em 0;
+	}
+
+	.content-wrapper :global(blockquote) {
+		border-left: 4px solid #e73b42;
+		padding-left: 1.5em;
+		margin: 1.5em 0;
+		font-style: italic;
+		color: #666;
+	}
+
+	.content-wrapper :global(img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8px;
+		margin: 2em auto;
+		display: block;
+	}
+
 	@media (max-width: 768px) {
 		.main-logo {
 			max-width: 350px;
@@ -205,6 +284,10 @@
 
 		.hero-content {
 			padding: 2rem 1rem;
+		}
+
+		.homepage-content {
+			padding: 3rem 1.5rem;
 		}
 	}
 </style>
