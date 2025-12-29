@@ -158,6 +158,11 @@
 			<p>Create and manage orders, track receiving and payments</p>
 		</a>
 
+		<a href="/admin/acquisitions/receiving" class="module-card highlight">
+			<h3>Receiving</h3>
+			<p>Process incoming shipments, create item records, and track deliveries</p>
+		</a>
+
 		<a href="/admin/acquisitions/invoices" class="module-card">
 			<h3>Invoices & Payments</h3>
 			<p>Process invoices and record payments to vendors</p>
@@ -306,6 +311,15 @@
 		border-color: var(--accent);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 		transform: translateY(-2px);
+	}
+
+	.module-card.highlight {
+		border-color: var(--accent);
+		background: linear-gradient(135deg, #ffffff 0%, #fef3f2 100%);
+	}
+
+	.module-card.highlight h3 {
+		font-weight: 700;
 	}
 
 	.module-card h3 {

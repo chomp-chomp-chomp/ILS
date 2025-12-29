@@ -10,6 +10,14 @@
 	let loading = $state(true);
 	let message = $state('');
 
+	// Receiving modal state
+	let showReceivingModal = $state(false);
+	let receivingItem = $state<any>(null);
+	let receiveQuantity = $state(0);
+	let receiveStatus = $state<'received' | 'backordered' | 'cancelled'>('received');
+	let receiveNotes = $state('');
+	let createItems = $state(true);
+
 	const orderId = $derived($page.params.id);
 
 	onMount(async () => {
@@ -72,27 +80,122 @@
 		}
 	}
 
-	async function receiveItem(item: any, quantityReceived: number) {
-		if (quantityReceived <= 0) return;
+	function openReceivingModal(item: any) {
+		receivingItem = item;
+		const remaining = item.quantity - (item.quantity_received || 0);
+		receiveQuantity = remaining;
+		receiveStatus = 'received';
+		receiveNotes = '';
+		createItems = true;
+		showReceivingModal = true;
+	}
+
+	function closeReceivingModal() {
+		showReceivingModal = false;
+		receivingItem = null;
+		receiveQuantity = 0;
+		receiveNotes = '';
+	}
+
+	async function processReceiving() {
+		if (!receivingItem || receiveQuantity <= 0) {
+			message = 'Error: Invalid quantity';
+			return;
+		}
+
+		const remaining = receivingItem.quantity - (receivingItem.quantity_received || 0);
+		if (receiveQuantity > remaining && receiveStatus === 'received') {
+			message = `Error: Cannot receive more than ${remaining} items`;
+			return;
+		}
 
 		try {
-			const newTotalReceived = (item.quantity_received || 0) + quantityReceived;
-			const newStatus = newTotalReceived >= item.quantity ? 'received' : 'ordered';
+			const newTotalReceived = (receivingItem.quantity_received || 0) + (receiveStatus === 'received' ? receiveQuantity : 0);
+			const finalStatus = receiveStatus === 'received'
+				? (newTotalReceived >= receivingItem.quantity ? 'received' : 'ordered')
+				: receiveStatus;
 
-			const { error } = await data.supabase
+			// Update order item
+			const { error: updateError } = await data.supabase
 				.from('order_items')
 				.update({
 					quantity_received: newTotalReceived,
-					status: newStatus,
-					received_date: new Date().toISOString().split('T')[0]
+					status: finalStatus,
+					received_date: receiveStatus === 'received' ? new Date().toISOString().split('T')[0] : receivingItem.received_date,
+					receiving_notes: receiveNotes || null,
+					received_by: data.session?.user?.email || 'Unknown',
+					last_received_at: new Date().toISOString()
 				})
-				.eq('id', item.id);
+				.eq('id', receivingItem.id);
 
-			if (error) throw error;
+			if (updateError) throw updateError;
+
+			// Create receiving history record
+			const { error: historyError } = await data.supabase
+				.from('receiving_history')
+				.insert([{
+					order_item_id: receivingItem.id,
+					acquisition_order_id: order.id,
+					quantity_received: receiveQuantity,
+					received_date: new Date().toISOString().split('T')[0],
+					received_by: data.session?.user?.email || 'Unknown',
+					status: receiveStatus,
+					notes: receiveNotes || null,
+					items_created: createItems && receiveStatus === 'received' ? receiveQuantity : 0
+				}]);
+
+			if (historyError) throw historyError;
+
+			// Create physical item records if requested and status is 'received'
+			if (createItems && receiveStatus === 'received' && receiveQuantity > 0) {
+				const itemsToCreate = [];
+				for (let i = 0; i < receiveQuantity; i++) {
+					// Call the generate_barcode function
+					const { data: barcodeData, error: barcodeError } = await data.supabase
+						.rpc('generate_barcode');
+
+					if (barcodeError) {
+						console.error('Error generating barcode:', barcodeError);
+						continue;
+					}
+
+					itemsToCreate.push({
+						marc_record_id: receivingItem.marc_record_id || null,
+						barcode: barcodeData,
+						copy_number: (receivingItem.quantity_received || 0) + i + 1,
+						status: 'in_processing',
+						acquisition_date: new Date().toISOString().split('T')[0],
+						acquisition_source: 'purchase',
+						vendor_id: order.vendor_id,
+						price: receivingItem.unit_price,
+						currency: 'USD'
+					});
+				}
+
+				if (itemsToCreate.length > 0) {
+					const { error: itemsError } = await data.supabase
+						.from('items')
+						.insert(itemsToCreate);
+
+					if (itemsError) {
+						console.error('Error creating items:', itemsError);
+						message = `Warning: Items received but ${itemsToCreate.length} physical item records failed to create`;
+					}
+				}
+			}
 
 			await loadOrder();
-			message = `Received ${quantityReceived} item(s)`;
-			setTimeout(() => (message = ''), 3000);
+			closeReceivingModal();
+
+			const statusText = receiveStatus === 'received'
+				? `Received ${receiveQuantity} item(s)`
+				: `Marked ${receiveQuantity} item(s) as ${receiveStatus}`;
+			const itemsText = createItems && receiveStatus === 'received'
+				? ` and created ${receiveQuantity} item record(s)`
+				: '';
+			message = statusText + itemsText;
+
+			setTimeout(() => (message = ''), 5000);
 		} catch (err: any) {
 			message = `Error: ${err.message}`;
 		}
@@ -245,23 +348,17 @@
 										<span class="item-status {item.status}">{item.status}</span>
 									</td>
 									<td>
-										{#if item.quantity_received < item.quantity}
+										{#if item.status !== 'received' && item.status !== 'cancelled'}
 											<button
 												class="btn-receive"
-												onclick={() => receiveItem(item, 1)}
+												onclick={() => openReceivingModal(item)}
 											>
-												Receive 1
+												Receive
 											</button>
-											{#if item.quantity - item.quantity_received > 1}
-												<button
-													class="btn-receive"
-													onclick={() => receiveItem(item, item.quantity - item.quantity_received)}
-												>
-													Receive All
-												</button>
-											{/if}
-										{:else}
-											<span class="received-mark">✓ Complete</span>
+										{:else if item.status === 'received'}
+											<span class="received-mark">✓ Received</span>
+										{:else if item.status === 'cancelled'}
+											<span class="cancelled-mark">✗ Cancelled</span>
 										{/if}
 									</td>
 								</tr>
@@ -295,6 +392,94 @@
 				<span class="amount">${Number(order.total_amount || 0).toFixed(2)}</span>
 			</div>
 		</div>
+
+		<!-- Receiving Modal -->
+		{#if showReceivingModal && receivingItem}
+			<div class="modal-overlay" onclick={closeReceivingModal}>
+				<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+					<div class="modal-header">
+						<h2>Receive Item</h2>
+						<button class="modal-close" onclick={closeReceivingModal}>×</button>
+					</div>
+
+					<div class="modal-body">
+						<div class="receiving-item-info">
+							<h3>{receivingItem.title}</h3>
+							{#if receivingItem.author}
+								<p class="item-author">{receivingItem.author}</p>
+							{/if}
+							{#if receivingItem.isbn}
+								<p class="item-isbn">ISBN: {receivingItem.isbn}</p>
+							{/if}
+							<div class="quantity-info">
+								<span><strong>Ordered:</strong> {receivingItem.quantity}</span>
+								<span><strong>Already Received:</strong> {receivingItem.quantity_received || 0}</span>
+								<span><strong>Remaining:</strong> {receivingItem.quantity - (receivingItem.quantity_received || 0)}</span>
+							</div>
+						</div>
+
+						<form onsubmit={(e) => { e.preventDefault(); processReceiving(); }}>
+							<div class="form-group">
+								<label for="receiveQuantity">Quantity to Process *</label>
+								<input
+									id="receiveQuantity"
+									type="number"
+									bind:value={receiveQuantity}
+									min="1"
+									max={receiveStatus === 'received' ? receivingItem.quantity - (receivingItem.quantity_received || 0) : receivingItem.quantity}
+									required
+								/>
+								<small class="help-text">
+									{#if receiveStatus === 'received'}
+										Maximum: {receivingItem.quantity - (receivingItem.quantity_received || 0)} remaining
+									{:else}
+										Enter quantity to mark as {receiveStatus}
+									{/if}
+								</small>
+							</div>
+
+							<div class="form-group">
+								<label for="receiveStatus">Status *</label>
+								<select id="receiveStatus" bind:value={receiveStatus} required>
+									<option value="received">Received</option>
+									<option value="backordered">Backordered</option>
+									<option value="cancelled">Cancelled</option>
+								</select>
+							</div>
+
+							{#if receiveStatus === 'received'}
+								<div class="form-group">
+									<label class="checkbox-label">
+										<input type="checkbox" bind:checked={createItems} />
+										<span>Create {receiveQuantity} physical item record(s) with barcodes</span>
+									</label>
+									<small class="help-text">Items will be created with status "in-processing" and ready for cataloging</small>
+								</div>
+							{/if}
+
+							<div class="form-group">
+								<label for="receiveNotes">Notes</label>
+								<textarea
+									id="receiveNotes"
+									bind:value={receiveNotes}
+									rows="3"
+									placeholder="Any issues, damages, or special notes..."
+								></textarea>
+							</div>
+
+							<div class="modal-actions">
+								<button type="submit" class="btn-primary">
+									{receiveStatus === 'received' ? 'Receive Items' : `Mark as ${receiveStatus}`}
+								</button>
+								<button type="button" class="btn-secondary" onclick={closeReceivingModal}>
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -544,6 +729,198 @@
 	.received-mark {
 		color: #10b981;
 		font-weight: 600;
+	}
+
+	.cancelled-mark {
+		color: #ef4444;
+		font-weight: 600;
+	}
+
+	.item-status.backordered {
+		background: #fff7ed;
+		color: #c2410c;
+	}
+
+	.item-status.cancelled {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	/* Modal Styles */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		padding: 1rem;
+	}
+
+	.modal-content {
+		background: white;
+		border-radius: var(--radius-md);
+		max-width: 600px;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
+		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	}
+
+	.modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.modal-header h2 {
+		margin: 0;
+		font-size: 1.5rem;
+	}
+
+	.modal-close {
+		background: none;
+		border: none;
+		font-size: 2rem;
+		cursor: pointer;
+		color: var(--text-muted);
+		line-height: 1;
+		padding: 0;
+		width: 2rem;
+		height: 2rem;
+	}
+
+	.modal-close:hover {
+		color: var(--text-primary);
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+	}
+
+	.receiving-item-info {
+		background: var(--bg-secondary);
+		padding: 1rem;
+		border-radius: var(--radius-sm);
+		margin-bottom: 1.5rem;
+	}
+
+	.receiving-item-info h3 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1.125rem;
+	}
+
+	.receiving-item-info p {
+		margin: 0.25rem 0;
+		color: var(--text-muted);
+		font-size: 0.875rem;
+	}
+
+	.quantity-info {
+		display: flex;
+		gap: 1.5rem;
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border);
+		font-size: 0.875rem;
+	}
+
+	.form-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.form-group input[type='number'],
+	.form-group select,
+	.form-group textarea {
+		width: 100%;
+		padding: 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		font-size: 1rem;
+		font-family: inherit;
+	}
+
+	.form-group input:focus,
+	.form-group select:focus,
+	.form-group textarea:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+
+	.form-group textarea {
+		resize: vertical;
+	}
+
+	.help-text {
+		display: block;
+		margin-top: 0.5rem;
+		font-size: 0.875rem;
+		color: var(--text-muted);
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		cursor: pointer;
+		font-weight: normal;
+	}
+
+	.checkbox-label input[type='checkbox'] {
+		margin-top: 0.25rem;
+		width: 1.25rem;
+		height: 1.25rem;
+		cursor: pointer;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.btn-primary {
+		padding: 0.75rem 1.5rem;
+		background: var(--accent);
+		color: white;
+		border: none;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.btn-primary:hover {
+		opacity: 0.9;
+	}
+
+	.btn-secondary {
+		padding: 0.75rem 1.5rem;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 1rem;
+	}
+
+	.btn-secondary:hover {
+		background: var(--border);
 	}
 
 	.order-summary {
