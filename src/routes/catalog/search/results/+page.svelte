@@ -325,18 +325,24 @@
 
 <div class="search-results-page">
 	<!-- Header -->
-	<header class="search-header">
+	<header class="search-header" role="banner">
 		<div class="header-top">
-			<h1>Search Results</h1>
-			<button class="mobile-filter-toggle" onclick={toggleMobileFilters}>
-				<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+			<h1 id="results-heading">Search Results</h1>
+			<button
+				class="mobile-filter-toggle"
+				onclick={toggleMobileFilters}
+				aria-label="Toggle filters"
+				aria-expanded={mobileFiltersOpen}
+				aria-controls="filter-sidebar"
+			>
+				<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
 					<path
 						d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
 					/>
 				</svg>
 				Filters
 				{#if hasActiveFilters}
-					<span class="filter-badge">{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)}</span>
+					<span class="filter-badge" aria-label="{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)} active filters">{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)}</span>
 				{/if}
 			</button>
 		</div>
@@ -355,8 +361,14 @@
 					{/if}
 				</div>
 				<div class="share-button-container">
-					<button class="share-button" onclick={toggleShareMenu}>
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+					<button
+						class="share-button"
+						onclick={toggleShareMenu}
+						aria-label="Share search results"
+						aria-expanded={shareMenuOpen}
+						aria-haspopup="menu"
+					>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
 							<circle cx="18" cy="5" r="3" stroke-width="2" />
 							<circle cx="6" cy="12" r="3" stroke-width="2" />
 							<circle cx="18" cy="19" r="3" stroke-width="2" />
