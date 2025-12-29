@@ -4,14 +4,17 @@
 	import type { PageData } from './$types';
 	import FacetSidebar from './FacetSidebar.svelte';
 	import BookCover from '$lib/components/BookCover.svelte';
+	import QRCode from 'qrcode';
 
 	let { data }: { data: PageData } = $props();
 
 	let showFilters = $state(true);
 	let mobileFiltersOpen = $state(false);
 	let shareMenuOpen = $state(false);
+	let shareModalOpen = $state(false);
 	let showCopiedToast = $state(false);
 	let exportModalOpen = $state(false);
+	let qrCodeDataUrl = $state('');
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -117,6 +120,32 @@
 		shareMenuOpen = !shareMenuOpen;
 	}
 
+	async function openShareModal() {
+		shareModalOpen = true;
+		shareMenuOpen = false;
+
+		// Generate QR code
+		const url = window.location.href;
+		try {
+			const qrDataUrl = await QRCode.toDataURL(url, {
+				width: 300,
+				margin: 2,
+				color: {
+					dark: '#1a1a1a',
+					light: '#ffffff'
+				}
+			});
+			qrCodeDataUrl = qrDataUrl;
+		} catch (err) {
+			console.error('Failed to generate QR code:', err);
+		}
+	}
+
+	function closeShareModal() {
+		shareModalOpen = false;
+		qrCodeDataUrl = '';
+	}
+
 	async function copySearchLink() {
 		const url = window.location.href;
 		try {
@@ -131,6 +160,20 @@
 			// Fallback for older browsers
 			fallbackCopyTextToClipboard(url);
 		}
+	}
+
+	async function downloadQRCode() {
+		if (!qrCodeDataUrl) return;
+
+		const link = document.createElement('a');
+		link.download = `search-qr-${new Date().toISOString().split('T')[0]}.png`;
+		link.href = qrCodeDataUrl;
+		link.click();
+
+		showCopiedToast = true;
+		setTimeout(() => {
+			showCopiedToast = false;
+		}, 3000);
 	}
 
 	function fallbackCopyTextToClipboard(text: string) {
@@ -340,6 +383,25 @@
 									/>
 								</svg>
 								Copy Link
+							</button>
+							<button class="share-menu-item" onclick={openShareModal}>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+									<rect
+										x="3"
+										y="3"
+										width="18"
+										height="18"
+										rx="2"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+									<rect x="7" y="7" width="3" height="3" fill="currentColor" />
+									<rect x="14" y="7" width="3" height="3" fill="currentColor" />
+									<rect x="7" y="14" width="3" height="3" fill="currentColor" />
+									<rect x="14" y="14" width="3" height="3" fill="currentColor" />
+								</svg>
+								QR Code
 							</button>
 							<button class="share-menu-item" onclick={shareViaEmail}>
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -689,6 +751,149 @@
 		<div class="modal-footer">
 			<button class="btn-secondary" onclick={toggleExportModal}>Cancel</button>
 			<button class="btn-primary" onclick={exportToCSV}>Download CSV</button>
+		</div>
+	</div>
+{/if}
+
+<!-- Share Modal with QR Code -->
+{#if shareModalOpen}
+	<div class="modal-overlay" onclick={closeShareModal}></div>
+	<div class="modal share-modal">
+		<div class="modal-header">
+			<h2>Share This Search</h2>
+			<button class="modal-close" onclick={closeShareModal}>×</button>
+		</div>
+		<div class="modal-body">
+			<p class="modal-description">
+				Share this search with others using the link below or scan the QR code with a mobile device.
+			</p>
+
+			<div class="share-url-section">
+				<label for="share-url">Search URL</label>
+				<div class="url-input-group">
+					<input
+						id="share-url"
+						type="text"
+						readonly
+						value={typeof window !== 'undefined' ? window.location.href : ''}
+						onclick={(e) => e.currentTarget.select()}
+					/>
+					<button class="copy-url-btn" onclick={copySearchLink}>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+							<rect
+								x="9"
+								y="9"
+								width="13"
+								height="13"
+								rx="2"
+								ry="2"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+							<path
+								d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+						Copy
+					</button>
+				</div>
+			</div>
+
+			{#if qrCodeDataUrl}
+				<div class="qr-code-section">
+					<label>QR Code</label>
+					<div class="qr-code-container">
+						<img src={qrCodeDataUrl} alt="QR Code for this search" class="qr-code-image" />
+						<p class="qr-code-hint">Scan with your phone to open this search</p>
+					</div>
+					<button class="download-qr-btn" onclick={downloadQRCode}>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+							<path
+								d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+							<polyline
+								points="7 10 12 15 17 10"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+							<line
+								x1="12"
+								y1="15"
+								x2="12"
+								y2="3"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+						Download QR Code
+					</button>
+				</div>
+			{/if}
+
+			<div class="share-search-info">
+				<h3>Search Parameters</h3>
+				<div class="search-params">
+					{#if data.query.q}
+						<div class="param-item">
+							<span class="param-label">Keywords:</span>
+							<span class="param-value">{data.query.q}</span>
+						</div>
+					{/if}
+					{#if data.query.title}
+						<div class="param-item">
+							<span class="param-label">Title:</span>
+							<span class="param-value">{data.query.title}</span>
+						</div>
+					{/if}
+					{#if data.query.author}
+						<div class="param-item">
+							<span class="param-label">Author:</span>
+							<span class="param-value">{data.query.author}</span>
+						</div>
+					{/if}
+					{#if data.query.material_types && data.query.material_types.length > 0}
+						<div class="param-item">
+							<span class="param-label">Material Types:</span>
+							<span class="param-value">{data.query.material_types.join(', ')}</span>
+						</div>
+					{/if}
+					{#if data.total}
+						<div class="param-item">
+							<span class="param-label">Results:</span>
+							<span class="param-value">{data.total.toLocaleString()} items</span>
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
+		<div class="modal-footer">
+			<button class="btn-secondary" onclick={closeShareModal}>Close</button>
+			<button class="btn-primary" onclick={shareViaEmail}>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+					<path
+						d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+					<polyline
+						points="22,6 12,13 2,6"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+				Email Link
+			</button>
 		</div>
 	</div>
 {/if}
@@ -1435,6 +1640,158 @@
 	.page-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	/* Share Modal Styles */
+	.share-modal {
+		max-width: 600px;
+	}
+
+	.share-url-section {
+		margin-bottom: 2rem;
+	}
+
+	.share-url-section label {
+		display: block;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+		color: #333;
+		font-size: 0.875rem;
+	}
+
+	.url-input-group {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.url-input-group input {
+		flex: 1;
+		padding: 0.75rem;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		font-family: 'Courier New', monospace;
+		background: #f8f9fa;
+		color: #333;
+	}
+
+	.url-input-group input:focus {
+		outline: none;
+		border-color: #667eea;
+		background: white;
+	}
+
+	.copy-url-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		background: #667eea;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.875rem;
+		transition: background 0.2s;
+		white-space: nowrap;
+	}
+
+	.copy-url-btn:hover {
+		background: #5568d3;
+	}
+
+	.qr-code-section {
+		margin-bottom: 2rem;
+	}
+
+	.qr-code-section label {
+		display: block;
+		font-weight: 600;
+		margin-bottom: 0.75rem;
+		color: #333;
+		font-size: 0.875rem;
+	}
+
+	.qr-code-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+		border-radius: 8px;
+		margin-bottom: 1rem;
+	}
+
+	.qr-code-image {
+		width: 300px;
+		height: 300px;
+		border: 8px solid white;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.qr-code-hint {
+		margin: 1rem 0 0 0;
+		font-size: 0.875rem;
+		color: #666;
+		text-align: center;
+	}
+
+	.download-qr-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: white;
+		color: #667eea;
+		border: 2px solid #667eea;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: all 0.2s;
+	}
+
+	.download-qr-btn:hover {
+		background: #667eea;
+		color: white;
+	}
+
+	.share-search-info {
+		padding: 1.5rem;
+		background: #f8f9fa;
+		border-radius: 8px;
+	}
+
+	.share-search-info h3 {
+		margin: 0 0 1rem 0;
+		font-size: 1rem;
+		color: #333;
+	}
+
+	.search-params {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.param-item {
+		display: flex;
+		gap: 0.5rem;
+		font-size: 0.875rem;
+	}
+
+	.param-label {
+		font-weight: 600;
+		color: #666;
+		min-width: 120px;
+	}
+
+	.param-value {
+		color: #333;
+		flex: 1;
 	}
 
 	.mobile-overlay {
