@@ -420,11 +420,10 @@
 						<tr>
 							<th>Invoice #</th>
 							<th>Vendor</th>
+							<th>Order</th>
 							<th>Date</th>
-							<th>Due Date</th>
 							<th>Total</th>
 							<th>Paid</th>
-							<th>Balance</th>
 							<th>Status</th>
 							<th>Actions</th>
 						</tr>
@@ -433,20 +432,37 @@
 						{#each invoices as invoice}
 							{@const balance = Number(invoice.total_amount) - Number(invoice.paid_amount || 0)}
 							<tr>
-								<td class="invoice-number">{invoice.invoice_number}</td>
-								<td>{invoice.vendor?.name || 'N/A'}</td>
-								<td>{new Date(invoice.invoice_date).toLocaleDateString()}</td>
-								<td>
-									{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
+								<td class="invoice-number">
+									<a href="/admin/acquisitions/invoices/{invoice.id}" class="invoice-link">
+										{invoice.invoice_number}
+									</a>
 								</td>
+								<td>{invoice.vendor?.name || 'N/A'}</td>
+								<td>
+									{#if invoice.order}
+										<a href="/admin/acquisitions/orders/{invoice.acquisition_order_id}" class="order-link">
+											{invoice.order.order_number}
+										</a>
+									{:else}
+										<span class="text-muted">N/A</span>
+									{/if}
+								</td>
+								<td>{new Date(invoice.invoice_date).toLocaleDateString()}</td>
 								<td class="amount">${Number(invoice.total_amount).toFixed(2)}</td>
 								<td class="amount">${Number(invoice.paid_amount || 0).toFixed(2)}</td>
-								<td class="amount {balance > 0 ? 'unpaid' : 'paid'}">${balance.toFixed(2)}</td>
 								<td>
-									<span class="status-badge {invoice.status}">{invoice.status}</span>
+									<span class="status-badge {invoice.payment_status || invoice.status}">
+										{invoice.payment_status || invoice.status}
+									</span>
+									{#if invoice.approved_for_payment}
+										<div class="approved-mark">✓ Approved</div>
+									{/if}
 								</td>
 								<td>
 									<div class="action-buttons">
+										<a href="/admin/acquisitions/invoices/{invoice.id}" class="btn-view">
+											View Details
+										</a>
 										{#if invoice.status !== 'paid'}
 											<button class="btn-pay" onclick={() => openPaymentForm(invoice.id)}>
 												Pay
@@ -654,6 +670,29 @@
 		font-weight: 600;
 	}
 
+	.invoice-link,
+	.order-link {
+		color: var(--accent);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.invoice-link:hover,
+	.order-link:hover {
+		text-decoration: underline;
+	}
+
+	.text-muted {
+		color: var(--text-muted);
+	}
+
+	.approved-mark {
+		font-size: 0.75rem;
+		color: #10b981;
+		margin-top: 0.25rem;
+		font-weight: 600;
+	}
+
 	.amount {
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
@@ -695,9 +734,36 @@
 		color: #721c24;
 	}
 
+	.status-badge.approved {
+		background: #d4edda;
+		color: #155724;
+	}
+
+	.status-badge.disputed {
+		background: #f8d7da;
+		color: #721c24;
+	}
+
 	.action-buttons {
 		display: flex;
 		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.btn-view {
+		padding: 0.5rem 1rem;
+		background: var(--accent);
+		color: white;
+		border: none;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 0.875rem;
+		text-decoration: none;
+		display: inline-block;
+	}
+
+	.btn-view:hover {
+		opacity: 0.9;
 	}
 
 	.btn-pay {
