@@ -190,6 +190,56 @@
 			alert(`Error renewing item: ${err.message}`);
 		}
 	}
+
+	async function createLogin() {
+		if (!patron.email) {
+			alert('Patron must have an email address to create a login.');
+			return;
+		}
+
+		if (patron.user_id) {
+			alert('This patron already has a login account.');
+			return;
+		}
+
+		const password = prompt('Enter a temporary password for this patron (or leave blank to auto-generate):');
+		if (password === null) return; // User cancelled
+
+		const tempPassword = password.trim() || generatePassword();
+
+		try {
+			// Create Supabase auth user
+			const { data: authData, error: authError } = await data.supabase.auth.admin.createUser({
+				email: patron.email,
+				password: tempPassword,
+				email_confirm: true
+			});
+
+			if (authError) throw authError;
+
+			// Link to patron record
+			const { error: updateError } = await data.supabase
+				.from('patrons')
+				.update({ user_id: authData.user.id })
+				.eq('id', patronId);
+
+			if (updateError) throw updateError;
+
+			await loadPatron();
+			alert(`Login created successfully!\n\nEmail: ${patron.email}\nTemporary Password: ${tempPassword}\n\nPlease share these credentials with the patron securely.`);
+		} catch (err: any) {
+			alert(`Error creating login: ${err.message}`);
+		}
+	}
+
+	function generatePassword(): string {
+		const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+		let password = '';
+		for (let i = 0; i < 12; i++) {
+			password += chars.charAt(Math.floor(Math.random() * chars.length));
+		}
+		return password;
+	}
 </script>
 
 <div class="patron-detail-page">
@@ -205,6 +255,11 @@
 			</div>
 			<div class="actions">
 				{#if !editing}
+					{#if !patron.user_id && patron.email}
+						<button onclick={createLogin} class="btn-create-login">Create Login</button>
+					{:else if patron.user_id}
+						<span class="login-status">✓ Has Login</span>
+					{/if}
 					<button onclick={() => editing = true} class="btn-primary">Edit Patron</button>
 				{/if}
 				<a href="/admin/circulation/patrons" class="btn-secondary">Back to List</a>
@@ -728,6 +783,32 @@
 	.btn-renew:disabled {
 		background: #ccc;
 		cursor: not-allowed;
+	}
+
+	.btn-create-login {
+		padding: 0.75rem 1.5rem;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		border: none;
+		transition: all 0.2s;
+		background: #28a745;
+		color: white;
+	}
+
+	.btn-create-login:hover {
+		background: #218838;
+	}
+
+	.login-status {
+		padding: 0.75rem 1.5rem;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		background: #d4edda;
+		color: #155724;
+		display: inline-block;
 	}
 
 	/* Edit Form Styles */
