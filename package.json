@@ -25,6 +25,8 @@
 		"@supabase/ssr": "^0.8.0",
 		"@supabase/supabase-js": "^2.89.0",
 		"@sveltejs/adapter-vercel": "^6.2.0",
+		"chart.js": "^4.5.1",
+		"chartjs-adapter-date-fns": "^3.0.0",
 		"qrcode": "^1.5.4"
 	}
 }
