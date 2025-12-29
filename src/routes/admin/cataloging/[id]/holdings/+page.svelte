@@ -4,45 +4,109 @@
 	let { data }: { data: PageData } = $props();
 
 	const record = data.record;
-	let holdings = $state(data.holdings || []);
+	let items = $state(data.items || []);
 
-	// New holding form
+	// Form state
 	let showForm = $state(false);
 	let editingId = $state<string | null>(null);
-	let callNumber = $state('');
-	let location = $state('Main Library');
-	let sublocation = $state('');
+
+	// Item fields
 	let barcode = $state('');
-	let copyNumber = $state(1);
-	let volume = $state('');
+	let copyNumber = $state('');
+	let callNumber = $state('');
+	let location = $state('Main Stacks');
+	let collection = $state('General');
+	let shelvingLocation = $state('');
 	let status = $state('available');
-	let isElectronic = $state(false);
-	let url = $state('');
-	let accessRestrictions = $state('');
+	let condition = $state('good');
+	let conditionNotes = $state('');
+	let price = $state('');
+	let replacementCost = $state('');
+	let materialType = $state('book');
+	let circulationStatus = $state('circulating');
+	let publicNotes = $state('');
+	let staffNotes = $state('');
 
 	let saving = $state(false);
 	let message = $state('');
 
+	// Status options
+	const statusOptions = [
+		{ value: 'available', label: 'Available', color: '#4caf50' },
+		{ value: 'checked_out', label: 'Checked Out', color: '#ff9800' },
+		{ value: 'on_hold', label: 'On Hold', color: '#2196f3' },
+		{ value: 'in_transit', label: 'In Transit', color: '#9c27b0' },
+		{ value: 'lost', label: 'Lost', color: '#f44336' },
+		{ value: 'damaged', label: 'Damaged', color: '#ff5722' },
+		{ value: 'missing', label: 'Missing', color: '#795548' },
+		{ value: 'on_order', label: 'On Order', color: '#607d8b' },
+		{ value: 'in_processing', label: 'In Processing', color: '#00bcd4' },
+		{ value: 'withdrawn', label: 'Withdrawn', color: '#9e9e9e' }
+	];
+
+	const conditionOptions = ['new', 'good', 'fair', 'poor', 'damaged'];
+	const materialTypeOptions = ['book', 'dvd', 'cd', 'audiobook', 'magazine', 'map', 'e-resource'];
+	const circulationStatusOptions = [
+		{ value: 'circulating', label: 'Circulating' },
+		{ value: 'non-circulating', label: 'Non-Circulating' },
+		{ value: 'reference_only', label: 'Reference Only' },
+		{ value: 'library_use_only', label: 'Library Use Only' }
+	];
+
 	function generateBarcode() {
-		// Generate a simple barcode: timestamp + random 4 digits
-		const timestamp = Date.now().toString().slice(-8);
+		// Generate a 14-digit barcode: timestamp (10) + random (4)
+		const timestamp = Date.now().toString().slice(-10);
 		const random = Math.floor(1000 + Math.random() * 9000);
 		barcode = `${timestamp}${random}`;
 	}
 
-	function editHolding(holding: any) {
-		editingId = holding.id;
+	function newItem() {
+		editingId = null;
 		showForm = true;
-		callNumber = holding.call_number || '';
-		location = holding.location || 'Main Library';
-		sublocation = holding.sublocation || '';
-		barcode = holding.barcode || '';
-		copyNumber = holding.copy_number || 1;
-		volume = holding.volume || '';
-		status = holding.status || 'available';
-		isElectronic = holding.is_electronic || false;
-		url = holding.url || '';
-		accessRestrictions = holding.access_restrictions || '';
+		resetForm();
+		// Pre-fill call number from MARC record if available
+		callNumber = record.classification?.a || '';
+		// Auto-generate barcode
+		generateBarcode();
+	}
+
+	function editItem(item: any) {
+		editingId = item.id;
+		showForm = true;
+		barcode = item.barcode || '';
+		copyNumber = item.copy_number || '';
+		callNumber = item.call_number || '';
+		location = item.location || 'Main Stacks';
+		collection = item.collection || 'General';
+		shelvingLocation = item.shelving_location || '';
+		status = item.status || 'available';
+		condition = item.condition || 'good';
+		conditionNotes = item.condition_notes || '';
+		price = item.price ? item.price.toString() : '';
+		replacementCost = item.replacement_cost ? item.replacement_cost.toString() : '';
+		materialType = item.material_type || 'book';
+		circulationStatus = item.circulation_status || 'circulating';
+		publicNotes = item.public_notes || '';
+		staffNotes = item.staff_notes || '';
+	}
+
+	function resetForm() {
+		barcode = '';
+		copyNumber = '';
+		callNumber = '';
+		location = 'Main Stacks';
+		collection = 'General';
+		shelvingLocation = '';
+		status = 'available';
+		condition = 'good';
+		conditionNotes = '';
+		price = '';
+		replacementCost = '';
+		materialType = 'book';
+		circulationStatus = 'circulating';
+		publicNotes = '';
+		staffNotes = '';
+		message = '';
 	}
 
 	function cancelEdit() {
@@ -51,327 +115,320 @@
 		resetForm();
 	}
 
-	function resetForm() {
-		callNumber = '';
-		location = 'Main Library';
-		sublocation = '';
-		barcode = '';
-		copyNumber = 1;
-		volume = '';
-		status = 'available';
-		isElectronic = false;
-		url = '';
-		accessRestrictions = '';
-	}
+	async function saveItem() {
+		if (!barcode.trim()) {
+			message = 'Barcode is required';
+			return;
+		}
 
-	async function saveHolding() {
 		saving = true;
 		message = '';
 
 		try {
-			const holdingData = {
+			const itemData: any = {
 				marc_record_id: record.id,
-				call_number: callNumber || null,
-				location: location || 'Main Library',
-				sublocation: sublocation || null,
-				barcode: barcode || null,
-				copy_number: copyNumber || 1,
-				volume: volume || null,
-				status: status || 'available',
-				is_electronic: isElectronic,
-				url: url || null,
-				access_restrictions: accessRestrictions || null,
+				barcode: barcode.trim(),
+				copy_number: copyNumber.trim() || null,
+				call_number: callNumber.trim() || null,
+				location,
+				collection,
+				shelving_location: shelvingLocation.trim() || null,
+				status,
+				condition,
+				condition_notes: conditionNotes.trim() || null,
+				price: price ? parseFloat(price) : null,
+				replacement_cost: replacementCost ? parseFloat(replacementCost) : null,
+				material_type: materialType,
+				circulation_status: circulationStatus,
+				public_notes: publicNotes.trim() || null,
+				staff_notes: staffNotes.trim() || null
 			};
 
 			if (editingId) {
-				// Update existing holding
+				// Update existing item
 				const { error: updateError } = await data.supabase
-					.from('holdings')
-					.update(holdingData)
+					.from('items')
+					.update(itemData)
 					.eq('id', editingId);
 
 				if (updateError) throw updateError;
 
-				holdings = holdings.map((h) =>
-					h.id === editingId ? { ...h, ...holdingData } : h
-				);
-
-				message = 'Holding updated successfully!';
+				// Update local state
+				items = items.map((h) => (h.id === editingId ? { ...h, ...itemData } : h));
+				message = 'Item updated successfully!';
 			} else {
-				// Add new holding
+				// Add new item
 				const { data: inserted, error: insertError } = await data.supabase
-					.from('holdings')
-					.insert([holdingData])
+					.from('items')
+					.insert([itemData])
 					.select();
 
 				if (insertError) throw insertError;
 
 				if (inserted && inserted[0]) {
-					holdings = [inserted[0], ...holdings];
+					items = [inserted[0], ...items];
+					message = 'Item added successfully!';
 				}
-
-				message = 'Holding added successfully!';
 			}
 
-			// Reset form
-			showForm = false;
-			editingId = null;
-			resetForm();
-
-			setTimeout(() => (message = ''), 3000);
-		} catch (err) {
+			// Close form and reset
+			setTimeout(() => {
+				showForm = false;
+				resetForm();
+				editingId = null;
+			}, 1500);
+		} catch (err: any) {
 			message = `Error: ${err.message}`;
 		} finally {
 			saving = false;
 		}
 	}
 
-	async function deleteHolding(holdingId: string) {
-		if (!confirm('Are you sure you want to delete this holding?')) return;
+	async function deleteItem(itemId: string) {
+		if (!confirm('Are you sure you want to delete this item?')) return;
 
 		try {
 			const { error: deleteError } = await data.supabase
-				.from('holdings')
+				.from('items')
 				.delete()
-				.eq('id', holdingId);
+				.eq('id', itemId);
 
 			if (deleteError) throw deleteError;
 
-			holdings = holdings.filter((h) => h.id !== holdingId);
-			message = 'Holding deleted successfully!';
-			setTimeout(() => (message = ''), 3000);
-		} catch (err) {
-			alert(`Error deleting: ${err.message}`);
+			items = items.filter((h) => h.id !== itemId);
+		} catch (err: any) {
+			alert(`Error deleting item: ${err.message}`);
 		}
 	}
 
-	async function updateStatus(holdingId: string, newStatus: string) {
+	async function quickStatusUpdate(itemId: string, newStatus: string) {
 		try {
 			const { error: updateError } = await data.supabase
-				.from('holdings')
+				.from('items')
 				.update({ status: newStatus })
-				.eq('id', holdingId);
+				.eq('id', itemId);
 
 			if (updateError) throw updateError;
 
-			holdings = holdings.map((h) =>
-				h.id === holdingId ? { ...h, status: newStatus } : h
-			);
-
-			message = 'Status updated!';
-			setTimeout(() => (message = ''), 2000);
-		} catch (err) {
-			alert(`Error updating: ${err.message}`);
+			items = items.map((h) => (h.id === itemId ? { ...h, status: newStatus } : h));
+		} catch (err: any) {
+			alert(`Error updating status: ${err.message}`);
 		}
+	}
+
+	function getStatusColor(status: string): string {
+		const statusObj = statusOptions.find((s) => s.value === status);
+		return statusObj?.color || '#666';
 	}
 </script>
 
 <div class="holdings-page">
 	<header class="page-header">
 		<div>
-			<h1>Manage Holdings</h1>
-			<p class="record-title">{record.title_statement?.a || 'Untitled'}</p>
+			<h1>Items for: {record.title_statement?.a || 'Untitled'}</h1>
+			<p class="subtitle">
+				{items.length} cop{items.length === 1 ? 'y' : 'ies'} •
+				{items.filter((i) => i.status === 'available').length} available
+			</p>
 		</div>
-		<a href="/admin/cataloging/edit/{record.id}" class="btn-back">← Back to Record</a>
+		<div class="actions">
+			<a href="/admin/cataloging/edit/{record.id}" class="btn-secondary">Back to Record</a>
+			<button onclick={newItem} class="btn-primary">Add Item</button>
+		</div>
 	</header>
 
-	{#if message}
-		<div class={message.startsWith('Error') ? 'message error' : 'message success'}>
-			{message}
-		</div>
-	{/if}
-
-	<div class="actions-bar">
-		<button class="btn-primary" onclick={() => { if (!showForm) { resetForm(); editingId = null; } showForm = !showForm; }}>
-			{showForm ? 'Cancel' : '+ Add Holding'}
-		</button>
-	</div>
-
 	{#if showForm}
-		<div class="add-form">
-			<h3>{editingId ? 'Edit Holding' : 'Add New Holding'}</h3>
+		<div class="form-card">
+			<h2>{editingId ? 'Edit Item' : 'Add New Item'}</h2>
 
-			<form onsubmit={(e) => { e.preventDefault(); saveHolding(); }}>
-				<div class="form-row">
-					<div class="form-group">
-						<label for="callNumber">Call Number</label>
-						<input
-							id="callNumber"
-							type="text"
-							bind:value={callNumber}
-							placeholder="e.g., 823.914 SMI"
-						/>
-					</div>
+			{#if message}
+				<div class="message" class:success={!message.includes('Error')} class:error={message.includes('Error')}>
+					{message}
+				</div>
+			{/if}
 
-					<div class="form-group">
-						<label for="barcode">Barcode / Item ID</label>
-						<div class="barcode-input">
-							<input id="barcode" type="text" bind:value={barcode} placeholder="Auto-generate or enter manually" />
-							<button type="button" onclick={generateBarcode} class="btn-generate">
-								Generate
-							</button>
-						</div>
-					</div>
-
-					<div class="form-group">
-						<label for="copyNumber">Copy #</label>
-						<input id="copyNumber" type="number" bind:value={copyNumber} min="1" />
+			<div class="form-grid">
+				<!-- Barcode and Copy Number -->
+				<div class="form-group">
+					<label for="barcode">Barcode *</label>
+					<div class="input-with-button">
+						<input id="barcode" type="text" bind:value={barcode} required />
+						<button type="button" class="btn-generate" onclick={generateBarcode}>Generate</button>
 					</div>
 				</div>
 
-				<div class="form-row">
-					<div class="form-group">
-						<label for="location">Location</label>
-						<select id="location" bind:value={location}>
-							<option value="Main Library">Main Library</option>
-							<option value="Reference">Reference</option>
-							<option value="Special Collections">Special Collections</option>
-							<option value="Children's Section">Children's Section</option>
-							<option value="Young Adult">Young Adult</option>
-							<option value="Periodicals">Periodicals</option>
-							<option value="Archive">Archive</option>
-						</select>
-					</div>
-
-					<div class="form-group">
-						<label for="sublocation">Sublocation/Shelf</label>
-						<input
-							id="sublocation"
-							type="text"
-							bind:value={sublocation}
-							placeholder="e.g., Shelf A3"
-						/>
-					</div>
-
-					<div class="form-group">
-						<label for="volume">Volume/Edition</label>
-						<input id="volume" type="text" bind:value={volume} placeholder="Vol. 1" />
-					</div>
+				<div class="form-group">
+					<label for="copyNumber">Copy Number</label>
+					<input id="copyNumber" type="text" bind:value={copyNumber} placeholder="e.g., c.1, c.2" />
 				</div>
 
-				<div class="form-row">
-					<div class="form-group">
-						<label for="status">Status</label>
-						<select id="status" bind:value={status}>
-							<option value="available">Available</option>
-							<option value="checked_out">Checked Out</option>
-							<option value="missing">Missing</option>
-							<option value="damaged">Damaged</option>
-							<option value="on_order">On Order</option>
-							<option value="in_processing">In Processing</option>
-						</select>
-					</div>
-
-					<div class="form-group">
-						<label class="checkbox-label">
-							<input type="checkbox" bind:checked={isElectronic} />
-							<span>Electronic Resource</span>
-						</label>
-					</div>
+				<!-- Call Number -->
+				<div class="form-group full-width">
+					<label for="callNumber">Call Number</label>
+					<input id="callNumber" type="text" bind:value={callNumber} placeholder="Override MARC call number" />
 				</div>
 
-				{#if isElectronic}
-					<div class="form-row">
-						<div class="form-group">
-							<label for="url">URL</label>
-							<input id="url" type="url" bind:value={url} placeholder="https://..." />
-						</div>
-
-						<div class="form-group">
-							<label for="accessRestrictions">Access Restrictions</label>
-							<input
-								id="accessRestrictions"
-								type="text"
-								bind:value={accessRestrictions}
-								placeholder="e.g., Library card required"
-							/>
-						</div>
-					</div>
-				{/if}
-
-				<div class="form-actions">
-					<button type="submit" class="btn-primary" disabled={saving}>
-						{saving ? 'Adding...' : 'Add Holding'}
-					</button>
-					<button type="button" class="btn-secondary" onclick={() => (showForm = false)}>
-						Cancel
-					</button>
+				<!-- Location and Collection -->
+				<div class="form-group">
+					<label for="location">Location</label>
+					<input id="location" type="text" bind:value={location} />
 				</div>
-			</form>
+
+				<div class="form-group">
+					<label for="collection">Collection</label>
+					<input id="collection" type="text" bind:value={collection} />
+				</div>
+
+				<div class="form-group">
+					<label for="shelvingLocation">Shelving Location</label>
+					<input id="shelvingLocation" type="text" bind:value={shelvingLocation} placeholder="Specific shelf/area" />
+				</div>
+
+				<!-- Status and Condition -->
+				<div class="form-group">
+					<label for="status">Status</label>
+					<select id="status" bind:value={status}>
+						{#each statusOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="form-group">
+					<label for="condition">Condition</label>
+					<select id="condition" bind:value={condition}>
+						{#each conditionOptions as opt}
+							<option value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="form-group full-width">
+					<label for="conditionNotes">Condition Notes</label>
+					<input id="conditionNotes" type="text" bind:value={conditionNotes} />
+				</div>
+
+				<!-- Material Type and Circulation -->
+				<div class="form-group">
+					<label for="materialType">Material Type</label>
+					<select id="materialType" bind:value={materialType}>
+						{#each materialTypeOptions as type}
+							<option value={type}>{type.toUpperCase()}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="form-group">
+					<label for="circulationStatus">Circulation</label>
+					<select id="circulationStatus" bind:value={circulationStatus}>
+						{#each circulationStatusOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Price -->
+				<div class="form-group">
+					<label for="price">Price</label>
+					<input id="price" type="number" step="0.01" bind:value={price} placeholder="0.00" />
+				</div>
+
+				<div class="form-group">
+					<label for="replacementCost">Replacement Cost</label>
+					<input id="replacementCost" type="number" step="0.01" bind:value={replacementCost} placeholder="0.00" />
+				</div>
+
+				<!-- Notes -->
+				<div class="form-group full-width">
+					<label for="publicNotes">Public Notes</label>
+					<textarea id="publicNotes" bind:value={publicNotes} rows="2"></textarea>
+				</div>
+
+				<div class="form-group full-width">
+					<label for="staffNotes">Staff Notes (Internal)</label>
+					<textarea id="staffNotes" bind:value={staffNotes} rows="2"></textarea>
+				</div>
+			</div>
+
+			<div class="form-actions">
+				<button onclick={cancelEdit} class="btn-secondary" disabled={saving}>Cancel</button>
+				<button onclick={saveItem} class="btn-primary" disabled={saving}>
+					{saving ? 'Saving...' : editingId ? 'Update Item' : 'Add Item'}
+				</button>
+			</div>
 		</div>
 	{/if}
 
-	<div class="holdings-list">
-		{#if holdings.length === 0}
-			<div class="empty-state">
-				<p>No holdings yet. Add the first holding to make this item available.</p>
-			</div>
-		{:else}
-			<h3>Current Holdings ({holdings.length})</h3>
-			{#each holdings as holding}
-				<div class="holding-card">
-					<div class="holding-main">
-						{#if holding.call_number}
-							<div class="call-number">{holding.call_number}</div>
-						{/if}
-						<div class="details">
-							<span class="detail-item">
-								<strong>Location:</strong>
-								{holding.location}
-								{#if holding.sublocation} - {holding.sublocation}{/if}
-							</span>
-							{#if holding.barcode}
-								<span class="detail-item"><strong>Barcode:</strong> {holding.barcode}</span>
-							{/if}
-							<span class="detail-item">
-								<strong>Copy:</strong>
-								{holding.copy_number || 1}
-							</span>
-							{#if holding.volume}
-								<span class="detail-item"><strong>Volume:</strong> {holding.volume}</span>
-							{/if}
-							{#if holding.is_electronic}
-								<span class="detail-item">
-									<strong>Type:</strong> Electronic
-									{#if holding.url}
-										- <a href={holding.url} target="_blank">Access Link</a>
-									{/if}
+	{#if items.length === 0}
+		<div class="empty-state">
+			<h2>No Items Yet</h2>
+			<p>Add physical or electronic copies to this record</p>
+			<button onclick={newItem} class="btn-primary">Add First Item</button>
+		</div>
+	{:else}
+		<div class="items-table">
+			<table>
+				<thead>
+					<tr>
+						<th>Barcode</th>
+						<th>Copy</th>
+						<th>Call Number</th>
+						<th>Location</th>
+						<th>Status</th>
+						<th>Condition</th>
+						<th>Type</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each items as item}
+						<tr>
+							<td>
+								<code>{item.barcode}</code>
+							</td>
+							<td>{item.copy_number || '-'}</td>
+							<td>{item.call_number || record.classification?.a || '-'}</td>
+							<td>
+								{item.location}
+								{#if item.collection && item.collection !== 'General'}
+									<span class="collection-badge">{item.collection}</span>
+								{/if}
+							</td>
+							<td>
+								<select
+									value={item.status}
+									onchange={(e) => quickStatusUpdate(item.id, (e.target as HTMLSelectElement).value)}
+									class="status-select"
+									style="border-color: {getStatusColor(item.status)};"
+								>
+									{#each statusOptions as opt}
+										<option value={opt.value}>{opt.label}</option>
+									{/each}
+								</select>
+							</td>
+							<td>
+								<span class="condition-badge" class:good={item.condition === 'good' || item.condition === 'new'}>
+									{item.condition || 'good'}
 								</span>
-							{/if}
-						</div>
-					</div>
-
-					<div class="holding-actions">
-						<select
-							value={holding.status}
-							onchange={(e) => updateStatus(holding.id, e.currentTarget.value)}
-							class="status-select"
-						>
-							<option value="available">Available</option>
-							<option value="checked_out">Checked Out</option>
-							<option value="missing">Missing</option>
-							<option value="damaged">Damaged</option>
-							<option value="on_order">On Order</option>
-							<option value="in_processing">In Processing</option>
-						</select>
-
-						<button class="btn-edit-small" onclick={() => editHolding(holding)}>
-							Edit
-						</button>
-
-						<button class="btn-delete-small" onclick={() => deleteHolding(holding.id)}>
-							Delete
-						</button>
-					</div>
-				</div>
-			{/each}
-		{/if}
-	</div>
+							</td>
+							<td>{item.material_type?.toUpperCase() || 'BOOK'}</td>
+							<td class="actions-cell">
+								<button onclick={() => editItem(item)} class="btn-small btn-edit">Edit</button>
+								<button onclick={() => deleteItem(item.id)} class="btn-small btn-delete">Delete</button>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.holdings-page {
-		max-width: 1200px;
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 2rem;
 	}
 
 	.page-header {
@@ -379,28 +436,73 @@
 		justify-content: space-between;
 		align-items: flex-start;
 		margin-bottom: 2rem;
+		padding-bottom: 1rem;
+		border-bottom: 2px solid #e0e0e0;
 	}
 
-	h1 {
+	.page-header h1 {
 		margin: 0 0 0.5rem 0;
+		color: #2c3e50;
+		font-size: 1.75rem;
 	}
 
-	.record-title {
-		margin: 0;
+	.subtitle {
 		color: #666;
-		font-style: italic;
+		margin: 0;
+		font-size: 0.875rem;
 	}
 
-	.btn-back {
+	.actions {
+		display: flex;
+		gap: 1rem;
+	}
+
+	.btn-primary,
+	.btn-secondary {
 		padding: 0.75rem 1.5rem;
+		border: none;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		text-decoration: none;
+		transition: all 0.2s;
+		display: inline-block;
+	}
+
+	.btn-primary {
+		background: #e73b42;
+		color: white;
+	}
+
+	.btn-primary:hover:not(:disabled) {
+		background: #d12d34;
+	}
+
+	.btn-primary:disabled {
+		background: #ccc;
+		cursor: not-allowed;
+	}
+
+	.btn-secondary {
 		background: #e0e0e0;
 		color: #333;
-		text-decoration: none;
-		border-radius: 4px;
 	}
 
-	.btn-back:hover {
+	.btn-secondary:hover:not(:disabled) {
 		background: #d0d0d0;
+	}
+
+	.form-card {
+		background: white;
+		padding: 2rem;
+		border-radius: 8px;
+		margin-bottom: 2rem;
+		border: 1px solid #e0e0e0;
+	}
+
+	.form-card h2 {
+		margin: 0 0 1.5rem 0;
+		color: #2c3e50;
 	}
 
 	.message {
@@ -421,213 +523,222 @@
 		border: 1px solid #f5c6cb;
 	}
 
-	.actions-bar {
-		margin-bottom: 2rem;
-	}
-
-	.btn-primary,
-	.btn-secondary {
-		padding: 0.75rem 1.5rem;
-		border-radius: 4px;
-		border: none;
-		cursor: pointer;
-		font-size: 1rem;
-	}
-
-	.btn-primary {
-		background: #667eea;
-		color: white;
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background: #5568d3;
-	}
-
-	.btn-primary:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.btn-secondary {
-		background: #e0e0e0;
-		color: #333;
-	}
-
-	.btn-secondary:hover {
-		background: #d0d0d0;
-	}
-
-	.add-form {
-		background: white;
-		padding: 2rem;
-		border-radius: 8px;
-		margin-bottom: 2rem;
-		border: 2px solid #667eea;
-	}
-
-	.add-form h3 {
-		margin: 0 0 1.5rem 0;
-	}
-
-	.form-row {
+	.form-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1rem;
-		margin-bottom: 1rem;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 1.5rem;
+		margin-bottom: 2rem;
 	}
 
-	.form-group {
-		display: flex;
-		flex-direction: column;
+	.form-group.full-width {
+		grid-column: 1 / -1;
 	}
 
-	label {
+	.form-group label {
+		display: block;
 		margin-bottom: 0.5rem;
 		font-weight: 500;
 		color: #333;
+		font-size: 0.875rem;
 	}
 
-	input,
-	select {
+	.form-group input,
+	.form-group select,
+	.form-group textarea {
+		width: 100%;
 		padding: 0.75rem;
-		border: 1px solid #ddd;
+		border: 1px solid #d0d0d0;
 		border-radius: 4px;
-		font-size: 1rem;
+		font-size: 0.875rem;
 	}
 
-	input:focus,
-	select:focus {
+	.form-group input:focus,
+	.form-group select:focus,
+	.form-group textarea:focus {
 		outline: none;
-		border-color: #667eea;
+		border-color: #e73b42;
 	}
 
-	.checkbox-label {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		cursor: pointer;
-		padding-top: 2rem;
-	}
-
-	.checkbox-label input[type='checkbox'] {
-		width: auto;
-		margin: 0;
-	}
-
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		margin-top: 1.5rem;
-	}
-
-	.holdings-list h3 {
-		margin: 0 0 1rem 0;
-	}
-
-	.empty-state {
-		text-align: center;
-		padding: 3rem;
-		background: white;
-		border-radius: 8px;
-		color: #666;
-	}
-
-	.holding-card {
-		background: white;
-		padding: 1.5rem;
-		border-radius: 8px;
-		border: 1px solid #e0e0e0;
-		margin-bottom: 1rem;
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 1rem;
-	}
-
-	.holding-main {
-		flex: 1;
-	}
-
-	.call-number {
-		font-size: 1.25rem;
-		font-weight: 600;
-		margin-bottom: 0.5rem;
-		color: #2c3e50;
-	}
-
-	.details {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1rem;
-		font-size: 0.875rem;
-	}
-
-	.detail-item {
-		color: #666;
-	}
-
-	.holding-actions {
-		display: flex;
-		gap: 0.5rem;
-		align-items: center;
-	}
-
-	.status-select {
-		padding: 0.5rem;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		font-size: 0.875rem;
-	}
-
-	.barcode-input {
+	.input-with-button {
 		display: flex;
 		gap: 0.5rem;
 	}
 
-	.barcode-input input {
+	.input-with-button input {
 		flex: 1;
 	}
 
 	.btn-generate {
 		padding: 0.75rem 1rem;
-		background: var(--info);
+		background: #2196f3;
 		color: white;
 		border: none;
 		border-radius: 4px;
-		cursor: pointer;
 		font-size: 0.875rem;
+		cursor: pointer;
 		white-space: nowrap;
 	}
 
 	.btn-generate:hover {
-		background: var(--info-hover);
+		background: #1976d2;
 	}
 
-	.btn-edit-small {
-		padding: 0.5rem 1rem;
-		background: var(--info);
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
+	.form-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: 4rem 2rem;
+		background: white;
+		border-radius: 8px;
+		border: 2px dashed #e0e0e0;
+	}
+
+	.empty-state h2 {
+		color: #2c3e50;
+		margin-bottom: 0.5rem;
+	}
+
+	.empty-state p {
+		color: #666;
+		margin-bottom: 2rem;
+	}
+
+	.items-table {
+		background: white;
+		border-radius: 8px;
+		border: 1px solid #e0e0e0;
+		overflow-x: auto;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+
+	th {
+		background: #f5f5f5;
+		padding: 1rem;
+		text-align: left;
+		font-weight: 600;
+		color: #333;
+		font-size: 0.875rem;
+		border-bottom: 2px solid #e0e0e0;
+	}
+
+	td {
+		padding: 1rem;
+		border-bottom: 1px solid #f0f0f0;
 		font-size: 0.875rem;
 	}
 
-	.btn-edit-small:hover {
-		background: var(--info-hover);
+	code {
+		background: #f5f5f5;
+		padding: 0.25rem 0.5rem;
+		border-radius: 3px;
+		font-family: 'Courier New', monospace;
+		font-size: 0.8125rem;
 	}
 
-	.btn-delete-small {
-		padding: 0.5rem 1rem;
-		background: var(--danger);
-		color: white;
+	.collection-badge {
+		display: inline-block;
+		background: #e3f2fd;
+		color: #1976d2;
+		padding: 0.125rem 0.5rem;
+		border-radius: 3px;
+		font-size: 0.75rem;
+		margin-left: 0.5rem;
+	}
+
+	.status-select {
+		padding: 0.5rem;
+		border-radius: 4px;
+		border: 2px solid;
+		font-size: 0.875rem;
+		cursor: pointer;
+		background: white;
+	}
+
+	.condition-badge {
+		display: inline-block;
+		background: #fff3cd;
+		color: #856404;
+		padding: 0.25rem 0.5rem;
+		border-radius: 3px;
+		font-size: 0.8125rem;
+		text-transform: capitalize;
+	}
+
+	.condition-badge.good {
+		background: #d4edda;
+		color: #155724;
+	}
+
+	.actions-cell {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.btn-small {
+		padding: 0.5rem 0.75rem;
 		border: none;
 		border-radius: 4px;
+		font-size: 0.8125rem;
 		cursor: pointer;
-		font-size: 0.875rem;
+		transition: all 0.2s;
 	}
 
-	.btn-delete-small:hover {
-		background: var(--danger-hover);
+	.btn-edit {
+		background: #e73b42;
+		color: white;
+	}
+
+	.btn-edit:hover {
+		background: #d12d34;
+	}
+
+	.btn-delete {
+		background: #f44336;
+		color: white;
+	}
+
+	.btn-delete:hover {
+		background: #d32f2f;
+	}
+
+	@media (max-width: 768px) {
+		.holdings-page {
+			padding: 1rem;
+		}
+
+		.page-header {
+			flex-direction: column;
+			gap: 1rem;
+		}
+
+		.actions {
+			width: 100%;
+			flex-direction: column;
+		}
+
+		.actions a,
+		.actions button {
+			width: 100%;
+		}
+
+		.form-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.items-table {
+			overflow-x: auto;
+		}
+
+		table {
+			min-width: 800px;
+		}
 	}
 </style>
