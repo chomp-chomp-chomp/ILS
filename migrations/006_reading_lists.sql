@@ -84,9 +84,10 @@ CREATE POLICY "Staff can view all lists"
     ON reading_lists FOR SELECT
     USING (
         EXISTS (
-            SELECT 1 FROM patrons
-            WHERE id = auth.uid()
-            AND patron_type IN ('staff', 'admin')
+            SELECT 1 FROM patrons p
+            JOIN patron_types pt ON p.patron_type_id = pt.id
+            WHERE p.id = auth.uid()
+            AND pt.name IN ('staff', 'faculty')
         )
     );
 
@@ -158,9 +159,10 @@ CREATE POLICY "Staff can view all list items"
     ON reading_list_items FOR SELECT
     USING (
         EXISTS (
-            SELECT 1 FROM patrons
-            WHERE id = auth.uid()
-            AND patron_type IN ('staff', 'admin')
+            SELECT 1 FROM patrons p
+            JOIN patron_types pt ON p.patron_type_id = pt.id
+            WHERE p.id = auth.uid()
+            AND pt.name IN ('staff', 'faculty')
         )
     );
 
