@@ -50,7 +50,8 @@ CREATE INDEX idx_claims_resolution ON claims(resolution);
 CREATE INDEX idx_claims_date ON claims(claim_date);
 
 -- Function to generate unique barcodes for items
-CREATE OR REPLACE FUNCTION generate_barcode()
+DROP FUNCTION IF EXISTS generate_barcode();
+CREATE FUNCTION generate_barcode()
 RETURNS TEXT AS $$
 DECLARE
     new_barcode TEXT;
@@ -74,7 +75,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to auto-update order status based on item statuses
-CREATE OR REPLACE FUNCTION update_order_status_on_receive()
+DROP FUNCTION IF EXISTS update_order_status_on_receive();
+CREATE FUNCTION update_order_status_on_receive()
 RETURNS TRIGGER AS $$
 DECLARE
     order_id UUID;
@@ -130,7 +132,8 @@ CREATE TRIGGER trigger_update_order_status
     EXECUTE FUNCTION update_order_status_on_receive();
 
 -- Function to update claims updated_at timestamp
-CREATE OR REPLACE FUNCTION update_claims_updated_at()
+DROP FUNCTION IF EXISTS update_claims_updated_at();
+CREATE FUNCTION update_claims_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -173,7 +176,8 @@ ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'pending'; -- 'pending', 'approved', 'paid', 'disputed'
 
 -- Function to calculate invoice line total
-CREATE OR REPLACE FUNCTION calculate_invoice_line_total()
+DROP FUNCTION IF EXISTS calculate_invoice_line_total();
+CREATE FUNCTION calculate_invoice_line_total()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.line_total := (NEW.quantity * NEW.unit_price) * (1 - NEW.discount_percent / 100.0);
