@@ -4,6 +4,7 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// Fetch state
 	let totalRecords = $state(0);
 	let processedRecords = $state(0);
 	let foundCovers = $state(0);
@@ -14,12 +15,24 @@
 	let logs = $state<string[]>([]);
 	let batchSize = $state(10);
 
+	// Cleanup state
+	let recordsWithCovers = $state(0);
+	let cleanupProcessed = $state(0);
+	let cleanupRemoved = $state(0);
+	let cleanupRemaining = $state(0);
+	let isCleaningUp = $state(false);
+	let cleanupPaused = $state(false);
+	let cleanupMessage = $state('');
+	let cleanupLogs = $state<string[]>([]);
+	let cleanupBatchSize = $state(50);
+
 	onMount(async () => {
 		await loadStats();
 	});
 
 	async function loadStats() {
 		try {
+			// Count records without covers
 			const { data: records, count } = await data.supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
@@ -27,6 +40,15 @@
 
 			remainingRecords = count || 0;
 			totalRecords = count || 0;
+
+			// Count records with covers
+			const { count: withCoversCount } = await data.supabase
+				.from('marc_records')
+				.select('id', { count: 'exact', head: true })
+				.not('cover_image_url', 'is', null);
+
+			recordsWithCovers = withCoversCount || 0;
+			cleanupRemaining = withCoversCount || 0;
 		} catch (error: any) {
 			message = `Error loading stats: ${error.message}`;
 		}
@@ -122,115 +144,333 @@
 			logs = logs.slice(0, 100);
 		}
 	}
+
+	// Cleanup functions
+	async function startCleanup() {
+		isCleaningUp = true;
+		cleanupPaused = false;
+		cleanupProcessed = 0;
+		cleanupRemoved = 0;
+		cleanupLogs = [];
+		cleanupMessage = 'Starting cover cleanup...';
+
+		addCleanupLog(`Starting cleanup with batch size: ${cleanupBatchSize}`);
+
+		while (cleanupRemaining > 0 && !cleanupPaused) {
+			try {
+				const response = await fetch('/api/cleanup-covers', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ batchSize: cleanupBatchSize })
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					throw new Error(result.error || 'Cleanup failed');
+				}
+
+				cleanupProcessed += result.processed;
+				cleanupRemoved += result.removed;
+				cleanupRemaining = result.remaining;
+
+				addCleanupLog(
+					`Batch complete: Checked ${result.processed}, Removed ${result.removed}, Remaining ${result.remaining}`
+				);
+
+				// Log individual results
+				result.results?.forEach((r: any) => {
+					if (r.removed) {
+						addCleanupLog(`✗ Removed invalid cover: ${r.title} (${r.reason})`);
+					} else {
+						addCleanupLog(`✓ Valid cover kept: ${r.title}`);
+					}
+				});
+
+				if (result.remaining === 0) {
+					cleanupMessage = `Complete! Checked ${cleanupProcessed} records, removed ${cleanupRemoved} invalid covers.`;
+					addCleanupLog('All covers verified!');
+					isCleaningUp = false;
+					// Reload stats to update fetch section
+					await loadStats();
+					break;
+				}
+
+				// Small delay between batches
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+			} catch (error: any) {
+				cleanupMessage = `Error: ${error.message}`;
+				addCleanupLog(`Error: ${error.message}`);
+				isCleaningUp = false;
+				break;
+			}
+		}
+
+		if (cleanupPaused) {
+			cleanupMessage = 'Paused. Click Resume to continue.';
+			addCleanupLog('Cleanup paused by user');
+			isCleaningUp = false;
+		}
+	}
+
+	function pauseResumeCleanup() {
+		if (isCleaningUp) {
+			cleanupPaused = true;
+		} else {
+			startCleanup();
+		}
+	}
+
+	function resetCleanup() {
+		isCleaningUp = false;
+		cleanupPaused = false;
+		cleanupProcessed = 0;
+		cleanupRemoved = 0;
+		cleanupLogs = [];
+		cleanupMessage = '';
+		loadStats();
+	}
+
+	function addCleanupLog(logMessage: string) {
+		const timestamp = new Date().toLocaleTimeString();
+		cleanupLogs = [`[${timestamp}] ${logMessage}`, ...cleanupLogs];
+		if (cleanupLogs.length > 100) {
+			cleanupLogs = cleanupLogs.slice(0, 100);
+		}
+	}
 </script>
 
 <div class="fetch-covers-page">
 	<div class="header">
-		<h1>Fetch Book Covers</h1>
+		<h1>Book Cover Management</h1>
 		<p>
-			Automatically fetch and save cover images for all catalog records from Google Books and Open
-			Library APIs.
+			Manage cover images for your catalog: verify existing covers and fetch new ones from Google
+			Books and Open Library APIs.
 		</p>
 	</div>
 
-	<!-- Stats -->
-	<div class="stats-grid">
-		<div class="stat-card">
-			<div class="stat-value">{totalRecords}</div>
-			<div class="stat-label">Total Records Without Covers</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-value">{processedRecords}</div>
-			<div class="stat-label">Processed This Session</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-value">{foundCovers}</div>
-			<div class="stat-label">Covers Found</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-value">{remainingRecords}</div>
-			<div class="stat-label">Remaining</div>
-		</div>
-	</div>
-
-	{#if message}
-		<div class="message">{message}</div>
-	{/if}
-
-	<!-- Progress Bar -->
-	{#if totalRecords > 0}
-		<div class="progress-section">
-			<div class="progress-label">
-				Progress: {processedRecords} / {totalRecords} ({Math.round((processedRecords / totalRecords) * 100)}%)
+	<!-- Cleanup Section -->
+	{#if recordsWithCovers > 0}
+		<div class="cleanup-section">
+			<div class="section-header">
+				<h2>🔍 Verify Existing Covers</h2>
+				<p>
+					You have <strong>{recordsWithCovers}</strong> records with cover URLs. Some may be placeholders
+					or broken links. Run this cleanup to verify and remove invalid covers.
+				</p>
 			</div>
-			<div class="progress-bar">
-				<div
-					class="progress-fill"
-					style="width: {(processedRecords / totalRecords) * 100}%"
-				></div>
+
+			<!-- Cleanup Stats -->
+			<div class="stats-grid">
+				<div class="stat-card">
+					<div class="stat-value">{recordsWithCovers}</div>
+					<div class="stat-label">Records With Covers</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">{cleanupProcessed}</div>
+					<div class="stat-label">Verified This Session</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">{cleanupRemoved}</div>
+					<div class="stat-label">Invalid Covers Removed</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">{cleanupRemaining}</div>
+					<div class="stat-label">Remaining to Check</div>
+				</div>
 			</div>
-		</div>
-	{/if}
 
-	<!-- Controls -->
-	<div class="controls">
-		<div class="batch-size-control">
-			<label for="batchSize">Batch Size:</label>
-			<input
-				id="batchSize"
-				type="number"
-				bind:value={batchSize}
-				min="1"
-				max="50"
-				disabled={isRunning}
-			/>
-			<small>Records to process per batch (1-50)</small>
-		</div>
-
-		<div class="button-group">
-			{#if !isRunning && processedRecords === 0}
-				<button class="btn-primary" onclick={startFetching} disabled={remainingRecords === 0}>
-					Start Fetching Covers
-				</button>
-			{:else if isRunning}
-				<button class="btn-warning" onclick={pauseResume}>Pause</button>
-			{:else if isPaused || processedRecords > 0}
-				<button class="btn-primary" onclick={pauseResume}>
-					{isPaused ? 'Resume' : 'Continue'}
-				</button>
-				<button class="btn-secondary" onclick={reset}>Reset</button>
+			{#if cleanupMessage}
+				<div class="message cleanup-message">{cleanupMessage}</div>
 			{/if}
 
-			<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
-		</div>
-	</div>
-
-	<!-- Log -->
-	<div class="log-section">
-		<h2>Activity Log</h2>
-		<div class="log-container">
-			{#if logs.length === 0}
-				<div class="log-empty">No activity yet. Click "Start Fetching Covers" to begin.</div>
-			{:else}
-				{#each logs as log}
-					<div class="log-entry">{log}</div>
-				{/each}
+			<!-- Cleanup Progress -->
+			{#if recordsWithCovers > 0}
+				<div class="progress-section">
+					<div class="progress-label">
+						Progress: {cleanupProcessed} / {recordsWithCovers} ({Math.round(
+							(cleanupProcessed / recordsWithCovers) * 100
+						)}%)
+					</div>
+					<div class="progress-bar">
+						<div
+							class="progress-fill cleanup-progress"
+							style="width: {(cleanupProcessed / recordsWithCovers) * 100}%"
+						></div>
+					</div>
+				</div>
 			{/if}
+
+			<!-- Cleanup Controls -->
+			<div class="controls">
+				<div class="batch-size-control">
+					<label for="cleanupBatchSize">Batch Size:</label>
+					<input
+						id="cleanupBatchSize"
+						type="number"
+						bind:value={cleanupBatchSize}
+						min="1"
+						max="100"
+						disabled={isCleaningUp}
+					/>
+					<small>Records to check per batch (1-100)</small>
+				</div>
+
+				<div class="button-group">
+					{#if !isCleaningUp && cleanupProcessed === 0}
+						<button
+							class="btn-warning"
+							onclick={startCleanup}
+							disabled={cleanupRemaining === 0}
+						>
+							Start Cleanup
+						</button>
+					{:else if isCleaningUp}
+						<button class="btn-warning" onclick={pauseResumeCleanup}>Pause</button>
+					{:else if cleanupPaused || cleanupProcessed > 0}
+						<button class="btn-warning" onclick={pauseResumeCleanup}>
+							{cleanupPaused ? 'Resume' : 'Continue'}
+						</button>
+						<button class="btn-secondary" onclick={resetCleanup}>Reset</button>
+					{/if}
+
+					<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
+				</div>
+			</div>
+
+			<!-- Cleanup Log -->
+			<div class="log-section">
+				<h3>Cleanup Activity Log</h3>
+				<div class="log-container">
+					{#if cleanupLogs.length === 0}
+						<div class="log-empty">No activity yet. Click "Start Cleanup" to begin.</div>
+					{:else}
+						{#each cleanupLogs as log}
+							<div class="log-entry">{log}</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Fetch Section -->
+	<div class="fetch-section">
+		<div class="section-header">
+			<h2>📷 Fetch New Covers</h2>
+			<p>
+				Automatically fetch cover images for records that don't have covers from Google Books and
+				Open Library APIs.
+			</p>
+		</div>
+
+		<!-- Fetch Stats -->
+		<div class="stats-grid">
+			<div class="stat-card">
+				<div class="stat-value">{totalRecords}</div>
+				<div class="stat-label">Total Records Without Covers</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value">{processedRecords}</div>
+				<div class="stat-label">Processed This Session</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value">{foundCovers}</div>
+				<div class="stat-label">Covers Found</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value">{remainingRecords}</div>
+				<div class="stat-label">Remaining</div>
+			</div>
+		</div>
+
+		{#if message}
+			<div class="message">{message}</div>
+		{/if}
+
+		<!-- Fetch Progress Bar -->
+		{#if totalRecords > 0}
+			<div class="progress-section">
+				<div class="progress-label">
+					Progress: {processedRecords} / {totalRecords} ({Math.round(
+						(processedRecords / totalRecords) * 100
+					)}%)
+				</div>
+				<div class="progress-bar">
+					<div
+						class="progress-fill"
+						style="width: {(processedRecords / totalRecords) * 100}%"
+					></div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Fetch Controls -->
+		<div class="controls">
+			<div class="batch-size-control">
+				<label for="batchSize">Batch Size:</label>
+				<input
+					id="batchSize"
+					type="number"
+					bind:value={batchSize}
+					min="1"
+					max="50"
+					disabled={isRunning}
+				/>
+				<small>Records to process per batch (1-50)</small>
+			</div>
+
+			<div class="button-group">
+				{#if !isRunning && processedRecords === 0}
+					<button class="btn-primary" onclick={startFetching} disabled={remainingRecords === 0}>
+						Start Fetching Covers
+					</button>
+				{:else if isRunning}
+					<button class="btn-warning" onclick={pauseResume}>Pause</button>
+				{:else if isPaused || processedRecords > 0}
+					<button class="btn-primary" onclick={pauseResume}>
+						{isPaused ? 'Resume' : 'Continue'}
+					</button>
+					<button class="btn-secondary" onclick={reset}>Reset</button>
+				{/if}
+
+				<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
+			</div>
+		</div>
+
+		<!-- Fetch Log -->
+		<div class="log-section">
+			<h3>Fetch Activity Log</h3>
+			<div class="log-container">
+				{#if logs.length === 0}
+					<div class="log-empty">No activity yet. Click "Start Fetching Covers" to begin.</div>
+				{:else}
+					{#each logs as log}
+						<div class="log-entry">{log}</div>
+					{/each}
+				{/if}
+			</div>
 		</div>
 	</div>
 
-	<!-- Help -->
+	<!-- Help Section -->
 	<div class="help-section">
 		<h3>How This Works</h3>
 		<ul>
-			<li>This tool fetches cover images for records that don't have custom covers uploaded.</li>
-			<li>It searches Google Books API first (usually better quality covers).</li>
-			<li>If not found, it tries Open Library API as a fallback.</li>
+			<li>
+				<strong>Verify Existing Covers:</strong> Checks all records that have cover URLs to ensure they're
+				not placeholders or broken links. Removes invalid covers so they can be re-fetched.
+			</li>
+			<li>
+				<strong>Fetch New Covers:</strong> Searches Google Books API first (usually better quality covers),
+				then tries Open Library API as a fallback.
+			</li>
 			<li>Found covers are saved to the database and will display immediately.</li>
-			<li>You can pause and resume the process at any time.</li>
+			<li>You can pause and resume either process at any time.</li>
 			<li>Smaller batch sizes are slower but less likely to hit rate limits.</li>
 			<li>
-				This does NOT override custom uploaded covers - only fills in missing ones.
+				This does NOT override custom uploaded covers - only fills in missing ones or replaces
+				invalid ones.
 			</li>
 		</ul>
 	</div>
@@ -253,6 +493,34 @@
 	}
 
 	.header p {
+		margin: 0;
+		color: #666;
+	}
+
+	.cleanup-section,
+	.fetch-section {
+		margin-bottom: 3rem;
+		padding: 2rem;
+		background: #fff9e6;
+		border-radius: 8px;
+		border: 2px solid #f39c12;
+	}
+
+	.fetch-section {
+		background: white;
+		border: 1px solid #ddd;
+	}
+
+	.section-header {
+		margin-bottom: 1.5rem;
+	}
+
+	.section-header h2 {
+		margin: 0 0 0.5rem 0;
+		color: #333;
+	}
+
+	.section-header p {
 		margin: 0;
 		color: #666;
 	}
@@ -293,6 +561,12 @@
 		border: 1px solid #bee5eb;
 	}
 
+	.cleanup-message {
+		background: #fff3cd;
+		color: #856404;
+		border-color: #ffeaa7;
+	}
+
 	.progress-section {
 		margin-bottom: 2rem;
 	}
@@ -321,6 +595,10 @@
 		justify-content: center;
 		color: white;
 		font-weight: bold;
+	}
+
+	.cleanup-progress {
+		background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
 	}
 
 	.controls {
@@ -413,7 +691,7 @@
 		margin-bottom: 2rem;
 	}
 
-	.log-section h2 {
+	.log-section h3 {
 		margin: 0 0 1rem 0;
 		font-size: 1.25rem;
 		color: #333;
