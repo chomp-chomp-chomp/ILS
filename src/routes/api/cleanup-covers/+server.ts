@@ -41,40 +41,38 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			if (!coverUrl) continue;
 
 			try {
-				// Check if the cover URL is valid and points to a real image
-				const response = await fetch(coverUrl, { method: 'HEAD' });
+				// Actually download the image to check its real size
+				const response = await fetch(coverUrl);
 
 				let shouldRemove = false;
+				let reason = '';
 
 				if (!response.ok) {
 					// Cover URL is dead/broken
 					shouldRemove = true;
-					results.push({
-						id: record.id,
-						title: record.title_statement?.a || 'Untitled',
-						reason: 'Dead link (404/error)',
-						removed: true
-					});
+					reason = `Dead link (${response.status})`;
 				} else {
-					// Check content length for placeholders
-					const contentLength = response.headers.get('content-length');
-					if (contentLength && parseInt(contentLength) < 5000) {
-						// Likely a placeholder image (< 5KB)
+					// Get the actual image data
+					const arrayBuffer = await response.arrayBuffer();
+					const actualSize = arrayBuffer.byteLength;
+
+					// Open Library placeholders are typically < 1KB (807 bytes is common)
+					// Real book covers are almost always > 10KB
+					if (actualSize < 10000) {
 						shouldRemove = true;
-						results.push({
-							id: record.id,
-							title: record.title_statement?.a || 'Untitled',
-							reason: `Placeholder detected (${contentLength} bytes)`,
-							removed: true
-						});
+						reason = `Placeholder detected (${Math.round(actualSize / 1024)}KB - too small)`;
 					} else {
-						// Valid cover, keep it
-						results.push({
-							id: record.id,
-							title: record.title_statement?.a || 'Untitled',
-							reason: 'Valid cover',
-							removed: false
-						});
+						// Additional check: look for Open Library placeholder patterns
+						const contentType = response.headers.get('content-type');
+
+						// If it's from covers.openlibrary.org and suspiciously small, remove it
+						if (coverUrl.includes('covers.openlibrary.org') && actualSize < 15000) {
+							shouldRemove = true;
+							reason = `Open Library placeholder (${Math.round(actualSize / 1024)}KB)`;
+						} else {
+							// Valid cover, keep it
+							reason = `Valid cover (${Math.round(actualSize / 1024)}KB)`;
+						}
 					}
 				}
 
@@ -89,6 +87,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						removedCount++;
 					}
 				}
+
+				results.push({
+					id: record.id,
+					title: record.title_statement?.a || 'Untitled',
+					reason,
+					removed: shouldRemove
+				});
+
 			} catch (error) {
 				// If we can't verify, assume it's bad and remove it
 				const { error: updateError } = await supabase
