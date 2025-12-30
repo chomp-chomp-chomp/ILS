@@ -19,9 +19,9 @@
 </svelte:head>
 
 {#if page}
-	<div class="page-container" class:layout-{page.layout}>
+	<div class="page-container layout-{page.layout || 'default'}">
 		<article class="page-content">
-			<h1 class="page-title">{page.title}</h1>
+			<h1 class="page-title">{page?.title || ''}</h1>
 
 			{#if page.excerpt}
 				<p class="page-excerpt">{page.excerpt}</p>
@@ -37,7 +37,7 @@
 		<h1>Page Not Found</h1>
 		<p>The requested page could not be found.</p>
 		<a href="/">← Back to Home</a>
-	</div}
+	</div>
 {/if}
 
 <style>

@@ -326,7 +326,7 @@
 						<textarea
 							id="custom_css"
 							bind:value={branding.custom_css}
-							placeholder=".my-class { color: red; }"
+							placeholder="Enter custom CSS styles here"
 							rows="6"
 							style="font-family: monospace;"
 						></textarea>
