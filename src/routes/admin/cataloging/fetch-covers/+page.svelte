@@ -26,6 +26,13 @@
 	let cleanupLogs = $state<string[]>([]);
 	let cleanupBatchSize = $state(50);
 
+	// Records list state
+	let recordsWithoutCovers = $state<any[]>([]);
+	let showRecordsList = $state(false);
+	let recordsPage = $state(1);
+	let recordsPerPage = $state(50);
+	let loadingRecords = $state(false);
+
 	onMount(async () => {
 		await loadStats();
 	});
@@ -238,6 +245,42 @@
 			cleanupLogs = cleanupLogs.slice(0, 100);
 		}
 	}
+
+	// Records list functions
+	async function loadRecordsWithoutCovers() {
+		loadingRecords = true;
+		try {
+			const offset = (recordsPage - 1) * recordsPerPage;
+			const { data: records, error } = await data.supabase
+				.from('marc_records')
+				.select('id, title_statement, main_entry_personal_name, isbn, publication_info, material_type')
+				.is('cover_image_url', null)
+				.order('title_statement->a')
+				.range(offset, offset + recordsPerPage - 1);
+
+			if (error) {
+				console.error('Error loading records:', error);
+			} else {
+				recordsWithoutCovers = records || [];
+			}
+		} catch (error) {
+			console.error('Error loading records:', error);
+		} finally {
+			loadingRecords = false;
+		}
+	}
+
+	async function toggleRecordsList() {
+		showRecordsList = !showRecordsList;
+		if (showRecordsList && recordsWithoutCovers.length === 0) {
+			await loadRecordsWithoutCovers();
+		}
+	}
+
+	async function changePage(newPage: number) {
+		recordsPage = newPage;
+		await loadRecordsWithoutCovers();
+	}
 </script>
 
 <div class="fetch-covers-page">
@@ -351,6 +394,89 @@
 					{/if}
 				</div>
 			</div>
+		</div>
+	{/if}
+
+	<!-- Records Without Covers List -->
+	{#if totalRecords > 0}
+		<div class="records-list-section">
+			<div class="section-header">
+				<h2>📚 View Records Without Covers</h2>
+				<button class="btn-secondary toggle-btn" onclick={toggleRecordsList}>
+					{showRecordsList ? 'Hide List' : `Show ${totalRecords} Records`}
+				</button>
+			</div>
+
+			{#if showRecordsList}
+				{#if loadingRecords}
+					<div class="loading">Loading records...</div>
+				{:else if recordsWithoutCovers.length > 0}
+					<div class="records-table-container">
+						<table class="records-table">
+							<thead>
+								<tr>
+									<th>Title</th>
+									<th>Author</th>
+									<th>ISBN</th>
+									<th>Type</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each recordsWithoutCovers as record}
+									<tr>
+										<td>
+											<strong>{record.title_statement?.a || 'Untitled'}</strong>
+											{#if record.title_statement?.b}
+												<div class="subtitle">{record.title_statement.b}</div>
+											{/if}
+										</td>
+										<td>{record.main_entry_personal_name?.a || '—'}</td>
+										<td>{record.isbn || '—'}</td>
+										<td>
+											<span class="type-badge">{record.material_type || 'book'}</span>
+										</td>
+										<td>
+											<a
+												href="/admin/cataloging/edit/{record.id}"
+												class="btn-small"
+												target="_blank"
+											>
+												Edit / Upload Cover
+											</a>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+
+					<!-- Pagination -->
+					{#if totalRecords > recordsPerPage}
+						<div class="pagination">
+							<button
+								class="btn-secondary"
+								onclick={() => changePage(recordsPage - 1)}
+								disabled={recordsPage === 1}
+							>
+								← Previous
+							</button>
+							<span class="page-info">
+								Page {recordsPage} of {Math.ceil(totalRecords / recordsPerPage)}
+							</span>
+							<button
+								class="btn-secondary"
+								onclick={() => changePage(recordsPage + 1)}
+								disabled={recordsPage >= Math.ceil(totalRecords / recordsPerPage)}
+							>
+								Next →
+							</button>
+						</div>
+					{/if}
+				{:else}
+					<div class="no-records">No records without covers found.</div>
+				{/if}
+			{/if}
 		</div>
 	{/if}
 
@@ -743,5 +869,115 @@
 	.help-section li {
 		margin-bottom: 0.5rem;
 		color: #666;
+	}
+
+	/* Records List Section */
+	.records-list-section {
+		margin-bottom: 3rem;
+		padding: 2rem;
+		background: white;
+		border-radius: 8px;
+		border: 1px solid #ddd;
+	}
+
+	.records-list-section .section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1.5rem;
+	}
+
+	.toggle-btn {
+		padding: 0.5rem 1rem;
+		font-size: 0.875rem;
+	}
+
+	.loading,
+	.no-records {
+		text-align: center;
+		padding: 2rem;
+		color: #666;
+	}
+
+	.records-table-container {
+		overflow-x: auto;
+		margin-bottom: 1.5rem;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+	}
+
+	.records-table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+
+	.records-table thead {
+		background: #f8f9fa;
+	}
+
+	.records-table th {
+		padding: 1rem;
+		text-align: left;
+		font-weight: 600;
+		color: #333;
+		border-bottom: 2px solid #ddd;
+	}
+
+	.records-table td {
+		padding: 1rem;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.records-table tbody tr:hover {
+		background: #f8f9fa;
+	}
+
+	.subtitle {
+		font-size: 0.875rem;
+		color: #666;
+		margin-top: 0.25rem;
+	}
+
+	.type-badge {
+		display: inline-block;
+		padding: 0.25rem 0.5rem;
+		background: #e0e0e0;
+		color: #333;
+		border-radius: 4px;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+	}
+
+	.btn-small {
+		padding: 0.5rem 1rem;
+		background: #667eea;
+		color: white;
+		text-decoration: none;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		display: inline-block;
+		transition: background 0.2s;
+	}
+
+	.btn-small:hover {
+		background: #5568d3;
+	}
+
+	.pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 1rem;
+		padding: 1rem;
+	}
+
+	.page-info {
+		font-weight: 500;
+		color: #333;
+	}
+
+	.pagination button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 </style>
