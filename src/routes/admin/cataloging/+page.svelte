@@ -299,6 +299,7 @@
 			<a href="/admin/cataloging/templates" class="btn-secondary">Templates</a>
 			<a href="/admin/cataloging/marc-import" class="btn-secondary">MARC Import</a>
 			<a href="/admin/cataloging/marc-export" class="btn-secondary">MARC Export</a>
+			<a href="/admin/cataloging/fetch-covers" class="btn-secondary">📷 Fetch Covers</a>
 			{#if duplicates.size > 0}
 				<a href="/admin/cataloging/duplicates" class="btn-duplicates">
 					Manage Duplicates ({duplicates.size})
