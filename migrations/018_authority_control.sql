@@ -72,13 +72,32 @@ CREATE INDEX idx_authorities_source ON authorities(source);
 CREATE INDEX idx_authorities_lccn ON authorities(lccn) WHERE lccn IS NOT NULL;
 CREATE INDEX idx_authorities_variant_forms ON authorities USING GIN(variant_forms);
 
--- Full-text search on heading and variants
-CREATE INDEX idx_authorities_search ON authorities USING GIN(
-  to_tsvector('english', heading || ' ' || COALESCE(array_to_string(variant_forms, ' '), ''))
-);
-
 -- Unique constraint: same heading + type can't exist twice from same source
 CREATE UNIQUE INDEX idx_authorities_unique ON authorities(heading, type, source);
+
+-- Add search_vector column for full-text search
+ALTER TABLE authorities ADD COLUMN search_vector TSVECTOR;
+
+-- Create index on search_vector
+CREATE INDEX idx_authorities_search_vector ON authorities USING GIN(search_vector);
+
+-- Create function to update search_vector
+CREATE OR REPLACE FUNCTION update_authority_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.search_vector :=
+    setweight(to_tsvector('english', COALESCE(NEW.heading, '')), 'A') ||
+    setweight(to_tsvector('english', COALESCE(array_to_string(NEW.variant_forms, ' '), '')), 'B') ||
+    setweight(to_tsvector('english', COALESCE(NEW.note, '')), 'C');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Create trigger to auto-update search_vector
+CREATE TRIGGER trigger_authority_search_vector
+  BEFORE INSERT OR UPDATE ON authorities
+  FOR EACH ROW
+  EXECUTE FUNCTION update_authority_search_vector();
 
 -- ============================================================================
 -- 2. AUTHORITY CROSS REFERENCES TABLE
@@ -372,8 +391,7 @@ BEGIN
         SELECT 1 FROM unnest(a.variant_forms) variant
         WHERE variant ILIKE '%' || search_term || '%'
       )
-      OR to_tsvector('english', a.heading || ' ' || COALESCE(array_to_string(a.variant_forms, ' '), ''))
-         @@ plainto_tsquery('english', search_term)
+      OR a.search_vector @@ plainto_tsquery('english', search_term)
     )
   ORDER BY similarity_score DESC, a.usage_count DESC
   LIMIT limit_count;
