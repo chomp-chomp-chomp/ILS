@@ -69,7 +69,7 @@
 		</div>
 
 		<div class="links">
-			<a href="/catalog">← Back to Public Catalog</a>
+			<a href="/">← Back to Home</a>
 		</div>
 	</div>
 </div>
