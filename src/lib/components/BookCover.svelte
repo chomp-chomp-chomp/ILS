@@ -3,6 +3,7 @@
 		isbn?: string;
 		title?: string;
 		author?: string;
+		customCoverUrl?: string | null;
 		size?: 'small' | 'medium' | 'large';
 		showPlaceholder?: boolean;
 	}
@@ -11,6 +12,7 @@
 		isbn,
 		title,
 		author,
+		customCoverUrl,
 		size = 'medium',
 		showPlaceholder = true
 	}: Props = $props();
@@ -29,8 +31,15 @@
 	});
 
 	// Fetch cover when component mounts or props change
+	// Priority: customCoverUrl > API fetch
 	$effect(() => {
-		if (showCovers && (isbn || title)) {
+		if (customCoverUrl) {
+			// Use custom cover if provided
+			coverUrl = customCoverUrl;
+			loading = false;
+			error = false;
+		} else if (showCovers && (isbn || title)) {
+			// Fall back to API fetch
 			fetchCover();
 		}
 	});

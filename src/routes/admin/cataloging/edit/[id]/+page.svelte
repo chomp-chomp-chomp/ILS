@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 	import SubjectHeadingInput from '$lib/components/SubjectHeadingInput.svelte';
+	import BookCover from '$lib/components/BookCover.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -21,9 +22,12 @@
 		record.subject_topical?.map((s: any) => s.a) || ['']
 	);
 	let materialType = $state(record.material_type || 'book');
+	let customCoverUrl = $state<string | null>(record.cover_image_url || null);
 
 	let saving = $state(false);
 	let message = $state('');
+	let uploadingCover = $state(false);
+	let coverMessage = $state('');
 
 	function addSubject() {
 		subjects = [...subjects, ''];
@@ -142,7 +146,7 @@
 
 		saving = true;
 		try {
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError} = await data.supabase
 				.from('marc_records')
 				.delete()
 				.eq('id', record.id);
@@ -153,6 +157,71 @@
 		} catch (error) {
 			message = `Error deleting: ${error.message}`;
 			saving = false;
+		}
+	}
+
+	async function handleCoverUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+
+		if (!file) return;
+
+		uploadingCover = true;
+		coverMessage = '';
+
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+			formData.append('recordId', record.id);
+
+			const response = await fetch('/api/cover-upload', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Upload failed');
+			}
+
+			customCoverUrl = result.coverUrl;
+			coverMessage = 'Cover uploaded successfully!';
+
+			// Clear the file input
+			input.value = '';
+		} catch (error: any) {
+			coverMessage = `Error: ${error.message}`;
+		} finally {
+			uploadingCover = false;
+		}
+	}
+
+	async function deleteCover() {
+		if (!confirm('Are you sure you want to remove the custom cover?')) return;
+
+		uploadingCover = true;
+		coverMessage = '';
+
+		try {
+			const response = await fetch('/api/cover-upload', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ recordId: record.id })
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Delete failed');
+			}
+
+			customCoverUrl = null;
+			coverMessage = 'Cover removed successfully!';
+		} catch (error: any) {
+			coverMessage = `Error: ${error.message}`;
+		} finally {
+			uploadingCover = false;
 		}
 	}
 </script>
@@ -196,6 +265,71 @@
 						<option value="cdrom">CD-ROM</option>
 						<option value="serial">Serial</option>
 					</select>
+				</div>
+			</div>
+		</section>
+
+		<!-- Cover Image Section -->
+		<section class="form-section">
+			<h2>Cover Image</h2>
+
+			{#if coverMessage}
+				<div class={coverMessage.startsWith('Error') ? 'message error' : 'message success'}>
+					{coverMessage}
+				</div>
+			{/if}
+
+			<div class="cover-upload-container">
+				<div class="cover-preview">
+					<BookCover
+						isbn={isbn}
+						title={title}
+						author={author}
+						customCoverUrl={customCoverUrl}
+						size="large"
+					/>
+				</div>
+
+				<div class="cover-controls">
+					<p class="helper-text">
+						{#if customCoverUrl}
+							Custom cover uploaded. Overriding auto-fetched covers.
+						{:else}
+							No custom cover. Using auto-fetched cover from ISBN/title if available.
+						{/if}
+					</p>
+
+					<div class="upload-section">
+						<label for="cover-upload" class="upload-label">
+							<span class="upload-icon">📷</span>
+							{uploadingCover ? 'Uploading...' : 'Upload Custom Cover'}
+						</label>
+						<input
+							id="cover-upload"
+							type="file"
+							accept="image/jpeg,image/png,image/webp,image/gif"
+							onchange={handleCoverUpload}
+							disabled={uploadingCover}
+							style="display: none;"
+						/>
+
+						{#if customCoverUrl}
+							<button
+								type="button"
+								class="btn-delete-cover"
+								onclick={deleteCover}
+								disabled={uploadingCover}
+							>
+								Remove Custom Cover
+							</button>
+						{/if}
+					</div>
+
+					<div class="file-requirements">
+						<small>
+							<strong>Requirements:</strong> JPEG, PNG, WebP, or GIF • Max 5MB
+						</small>
+					</div>
 				</div>
 			</div>
 		</section>
@@ -479,5 +613,100 @@
 	.btn-delete:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	/* Cover Upload Styles */
+	.cover-upload-container {
+		display: flex;
+		gap: 2rem;
+		align-items: flex-start;
+		padding: 1rem;
+		background: #f8f9fa;
+		border-radius: 8px;
+	}
+
+	.cover-preview {
+		flex-shrink: 0;
+	}
+
+	.cover-controls {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.helper-text {
+		color: #666;
+		font-size: 0.875rem;
+		margin: 0;
+	}
+
+	.upload-section {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.upload-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1.5rem;
+		background: #667eea;
+		color: white;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 1rem;
+		transition: background 0.2s;
+	}
+
+	.upload-label:hover {
+		background: #5568d3;
+	}
+
+	.upload-label:has(+ input:disabled) {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.upload-icon {
+		font-size: 1.25rem;
+	}
+
+	.btn-delete-cover {
+		padding: 0.75rem 1.5rem;
+		background: #f44336;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 1rem;
+		transition: background 0.2s;
+	}
+
+	.btn-delete-cover:hover:not(:disabled) {
+		background: #d32f2f;
+	}
+
+	.btn-delete-cover:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.file-requirements {
+		color: #666;
+		font-size: 0.875rem;
+	}
+
+	.file-requirements strong {
+		color: #333;
+	}
+
+	@media (max-width: 768px) {
+		.cover-upload-container {
+			flex-direction: column;
+		}
 	}
 </style>
