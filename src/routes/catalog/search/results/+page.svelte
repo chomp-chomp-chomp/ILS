@@ -639,7 +639,12 @@
 				<h2>Refine Results</h2>
 				<button class="mobile-close" onclick={toggleMobileFilters}>×</button>
 			</div>
-			<FacetSidebar facets={data.facets} currentFilters={data.query} onFilterChange={updateUrl} />
+			<FacetSidebar
+				facets={data.facets}
+				facetConfigs={data.facetConfigs}
+				currentFilters={data.query}
+				onFilterChange={updateUrl}
+			/>
 		</aside>
 
 		<!-- Results Area -->

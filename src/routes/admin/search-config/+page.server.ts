@@ -14,6 +14,12 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		.eq('is_active', true)
 		.single();
 
+	// Fetch facet configurations (including inactive for admin view)
+	const { data: facets, error: facetsError } = await supabase
+		.from('facet_configuration')
+		.select('*')
+		.order('display_order', { ascending: true });
+
 	// Return with defaults if not found
 	return {
 		fields: fields || [],
@@ -38,6 +44,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 			enable_boolean_operators: true,
 			default_sort: 'relevance',
 			available_sort_options: ['relevance', 'title', 'author', 'date_newest', 'date_oldest']
-		}
+		},
+		facets: facets || []
 	};
 };
