@@ -143,9 +143,15 @@ async function tryOpenLibrary(
 			const cleanISBN = isbn.replace(/[^0-9X]/gi, '');
 			const coverUrl = `https://covers.openlibrary.org/b/isbn/${cleanISBN}-L.jpg`;
 
+			// Open Library returns 200 even for missing covers, so check content length
 			const response = await fetch(coverUrl, { method: 'HEAD' });
 			if (response.ok) {
-				return coverUrl;
+				const contentLength = response.headers.get('content-length');
+				// Open Library placeholder images are very small (< 1KB)
+				// Real covers are typically > 5KB
+				if (contentLength && parseInt(contentLength) > 5000) {
+					return coverUrl;
+				}
 			}
 		}
 
@@ -166,7 +172,16 @@ async function tryOpenLibrary(
 
 			if (data.docs && data.docs[0]?.cover_i) {
 				const coverId = data.docs[0].cover_i;
-				return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
+				const coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
+
+				// Verify the cover actually exists
+				const verifyResponse = await fetch(coverUrl, { method: 'HEAD' });
+				if (verifyResponse.ok) {
+					const contentLength = verifyResponse.headers.get('content-length');
+					if (contentLength && parseInt(contentLength) > 5000) {
+						return coverUrl;
+					}
+				}
 			}
 		}
 
