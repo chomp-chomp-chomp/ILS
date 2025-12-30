@@ -28,6 +28,7 @@
 	let message = $state('');
 	let uploadingCover = $state(false);
 	let coverMessage = $state('');
+	let manualCoverUrl = $state('');
 
 	function addSubject() {
 		subjects = [...subjects, ''];
@@ -224,6 +225,43 @@
 			uploadingCover = false;
 		}
 	}
+
+	async function saveManualUrl() {
+		if (!manualCoverUrl || !manualCoverUrl.trim()) {
+			coverMessage = 'Please enter a valid URL';
+			return;
+		}
+
+		uploadingCover = true;
+		coverMessage = '';
+
+		try {
+			// Validate URL format
+			new URL(manualCoverUrl);
+
+			// Update the database directly with the URL
+			const { error: updateError } = await data.supabase
+				.from('marc_records')
+				.update({ cover_image_url: manualCoverUrl })
+				.eq('id', record.id);
+
+			if (updateError) {
+				throw new Error(updateError.message);
+			}
+
+			customCoverUrl = manualCoverUrl;
+			coverMessage = 'Cover URL saved successfully!';
+			manualCoverUrl = '';
+		} catch (error: any) {
+			if (error.name === 'TypeError') {
+				coverMessage = 'Error: Invalid URL format';
+			} else {
+				coverMessage = `Error: ${error.message}`;
+			}
+		} finally {
+			uploadingCover = false;
+		}
+	}
 </script>
 
 <div class="cataloging-form">
@@ -325,9 +363,35 @@
 						{/if}
 					</div>
 
+					<div class="divider">
+						<span>OR</span>
+					</div>
+
+					<div class="manual-url-section">
+						<label for="manual-cover-url">Enter Cover Image URL</label>
+						<div class="url-input-group">
+							<input
+								id="manual-cover-url"
+								type="url"
+								bind:value={manualCoverUrl}
+								placeholder="https://example.com/cover.jpg"
+								disabled={uploadingCover}
+							/>
+							<button
+								type="button"
+								class="btn-save-url"
+								onclick={saveManualUrl}
+								disabled={uploadingCover || !manualCoverUrl}
+							>
+								Save URL
+							</button>
+						</div>
+					</div>
+
 					<div class="file-requirements">
 						<small>
-							<strong>Requirements:</strong> JPEG, PNG, WebP, or GIF • Max 5MB
+							<strong>Upload:</strong> JPEG, PNG, WebP, or GIF • Max 5MB<br />
+							<strong>URL:</strong> Direct link to any publicly accessible image
 						</small>
 					</div>
 				</div>
@@ -704,9 +768,88 @@
 		color: #333;
 	}
 
+	.divider {
+		display: flex;
+		align-items: center;
+		text-align: center;
+		margin: 1.5rem 0;
+		color: #999;
+		font-size: 0.875rem;
+	}
+
+	.divider::before,
+	.divider::after {
+		content: '';
+		flex: 1;
+		border-bottom: 1px solid #ddd;
+	}
+
+	.divider span {
+		padding: 0 1rem;
+	}
+
+	.manual-url-section {
+		margin-bottom: 1rem;
+	}
+
+	.manual-url-section label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: #333;
+		font-size: 0.875rem;
+	}
+
+	.url-input-group {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.url-input-group input {
+		flex: 1;
+		padding: 0.5rem;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		font-size: 0.875rem;
+	}
+
+	.url-input-group input:focus {
+		outline: none;
+		border-color: #667eea;
+	}
+
+	.btn-save-url {
+		padding: 0.5rem 1rem;
+		background: #667eea;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.875rem;
+		white-space: nowrap;
+		transition: background 0.2s;
+	}
+
+	.btn-save-url:hover:not(:disabled) {
+		background: #5568d3;
+	}
+
+	.btn-save-url:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
 	@media (max-width: 768px) {
 		.cover-upload-container {
 			flex-direction: column;
+		}
+
+		.url-input-group {
+			flex-direction: column;
+		}
+
+		.btn-save-url {
+			width: 100%;
 		}
 	}
 </style>
