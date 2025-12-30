@@ -1,5 +1,10 @@
 import type { PageServerLoad } from './$types';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+	loadFacetConfigs,
+	computeDynamicFacets,
+	type DynamicFacetGroup
+} from '$lib/utils/facets';
 
 export interface SearchParams {
 	q?: string;
@@ -30,11 +35,12 @@ export interface Facet {
 }
 
 export interface FacetGroup {
-	material_types: Facet[];
-	languages: Facet[];
-	publication_years: Facet[];
-	availability: Facet[];
-	locations: Facet[];
+	material_types?: Facet[];
+	languages?: Facet[];
+	publication_years?: Facet[];
+	availability?: Facet[];
+	locations?: Facet[];
+	[key: string]: Facet[] | undefined; // Allow dynamic facet keys
 }
 
 export interface SpellSuggestion {
@@ -44,7 +50,8 @@ export interface SpellSuggestion {
 
 export interface SearchResult {
 	results: any[];
-	facets: FacetGroup;
+	facets: FacetGroup | DynamicFacetGroup;
+	facetConfigs: any[];
 	total: number;
 	page: number;
 	per_page: number;
@@ -77,10 +84,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	};
 
 	try {
-		// Perform search with facets
+		// Load facet configurations
+		const facetConfigs = await loadFacetConfigs(supabase);
+
+		// Perform search with dynamic facets
 		const [results, facets] = await Promise.all([
 			performSearch(supabase, params),
-			computeFacets(supabase, params)
+			computeDynamicFacets(supabase, facetConfigs, params)
 		]);
 
 		// Check if we should suggest spell corrections
@@ -97,6 +107,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		return {
 			...results,
 			facets,
+			facetConfigs,
 			query: params,
 			spellSuggestion
 		};
@@ -104,13 +115,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		console.error('Search error:', error);
 		return {
 			results: [],
-			facets: {
-				material_types: [],
-				languages: [],
-				publication_years: [],
-				availability: [],
-				locations: []
-			},
+			facets: {},
+			facetConfigs: [],
 			total: 0,
 			page: params.page || 1,
 			per_page: params.per_page || 20,
