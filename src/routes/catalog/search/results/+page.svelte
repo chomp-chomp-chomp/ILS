@@ -9,6 +9,10 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// Pagination defaults
+	const currentPage = $derived(data.page || 1);
+	const currentPerPage = $derived(data.per_page || 20);
+
 	let showFilters = $state(true);
 	let mobileFiltersOpen = $state(false);
 	let shareMenuOpen = $state(false);
@@ -427,9 +431,9 @@
 	}
 
 	// Calculate pagination
-	const totalPages = $derived(Math.ceil(data.total / data.per_page));
-	const startResult = $derived((data.page - 1) * data.per_page + 1);
-	const endResult = $derived(Math.min(data.page * data.per_page, data.total));
+	const totalPages = $derived(Math.ceil(data.total / currentPerPage));
+	const startResult = $derived((currentPage - 1) * currentPerPage + 1);
+	const endResult = $derived(Math.min(currentPage * currentPerPage, data.total));
 </script>
 
 <div class="search-results-page">
@@ -464,7 +468,7 @@
 						<p class="results-count">
 							{data.total.toLocaleString()} result{data.total === 1 ? '' : 's'}
 							{#if totalPages > 1}
-								· Page {data.page} of {totalPages}
+								· Page {currentPage} of {totalPages}
 							{/if}
 						</p>
 					{/if}
@@ -783,8 +787,8 @@
 										{/if}
 									</p>
 								{/if}
-								{#if record.items && record.items.some((item) => item.is_electronic && item.url)}
-									{@const electronicItem = record.items.find((item) => item.is_electronic && item.url)}
+								{#if record.items && record.items.some((item: any) => item.is_electronic && item.url)}
+									{@const electronicItem = record.items.find((item: any) => item.is_electronic && item.url)}
 									<p class="electronic-access">
 										<svg
 											width="16"
@@ -824,7 +828,7 @@
 										<span class="badge lang">{record.language_code}</span>
 									{/if}
 									{#if record.items && record.items.length > 0}
-										{@const availableItems = record.items.filter((item) => item.status === 'available')}
+										{@const availableItems = record.items.filter((item: any) => item.status === 'available')}
 										{#if availableItems.length > 0}
 											<span class="badge available"
 												>{availableItems.length} available</span
@@ -844,8 +848,8 @@
 					<nav class="pagination" aria-label="Search results pagination">
 						<button
 							class="page-btn"
-							disabled={data.page === 1}
-							onclick={() => changePage(data.page - 1)}
+							disabled={currentPage === 1}
+							onclick={() => changePage(currentPage - 1)}
 						>
 							← Previous
 						</button>
@@ -853,13 +857,13 @@
 						<div class="page-numbers">
 							{#each Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
 								if (totalPages <= 7) return i + 1;
-								if (data.page <= 4) return i + 1;
-								if (data.page >= totalPages - 3) return totalPages - 6 + i;
-								return data.page - 3 + i;
+								if (currentPage <= 4) return i + 1;
+								if (currentPage >= totalPages - 3) return totalPages - 6 + i;
+								return currentPage - 3 + i;
 							}) as pageNum}
 								<button
 									class="page-btn"
-									class:active={pageNum === data.page}
+									class:active={pageNum === currentPage}
 									onclick={() => changePage(pageNum)}
 								>
 									{pageNum}
@@ -869,8 +873,8 @@
 
 						<button
 							class="page-btn"
-							disabled={data.page === totalPages}
-							onclick={() => changePage(data.page + 1)}
+							disabled={currentPage === totalPages}
+							onclick={() => changePage(currentPage + 1)}
 						>
 							Next →
 						</button>

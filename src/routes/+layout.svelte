@@ -9,7 +9,7 @@
 
 	// Get branding configuration with defaults
 	const branding = $derived(
-		data.branding || {
+		(data as any).branding || {
 			library_name: 'Library Catalog System',
 			primary_color: '#e73b42',
 			secondary_color: '#667eea',

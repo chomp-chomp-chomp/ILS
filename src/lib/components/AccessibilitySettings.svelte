@@ -152,7 +152,7 @@
 					<button
 						class="size-button"
 						class:active={fontSize === 'large'}
-						onclick={() => setFontSize('large'}
+						onclick={() => setFontSize('large')}
 						role="radio"
 						aria-checked={fontSize === 'large'}
 					>
