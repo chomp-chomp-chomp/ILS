@@ -102,8 +102,7 @@
 		try {
 			// First, try to get cover from database if we have recordId
 			if (recordId) {
-				const { createClient } = await import('$lib/supabaseClient');
-				const supabase = createClient();
+				const { supabase } = await import('$lib/supabase');
 
 				const { data: coverData, error: coverError } = await supabase
 					.from('covers')
@@ -195,35 +194,54 @@
 			<span class="loading-spinner"></span>
 		</div>
 	{:else if coverUrl}
-		<div
-			class="cover-wrapper {sizeClasses[size]}"
-			class:zoomable={enableZoom}
-			role={enableZoom ? 'button' : undefined}
-			tabindex={enableZoom ? 0 : undefined}
-			onclick={toggleZoom}
-			onkeydown={(e) => e.key === 'Enter' && toggleZoom()}
-		>
-			<!-- Show thumbnail first, then full image when loaded -->
-			{#if !imageLoaded && thumbnailUrl && thumbnailUrl !== coverUrl}
+		{#if enableZoom}
+			<div
+				class="cover-wrapper {sizeClasses[size]} zoomable"
+				role="button"
+				tabindex="0"
+				onclick={toggleZoom}
+				onkeydown={(e) => e.key === 'Enter' && toggleZoom()}
+			>
+				<!-- Show thumbnail first, then full image when loaded -->
+				{#if !imageLoaded && thumbnailUrl && thumbnailUrl !== coverUrl}
+					<img
+						src={thumbnailUrl}
+						alt="Book cover thumbnail for {title || 'book'}"
+						class="book-cover thumbnail {sizeClasses[size]}"
+					/>
+				{/if}
 				<img
-					src={thumbnailUrl}
-					alt="Book cover thumbnail for {title || 'book'}"
-					class="book-cover thumbnail {sizeClasses[size]}"
+					src={coverUrl}
+					alt="Book cover for {title || 'book'}"
+					class="book-cover {sizeClasses[size]}"
+					class:loaded={imageLoaded}
+					onload={handleImageLoad}
+					onerror={handleImageError}
+					loading={lazyLoad ? 'lazy' : 'eager'}
 				/>
-			{/if}
-			<img
-				src={coverUrl}
-				alt="Book cover for {title || 'book'}"
-				class="book-cover {sizeClasses[size]}"
-				class:loaded={imageLoaded}
-				onload={handleImageLoad}
-				onerror={handleImageError}
-				loading={lazyLoad ? 'lazy' : 'eager'}
-			/>
-			{#if enableZoom}
 				<div class="zoom-hint">🔍 Click to enlarge</div>
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<div class="cover-wrapper {sizeClasses[size]}">
+				<!-- Show thumbnail first, then full image when loaded -->
+				{#if !imageLoaded && thumbnailUrl && thumbnailUrl !== coverUrl}
+					<img
+						src={thumbnailUrl}
+						alt="Book cover thumbnail for {title || 'book'}"
+						class="book-cover thumbnail {sizeClasses[size]}"
+					/>
+				{/if}
+				<img
+					src={coverUrl}
+					alt="Book cover for {title || 'book'}"
+					class="book-cover {sizeClasses[size]}"
+					class:loaded={imageLoaded}
+					onload={handleImageLoad}
+					onerror={handleImageError}
+					loading={lazyLoad ? 'lazy' : 'eager'}
+				/>
+			</div>
+		{/if}
 	{:else if showPlaceholder}
 		<!-- Generated placeholder with title/author -->
 		<div
@@ -259,7 +277,15 @@
 
 <!-- Zoom overlay -->
 {#if showZoom && coverUrl}
-	<div class="zoom-overlay" onclick={closeZoom} role="dialog" aria-label="Enlarged book cover">
+	<div
+		class="zoom-overlay"
+		onclick={closeZoom}
+		onkeydown={(e) => e.key === 'Escape' && (showZoom = false)}
+		role="dialog"
+		aria-label="Enlarged book cover"
+		aria-modal="true"
+		tabindex="-1"
+	>
 		<button class="zoom-close" onclick={() => (showZoom = false)} aria-label="Close">×</button>
 		<img src={coverUrl} alt="Book cover for {title || 'book'}" class="zoomed-image" />
 	</div>
