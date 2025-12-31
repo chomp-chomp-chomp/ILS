@@ -3,10 +3,13 @@
 	import type { PageData } from './$types';
 	import SubjectHeadingInput from '$lib/components/SubjectHeadingInput.svelte';
 	import BookCover from '$lib/components/BookCover.svelte';
+	import AuthoritySuggestion from '$lib/components/AuthoritySuggestion.svelte';
+	import { supabase } from '$lib/supabase';
 
 	let { data }: { data: PageData } = $props();
 
 	const record = data.record;
+	let authorityLinks = $state<any[]>(data.authorityLinks || []);
 
 	// Pre-populate fields from existing record
 	let isbn = $state(record.isbn || '');
@@ -21,14 +24,43 @@
 	let subjects = $state<string[]>(
 		record.subject_topical?.map((s: any) => s.a) || ['']
 	);
-	let materialType = $state(record.material_type || 'book');
-	let customCoverUrl = $state<string | null>(record.cover_image_url || null);
+let materialType = $state(record.material_type || 'book');
+let customCoverUrl = $state<string | null>(record.cover_image_url || null);
+let authorityMessage = $state('');
 
 	let saving = $state(false);
 	let message = $state('');
-	let uploadingCover = $state(false);
-	let coverMessage = $state('');
-	let manualCoverUrl = $state('');
+let uploadingCover = $state(false);
+let coverMessage = $state('');
+let manualCoverUrl = $state('');
+
+function isNameLinked() {
+	return authorityLinks.some((link) => link.marc_field === '100');
+}
+
+function isSubjectLinked(index: number) {
+	return authorityLinks.some(
+		(link) => link.marc_field === '650' && (link.field_index ?? 0) === index
+	);
+}
+
+function handleAuthorityLinked(field: string, index: number, authority: any) {
+	authorityLinks = authorityLinks.filter(
+		(link) => !(link.marc_field === field && (link.field_index ?? 0) === index)
+	);
+
+	authorityLinks = [
+		...authorityLinks,
+		{
+			marc_field: field,
+			field_index: index,
+			authority,
+			confidence: 1
+		}
+	];
+
+	authorityMessage = `Linked to ${authority.heading}`;
+}
 
 	function addSubject() {
 		subjects = [...subjects, ''];
@@ -66,7 +98,7 @@
 				updated_at: new Date().toISOString()
 			};
 
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('marc_records')
 				.update(updatedRecord)
 				.eq('id', record.id);
@@ -124,7 +156,7 @@
 				// Note: control_number is NOT copied (should be unique)
 			};
 
-			const { data: newRecord, error: insertError } = await data.supabase
+			const { data: newRecord, error: insertError } = await supabase
 				.from('marc_records')
 				.insert([duplicateData])
 				.select()
@@ -147,7 +179,7 @@
 
 		saving = true;
 		try {
-			const { error: deleteError} = await data.supabase
+			const { error: deleteError} = await supabase
 				.from('marc_records')
 				.delete()
 				.eq('id', record.id);
@@ -240,7 +272,7 @@
 			new URL(manualCoverUrl);
 
 			// Update the database directly with the URL
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('marc_records')
 				.update({ cover_image_url: manualCoverUrl })
 				.eq('id', record.id);
@@ -400,6 +432,9 @@
 
 		<section class="form-section">
 			<h2>Title & Author (MARC 245, 100)</h2>
+			{#if authorityMessage}
+				<p class="authority-message">{authorityMessage}</p>
+			{/if}
 
 			<div class="form-group">
 				<label for="title">Title *</label>
@@ -411,9 +446,19 @@
 				<input id="subtitle" type="text" bind:value={subtitle} placeholder="Subtitle or parallel title" />
 			</div>
 
-			<div class="form-group">
+			<div class="form-group {(!isNameLinked() && author) ? 'unauthorized' : ''}">
 				<label for="author">Main Author</label>
 				<input id="author" type="text" bind:value={author} placeholder="Last, First" />
+				{#if author && !isNameLinked()}
+					<p class="unauthorized-note">Not yet linked to an authority record</p>
+				{/if}
+				<AuthoritySuggestion
+					heading={author}
+					type="personal_name"
+					marcRecordId={record.id}
+					marcField="100"
+					onAuthoritySelected={(auth) => handleAuthorityLinked('100', 0, auth)}
+				/>
 			</div>
 		</section>
 
@@ -461,7 +506,7 @@
 
 			{#each subjects as subject, index}
 				<div class="form-row">
-					<div class="form-group" style="flex: 1;">
+					<div class="form-group {(!isSubjectLinked(index) && subject) ? 'unauthorized' : ''}" style="flex: 1;">
 						<label for="subject-{index}">Subject {index + 1}</label>
 						<SubjectHeadingInput
 							bind:value={subjects[index]}
@@ -469,6 +514,17 @@
 							onchange={(val) => (subjects[index] = val)}
 							onremove={subjects.length > 1 ? () => removeSubject(index) : undefined}
 							showRemove={subjects.length > 1}
+						/>
+						{#if subject && !isSubjectLinked(index)}
+							<p class="unauthorized-note">Unauthorized heading – link to an authority</p>
+						{/if}
+						<AuthoritySuggestion
+							heading={subject}
+							type="topical_subject"
+							marcRecordId={record.id}
+							marcField="650"
+							fieldIndex={index}
+							onAuthoritySelected={(auth) => handleAuthorityLinked('650', index, auth)}
 						/>
 					</div>
 				</div>
@@ -562,15 +618,24 @@
 		color: #666;
 	}
 
-	.section-note strong {
-		color: #e73b42;
-	}
+.section-note strong {
+	color: #e73b42;
+}
 
-	.form-row {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1rem;
-		margin-bottom: 1rem;
+.authority-message {
+	background: #e8f5e9;
+	border-left: 3px solid #28a745;
+	padding: 8px 12px;
+	border-radius: 4px;
+	color: #155724;
+	margin-bottom: 10px;
+}
+
+.form-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1rem;
 	}
 
 	.form-group {
@@ -584,9 +649,9 @@
 		color: #333;
 	}
 
-	input,
-	select,
-	textarea {
+input,
+select,
+textarea {
 		width: 100%;
 		padding: 0.5rem;
 		border: 1px solid #ddd;
@@ -597,16 +662,27 @@
 
 	input:focus,
 	select:focus,
-	textarea:focus {
-		outline: none;
-		border-color: #667eea;
-	}
+textarea:focus {
+	outline: none;
+	border-color: #667eea;
+}
 
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
+.form-group.unauthorized input {
+	border-color: #e73b42;
+	box-shadow: 0 0 0 2px rgba(231, 59, 66, 0.12);
+}
+
+.unauthorized-note {
+	color: #e73b42;
+	font-size: 0.9rem;
+	margin: 0.25rem 0 0 0;
+}
+
+.form-actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 2rem;
+}
 
 	.btn-primary,
 	.btn-secondary,

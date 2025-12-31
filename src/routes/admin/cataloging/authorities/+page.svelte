@@ -15,10 +15,8 @@
 		{ value: '', label: 'All Types' },
 		{ value: 'personal_name', label: 'Personal Names' },
 		{ value: 'corporate_name', label: 'Corporate Names' },
-		{ value: 'meeting_name', label: 'Meeting Names' },
 		{ value: 'geographic_name', label: 'Geographic Names' },
-		{ value: 'topical_subject', label: 'Topical Subjects' },
-		{ value: 'genre_form', label: 'Genre/Form' }
+		{ value: 'topical_subject', label: 'Topical Subjects' }
 	];
 
 	const sources = [
@@ -36,8 +34,7 @@
 			corporate_name: 'Corporate Name',
 			meeting_name: 'Meeting Name',
 			geographic_name: 'Geographic Name',
-			topical_subject: 'Topical Subject',
-			genre_form: 'Genre/Form'
+			topical_subject: 'Topical Subject'
 		};
 		return typeMap[type] || type;
 	}
