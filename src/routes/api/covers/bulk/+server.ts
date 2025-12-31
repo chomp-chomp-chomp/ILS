@@ -212,7 +212,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 				try {
 					// Fetch cover using the fetch API
-					const fetchResponse = await fetch(`${url.origin}/api/covers/fetch`, {
+					const requestUrl = new URL(request.url);
+					const fetchResponse = await fetch(`${requestUrl.origin}/api/covers/fetch`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',

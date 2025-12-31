@@ -1,225 +1,300 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import type { PageData } from './$types';
+  import { goto } from '$app/navigation';
+  import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+  let { data }: { data: PageData } = $props();
 
-	let email = $state('');
-	let password = $state('');
-	let loading = $state(false);
-	let error = $state('');
+  let mode = $state<'email' | 'card'>('email');
+  let email = $state('');
+  let password = $state('');
+  let card = $state('');
+  let pin = $state('');
+  let loading = $state(false);
+  let error = $state('');
+  let info = $state('');
+  let resetEmail = $state('');
 
-	async function handleLogin() {
-		loading = true;
-		error = '';
+  async function handleEmailLogin() {
+    loading = true;
+    error = '';
+    const { error: signInError } = await data.supabase.auth.signInWithPassword({ email, password });
+    loading = false;
+    if (signInError) {
+      error = signInError.message;
+      return;
+    }
+    goto('/my-account');
+  }
 
-		const { error: signInError } = await data.supabase.auth.signInWithPassword({
-			email,
-			password
-		});
+  async function handleCardLogin() {
+    loading = true;
+    error = '';
+    info = '';
 
-		if (signInError) {
-			error = signInError.message;
-			loading = false;
-		} else {
-			// Check if user is linked to a patron record
-			const { data: { user } } = await data.supabase.auth.getUser();
+    const { data: patron, error: rpcError } = await data.supabase.rpc('patron_card_login', {
+      card_number: card,
+      provided_pin: pin,
+    });
 
-			if (user) {
-				const { data: patronData } = await data.supabase
-					.from('patrons')
-					.select('id')
-					.eq('user_id', user.id)
-					.single();
+    if (rpcError || !patron || patron.length === 0) {
+      loading = false;
+      error = 'Card number or PIN not recognized.';
+      return;
+    }
 
-				if (!patronData) {
-					error = 'Your account is not linked to a patron record. Please contact library staff.';
-					await data.supabase.auth.signOut();
-					loading = false;
-					return;
-				}
-			}
+    const record = patron[0];
+    if (!record.email) {
+      loading = false;
+      error = 'This card is missing an email address. Contact the library to finish setup.';
+      return;
+    }
 
-			goto('/my-account');
-		}
-	}
+    const { error: authError } = await data.supabase.auth.signInWithPassword({
+      email: record.email,
+      password: pin,
+    });
+
+    loading = false;
+    if (authError) {
+      info =
+        'PIN verified. Please sign in with your email and password or ask staff to align your PIN and password.';
+    } else {
+      goto('/my-account');
+    }
+  }
+
+  async function handleReset() {
+    if (!resetEmail) {
+      error = 'Enter your email to reset.';
+      return;
+    }
+    const { error: resetError } = await data.supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: window.location.origin + '/my-account/settings',
+    });
+    info = resetError
+      ? resetError.message
+      : 'Password reset email sent. Check your inbox for next steps.';
+  }
 </script>
 
-<div class="login-container">
-	<div class="login-box">
-		<h1>Patron Login</h1>
-		<p class="subtitle">Access your library account</p>
+<div class="login-shell">
+  <div class="panel">
+    <p class="eyebrow">Patron self-service</p>
+    <h1>Sign in to My Account</h1>
+    <div class="tab-row">
+      <button class:active={mode === 'email'} onclick={() => (mode = 'email')}>Email</button>
+      <button class:active={mode === 'card'} onclick={() => (mode = 'card')}>Library card + PIN</button>
+    </div>
 
-		{#if error}
-			<div class="error">{error}</div>
-		{/if}
+    {#if error}
+      <div class="alert error">{error}</div>
+    {/if}
+    {#if info}
+      <div class="alert info">{info}</div>
+    {/if}
 
-		<form onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-			<div class="form-group">
-				<label for="email">Email</label>
-				<input
-					id="email"
-					type="email"
-					bind:value={email}
-					required
-					placeholder="your.email@example.com"
-				/>
-			</div>
+    {#if mode === 'email'}
+      <form
+        onsubmit={(e) => {
+          e.preventDefault();
+          handleEmailLogin();
+        }}
+        class="form"
+      >
+        <label>
+          Email
+          <input type="email" bind:value={email} required placeholder="you@example.com" />
+        </label>
+        <label>
+          Password
+          <input type="password" bind:value={password} required />
+        </label>
+        <button class="btn primary" type="submit" disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign in'}
+        </button>
+      </form>
+    {:else}
+      <form
+        onsubmit={(e) => {
+          e.preventDefault();
+          handleCardLogin();
+        }}
+        class="form"
+      >
+        <label>
+          Library card number
+          <input bind:value={card} required />
+        </label>
+        <label>
+          PIN
+          <input type="password" bind:value={pin} required minlength="4" />
+        </label>
+        <button class="btn primary" type="submit" disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign in with card'}
+        </button>
+      </form>
+    {/if}
 
-			<div class="form-group">
-				<label for="password">Password</label>
-				<input id="password" type="password" bind:value={password} required />
-			</div>
+    <div class="divider"></div>
 
-			<button type="submit" disabled={loading}>
-				{loading ? 'Logging in...' : 'Login'}
-			</button>
-		</form>
-
-		<div class="info">
-			<p><strong>Don't have an account?</strong></p>
-			<p>Visit the library or contact staff to register for a library card and create your online account.</p>
-		</div>
-
-		<div class="links">
-			<a href="/catalog">← Back to Catalog</a>
-		</div>
-	</div>
+    <div class="reset">
+      <p class="muted">Forgot your password?</p>
+      <div class="reset-row">
+        <input
+          type="email"
+          placeholder="you@example.com"
+          bind:value={resetEmail}
+          aria-label="Reset email"
+        />
+        <button class="btn ghost" type="button" onclick={handleReset}>Send reset link</button>
+      </div>
+      <p class="muted small">
+        Need an account? Register with staff or choose email sign-up, then link your library card in
+        settings.
+      </p>
+    </div>
+  </div>
 </div>
 
 <style>
-	.login-container {
-		min-height: 100vh;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: linear-gradient(135deg, #e73b42 0%, #d12d34 100%);
-		padding: 2rem;
-	}
+  .login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #e73b42 0%, #d12d34 100%);
+    padding: 2rem;
+  }
 
-	.login-box {
-		background: white;
-		padding: 3rem;
-		border-radius: 12px;
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-		max-width: 450px;
-		width: 100%;
-	}
+  .panel {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 540px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  }
 
-	h1 {
-		margin: 0 0 0.5rem 0;
-		font-size: 2rem;
-		text-align: center;
-		color: #2c3e50;
-	}
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    color: #e73b42;
+    margin: 0 0 0.25rem 0;
+  }
 
-	.subtitle {
-		text-align: center;
-		color: #666;
-		margin-bottom: 2rem;
-	}
+  h1 {
+    margin: 0 0 1rem 0;
+  }
 
-	.error {
-		background: #fee;
-		color: #c33;
-		padding: 0.75rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
-		border: 1px solid #fcc;
-		font-size: 0.875rem;
-	}
+  .tab-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
 
-	.form-group {
-		margin-bottom: 1.5rem;
-	}
+  .tab-row button {
+    flex: 1;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: #f9fafb;
+    cursor: pointer;
+    font-weight: 700;
+  }
 
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: 500;
-		color: #333;
-	}
+  .tab-row button.active {
+    background: #e73b42;
+    color: #fff;
+    border-color: #e73b42;
+  }
 
-	input {
-		width: 100%;
-		padding: 0.75rem;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		font-size: 1rem;
-		box-sizing: border-box;
-		transition: all 0.2s;
-	}
+  .alert {
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
 
-	input:focus {
-		outline: none;
-		border-color: #e73b42;
-		box-shadow: 0 0 0 3px rgba(231, 59, 66, 0.1);
-	}
+  .alert.error {
+    background: #fff5f5;
+    border: 1px solid #f4c7c7;
+    color: #e73b42;
+  }
 
-	button {
-		width: 100%;
-		padding: 0.875rem;
-		background: #e73b42;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		font-size: 1rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
+  .alert.info {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1f2933;
+  }
 
-	button:hover:not(:disabled) {
-		background: #d12d34;
-	}
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 
-	button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-weight: 700;
+  }
 
-	.info {
-		margin-top: 2rem;
-		padding: 1rem;
-		background: #f8f9fa;
-		border-radius: 4px;
-		font-size: 0.875rem;
-	}
+  input {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.75rem;
+  }
 
-	.info strong {
-		display: block;
-		margin-bottom: 0.5rem;
-		color: #333;
-	}
+  .btn {
+    border: 1px solid #e5e7eb;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 700;
+  }
 
-	.info p {
-		margin: 0;
-		color: #666;
-		line-height: 1.5;
-	}
+  .btn.primary {
+    background: #e73b42;
+    color: #fff;
+    border-color: #e73b42;
+  }
 
-	.links {
-		margin-top: 1.5rem;
-		text-align: center;
-	}
+  .btn.ghost {
+    background: #f9fafb;
+  }
 
-	.links a {
-		color: #e73b42;
-		text-decoration: none;
-		font-weight: 500;
-	}
+  .divider {
+    margin: 1rem 0;
+    height: 1px;
+    background: #f0f0f0;
+  }
 
-	.links a:hover {
-		text-decoration: underline;
-	}
+  .reset {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-	@media (max-width: 480px) {
-		.login-box {
-			padding: 2rem;
-		}
+  .reset-row {
+    display: flex;
+    gap: 0.5rem;
+  }
 
-		h1 {
-			font-size: 1.5rem;
-		}
-	}
+  .muted {
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .small {
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 520px) {
+    .reset-row {
+      flex-direction: column;
+    }
+  }
 </style>

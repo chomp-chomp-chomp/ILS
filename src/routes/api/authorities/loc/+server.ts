@@ -208,7 +208,7 @@ async function fetchLocAuthorityDetails(uri: string): Promise<LocAuthority | nul
 		const response = await fetch(`${uri}.json`);
 
 		if (!response.ok) {
-			throw new Error(`LoC fetch error: ${response.statusStatus}`);
+			throw new Error(`LoC fetch error: ${response.status}`);
 		}
 
 		const data = await response.json();
