@@ -6,6 +6,7 @@
 	import BookCover from '$lib/components/BookCover.svelte';
 	import QRCode from 'qrcode';
 	import { generateShortUrls, formatRecordsEmail, openMailto, canFitInEmail } from '$lib/utils/emailFormatter';
+	import AuthorityReferences from '$lib/components/AuthorityReferences.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -45,6 +46,12 @@
 	);
 
 	let queryDescription = $derived(getQueryDescription());
+	let authorityQueryTerm = $derived(
+		data.query.subject || data.query.author || data.query.q || ''
+	);
+	let authorityQueryType = $derived(
+		data.query.subject ? 'topical_subject' : data.query.author ? 'personal_name' : undefined
+	);
 
 	function getQueryDescription(): string {
 		const parts: string[] = [];
@@ -630,6 +637,10 @@
 			</div>
 		{/if}
 	</header>
+
+	{#if authorityQueryTerm}
+		<AuthorityReferences searchTerm={authorityQueryTerm} type={authorityQueryType} />
+	{/if}
 
 	<!-- Main Content Area -->
 	<div class="content-wrapper">

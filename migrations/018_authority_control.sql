@@ -405,6 +405,7 @@ CREATE OR REPLACE FUNCTION find_unauthorized_headings(
 RETURNS TABLE (
   marc_record_id UUID,
   field VARCHAR(10),
+  field_index INTEGER,
   heading TEXT,
   suggested_authority_id UUID,
   suggested_heading TEXT,
@@ -416,6 +417,7 @@ BEGIN
   SELECT
     m.id as marc_record_id,
     '100' as field,
+    0 as field_index,
     m.main_entry_personal_name->>'a' as heading,
     a.id as suggested_authority_id,
     a.heading as suggested_heading,
@@ -441,6 +443,7 @@ BEGIN
   SELECT
     m.id as marc_record_id,
     '650' as field,
+    (t.idx - 1) as field_index,
     subj->>'a' as heading,
     a.id as suggested_authority_id,
     a.heading as suggested_heading,
