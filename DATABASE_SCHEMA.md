@@ -277,3 +277,137 @@ CREATE POLICY "Authenticated users can manage serial_issues"
 - Acquisition records
 - Budget tracking
 - Patron management
+
+## Patron Self-Service Additions
+
+The self-service portal extends the circulation schema with PIN authentication, preferences, notifications, fines, and saved searches.
+
+### Patrons (extended)
+
+```sql
+ALTER TABLE patrons
+  ADD COLUMN pin_hash TEXT,
+  ADD COLUMN pin_updated_at TIMESTAMPTZ,
+  ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
+```
+
+`pin_hash` stores a bcrypt hash of the patron's PIN (set via `set_patron_pin`). `email_verified` tracks whether the patron confirmed their email address.
+
+### Patron Preferences
+
+```sql
+CREATE TABLE patron_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patron_id UUID NOT NULL REFERENCES patrons(id) ON DELETE CASCADE,
+  email_opt_in BOOLEAN DEFAULT TRUE,
+  sms_opt_in BOOLEAN DEFAULT FALSE,
+  sms_number VARCHAR(50),
+  preferred_language VARCHAR(10) DEFAULT 'en',
+  default_pickup_location VARCHAR(255),
+  checkout_history_opt_in BOOLEAN DEFAULT FALSE,
+  digital_receipts BOOLEAN DEFAULT TRUE,
+  privacy_level VARCHAR(50) DEFAULT 'standard',
+  marketing_opt_out BOOLEAN DEFAULT TRUE,
+  notice_lead_time_days INTEGER DEFAULT 3,
+  notification_preferences JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (patron_id)
+);
+```
+
+Stores delivery and privacy preferences and whether the patron consents to checkout history tracking.
+
+### Saved Searches
+
+```sql
+CREATE TABLE saved_searches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patron_id UUID NOT NULL REFERENCES patrons(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  query JSONB NOT NULL DEFAULT '{}'::jsonb,
+  last_run_at TIMESTAMPTZ,
+  last_result_count INTEGER,
+  send_email_alerts BOOLEAN DEFAULT FALSE,
+  alert_frequency VARCHAR(50) DEFAULT 'weekly',
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_saved_searches_patron ON saved_searches(patron_id);
+```
+
+Allows patrons to save catalog queries and request alert emails on a daily/weekly/monthly cadence.
+
+### Patron Notifications
+
+```sql
+CREATE TABLE patron_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patron_id UUID NOT NULL REFERENCES patrons(id) ON DELETE CASCADE,
+  type VARCHAR(100) NOT NULL,
+  channel VARCHAR(50) DEFAULT 'email',
+  status VARCHAR(50) DEFAULT 'queued',
+  title VARCHAR(255),
+  message TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  sent_at TIMESTAMPTZ,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_patron_notifications_patron ON patron_notifications(patron_id);
+CREATE INDEX idx_patron_notifications_status ON patron_notifications(status);
+```
+
+Stores overdue, courtesy, hold-ready, and receipt notifications with delivery channel metadata.
+
+### Fines & Payments
+
+```sql
+CREATE TABLE patron_fines (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patron_id UUID NOT NULL REFERENCES patrons(id) ON DELETE CASCADE,
+  checkout_id UUID REFERENCES checkouts(id),
+  reason TEXT NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  balance NUMERIC(10,2) DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'outstanding',
+  fine_date TIMESTAMPTZ DEFAULT NOW(),
+  due_date TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE patron_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patron_id UUID NOT NULL REFERENCES patrons(id) ON DELETE CASCADE,
+  fine_id UUID REFERENCES patron_fines(id) ON DELETE SET NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  method VARCHAR(50) DEFAULT 'online',
+  provider_reference VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'pending',
+  processed_at TIMESTAMPTZ,
+  notes TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+Tracks itemized fines and payment records, including online or in-person methods.
+
+### Hold Suspension & Notification Preferences
+
+`holds` gains `suspended_until`, `suspension_reason`, and `notification_channels` (email/SMS) to pause holds and control pickup alerts.
+
+### Helper Functions
+
+* `set_patron_pin(target_patron UUID, new_pin TEXT)` — sets a bcrypt PIN hash for a patron (security definer with caller ownership check).
+* `patron_card_login(card_number TEXT, provided_pin TEXT)` — validates a card+PIN pairing and returns the patron/user identifiers for downstream authentication flows.
+
+### Policies
+
+RLS policies allow authenticated patrons to manage their preferences, saved searches, notifications, fines, payments, and to renew their own checkouts, while preserving staff-level management for broader access.

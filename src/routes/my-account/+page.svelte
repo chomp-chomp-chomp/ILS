@@ -1,582 +1,472 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+  import BookCover from '$lib/components/BookCover.svelte';
+  import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+  let { data }: { data: PageData } = $props();
 
-	let patron = $state<any>(null);
-	let patronType = $state<any>(null);
-	let checkouts = $state<any[]>([]);
-	let holds = $state<any[]>([]);
-	let loading = $state(true);
-	let error = $state('');
+  let notifications = $state<any[]>(data.notifications || []);
+  let checkouts = $state<any[]>(data.checkouts as any[]);
+  let holds = $state<any[]>(data.holds as any[]);
 
-	onMount(async () => {
-		await loadPatronAccount();
-	});
+  function formatDate(value?: string | null) {
+    if (!value) return '—';
+    return new Date(value).toLocaleDateString();
+  }
 
-	async function loadPatronAccount() {
-		try {
-			// Check if user is authenticated
-			const { data: { user } } = await data.supabase.auth.getUser();
+  function daysUntil(dateString?: string | null) {
+    if (!dateString) return null;
+    const due = new Date(dateString);
+    const diff = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return diff;
+  }
 
-			if (!user) {
-				goto('/my-account/login');
-				return;
-			}
-
-			// Load patron record
-			const { data: patronData, error: patronError } = await data.supabase
-				.from('patrons')
-				.select('*, patron_type:patron_types(*)')
-				.eq('user_id', user.id)
-				.single();
-
-			if (patronError) {
-				error = 'Patron record not found. Please contact library staff.';
-				loading = false;
-				return;
-			}
-
-			patron = patronData;
-			patronType = patronData.patron_type;
-
-			// Load checkouts
-			const { data: checkoutsData, error: checkoutsError } = await data.supabase
-				.from('current_checkouts')
-				.select('*')
-				.eq('patron_id', patron.id);
-
-			if (checkoutsError) throw checkoutsError;
-			checkouts = checkoutsData || [];
-
-			// Load holds
-			const { data: holdsData, error: holdsError } = await data.supabase
-				.from('active_holds')
-				.select('*')
-				.eq('patron_id', patron.id);
-
-			if (holdsError) throw holdsError;
-			holds = holdsData || [];
-
-		} catch (err: any) {
-			error = `Error loading account: ${err.message}`;
-		} finally {
-			loading = false;
-		}
-	}
-
-	async function renewItem(checkoutId: string, currentRenewals: number) {
-		if (!confirm('Renew this item?')) return;
-
-		try {
-			// Check renewal limit
-			if (currentRenewals >= patronType.max_renewals) {
-				alert(`Cannot renew: maximum renewals (${patronType.max_renewals}) reached.`);
-				return;
-			}
-
-			// Check for holds
-			const checkout = checkouts.find(c => c.id === checkoutId);
-			const { data: holdsData } = await data.supabase
-				.from('holds')
-				.select('id')
-				.eq('marc_record_id', checkout.marc_record_id)
-				.in('status', ['placed', 'in_transit'])
-				.limit(1);
-
-			if (holdsData && holdsData.length > 0) {
-				alert('Cannot renew: there are holds on this item.');
-				return;
-			}
-
-			// Calculate new due date
-			const loanPeriodDays = patronType.default_loan_period_days;
-			const newDueDate = new Date();
-			newDueDate.setDate(newDueDate.getDate() + loanPeriodDays);
-
-			// Update checkout
-			const { error: updateError } = await data.supabase
-				.from('checkouts')
-				.update({
-					due_date: newDueDate.toISOString(),
-					renewal_count: currentRenewals + 1,
-					last_renewal_date: new Date().toISOString()
-				})
-				.eq('id', checkoutId);
-
-			if (updateError) throw updateError;
-
-			await loadPatronAccount();
-			alert(`Item renewed successfully. New due date: ${newDueDate.toLocaleDateString()}`);
-		} catch (err: any) {
-			alert(`Error renewing item: ${err.message}`);
-		}
-	}
-
-	async function cancelHold(holdId: string) {
-		if (!confirm('Cancel this hold?')) return;
-
-		try {
-			const { error: updateError } = await data.supabase
-				.from('holds')
-				.update({
-					status: 'cancelled',
-					cancellation_date: new Date().toISOString()
-				})
-				.eq('id', holdId);
-
-			if (updateError) throw updateError;
-
-			await loadPatronAccount();
-		} catch (err: any) {
-			alert(`Error cancelling hold: ${err.message}`);
-		}
-	}
-
-	async function handleLogout() {
-		await data.supabase.auth.signOut();
-		goto('/my-account/login');
-	}
-
-	function formatDate(dateString: string | null): string {
-		if (!dateString) return '—';
-		return new Date(dateString).toLocaleDateString();
-	}
-
-	function formatDateTime(dateString: string | null): string {
-		if (!dateString) return '—';
-		return new Date(dateString).toLocaleString();
-	}
-
-	function getUrgencyClass(urgency: string): string {
-		switch (urgency) {
-			case 'overdue': return 'urgency-overdue';
-			case 'due_soon': return 'urgency-due-soon';
-			default: return '';
-		}
-	}
+  function urgencyLabel(checkout: (typeof checkouts)[number]) {
+    if (checkout.status === 'overdue') return 'Overdue';
+    const days = daysUntil(checkout.due_date);
+    if (days !== null && days <= 3) return 'Due soon';
+    return 'On time';
+  }
 </script>
 
-<div class="account-page">
-	{#if loading}
-		<div class="loading">Loading your account...</div>
-	{:else if error}
-		<div class="error">{error}</div>
-	{:else if patron}
-		<header class="page-header">
-			<div>
-				<h1>My Library Account</h1>
-				<p class="patron-name">{patron.first_name} {patron.last_name}</p>
-			</div>
-			<div class="header-actions">
-				<a href="/catalog" class="btn-secondary">Browse Catalog</a>
-				<button onclick={handleLogout} class="btn-logout">Logout</button>
-			</div>
-		</header>
+<div class="page">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Welcome back</p>
+      <h1>{data.patron.first_name} {data.patron.last_name}</h1>
+      <p class="lede">
+        Manage your checkouts, holds, saved searches, and notifications in one place.
+      </p>
+      <div class="badge-row">
+        <span class="badge">Library Card #{data.patron.barcode}</span>
+        {#if data.patron.expiration_date}
+          <span class="badge subtle">
+            Expires {formatDate(data.patron.expiration_date)}
+          </span>
+        {/if}
+        {#if data.patron.status !== 'active'}
+          <span class="badge warning">Status: {data.patron.status}</span>
+        {/if}
+      </div>
+    </div>
+    <div class="quick-actions">
+      <a class="btn primary" href="/catalog">Search Catalog</a>
+      <a class="btn ghost" href="/my-account/settings">Update Settings</a>
+    </div>
+  </header>
 
-		<!-- Account Summary -->
-		<div class="summary-cards">
-			<div class="summary-card">
-				<div class="summary-number">{checkouts.length}</div>
-				<div class="summary-label">Items Checked Out</div>
-			</div>
-			<div class="summary-card">
-				<div class="summary-number">{checkouts.filter(c => c.urgency === 'overdue').length}</div>
-				<div class="summary-label">Overdue Items</div>
-			</div>
-			<div class="summary-card">
-				<div class="summary-number">{holds.length}</div>
-				<div class="summary-label">Active Holds</div>
-			</div>
-			<div class="summary-card">
-				<div class="summary-number">${patron.balance?.toFixed(2) || '0.00'}</div>
-				<div class="summary-label">Balance</div>
-			</div>
-		</div>
+  <section class="grid stats">
+    <div class="card stat">
+      <p class="label">Items checked out</p>
+      <p class="value">{data.stats.checkouts}</p>
+    </div>
+    <div class="card stat">
+      <p class="label">Overdue</p>
+      <p class="value warning">{data.stats.overdue}</p>
+    </div>
+    <div class="card stat">
+      <p class="label">Holds</p>
+      <p class="value">{data.stats.holds}</p>
+    </div>
+    <div class="card stat">
+      <p class="label">Fines/Fees</p>
+      <p class="value accent">${data.stats.fines.toFixed(2)}</p>
+    </div>
+  </section>
 
-		<!-- Current Checkouts -->
-		<div class="section">
-			<h2>Current Checkouts</h2>
-			{#if checkouts.length === 0}
-				<p class="empty">You don't have any items checked out.</p>
-				<a href="/catalog" class="btn-primary">Browse Catalog</a>
-			{:else}
-				<div class="items-list">
-					{#each checkouts as checkout}
-						<div class="item-card" class:overdue={checkout.urgency === 'overdue'}>
-							<div class="item-main">
-								<h3>
-									<a href="/catalog/record/{checkout.marc_record_id}">
-										{checkout.title_statement?.a || 'Untitled'}
-									</a>
-								</h3>
-								{#if checkout.title_statement?.b}
-									<p class="subtitle">{checkout.title_statement.b}</p>
-								{/if}
-								<div class="item-details">
-									<p><strong>Due:</strong> {formatDateTime(checkout.due_date)}</p>
-									<p><strong>Renewals:</strong> {checkout.renewal_count} / {patronType.max_renewals}</p>
-									{#if checkout.urgency === 'overdue'}
-										<p class="overdue-text"><strong>⚠️ This item is overdue</strong></p>
-									{:else if checkout.urgency === 'due_soon'}
-										<p class="due-soon-text"><strong>Due soon!</strong></p>
-									{/if}
-								</div>
-							</div>
-							<div class="item-actions">
-								<button
-									onclick={() => renewItem(checkout.id, checkout.renewal_count)}
-									class="btn-renew"
-									disabled={checkout.renewal_count >= patronType.max_renewals}
-								>
-									{checkout.renewal_count >= patronType.max_renewals ? 'Max Renewals' : 'Renew'}
-								</button>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
+  <section class="grid two-col">
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Current checkouts</p>
+          <h2>Due soon</h2>
+        </div>
+        <a class="text-link" href="/my-account/checkouts">View all</a>
+      </div>
+      {#if checkouts.length === 0}
+        <p class="muted">No items checked out. Find something new to read!</p>
+      {:else}
+        <div class="checkout-list">
+          {#each checkouts.slice(0, 4) as checkout}
+            <article class="checkout">
+              <BookCover
+                recordId={checkout.item.marc_record?.id}
+                title={checkout.item.marc_record?.title_statement?.a}
+                author={checkout.item.marc_record?.main_entry_personal_name?.a}
+                size="small"
+              />
+              <div class="checkout-meta">
+                <h3>
+                  <a href={`/catalog/record/${checkout.item.marc_record?.id ?? checkout.item.id}`}>
+                    {checkout.item.marc_record?.title_statement?.a ?? 'Untitled'}
+                  </a>
+                </h3>
+                {#if checkout.item.marc_record?.main_entry_personal_name?.a}
+                  <p class="muted">{checkout.item.marc_record.main_entry_personal_name.a}</p>
+                {/if}
+                <p class="due">
+                  Due {formatDate(checkout.due_date)}
+                  <span class="pill {checkout.status === 'overdue' ? 'overdue' : ''}">
+                    {urgencyLabel(checkout)}
+                  </span>
+                </p>
+              </div>
+            </article>
+          {/each}
+        </div>
+      {/if}
+    </div>
 
-		<!-- Active Holds -->
-		<div class="section">
-			<h2>Active Holds</h2>
-			{#if holds.length === 0}
-				<p class="empty">You don't have any active holds.</p>
-			{:else}
-				<div class="items-list">
-					{#each holds as hold}
-						<div class="item-card">
-							<div class="item-main">
-								<h3>
-									<a href="/catalog/record/{hold.marc_record_id}">
-										{hold.title_statement?.a || 'Untitled'}
-									</a>
-								</h3>
-								<div class="item-details">
-									<p><strong>Hold Placed:</strong> {formatDate(hold.hold_date)}</p>
-									<p><strong>Status:</strong> <span class="hold-status {hold.status}">{hold.status.replace('_', ' ')}</span></p>
-									{#if hold.queue_position}
-										<p><strong>Queue Position:</strong> #{hold.queue_position}</p>
-									{/if}
-									{#if hold.status === 'available'}
-										<p class="available-text"><strong>✓ Ready for pickup!</strong></p>
-									{/if}
-								</div>
-							</div>
-							<div class="item-actions">
-								{#if hold.status !== 'picked_up'}
-									<button onclick={() => cancelHold(hold.id)} class="btn-cancel">
-										Cancel Hold
-									</button>
-								{/if}
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	{/if}
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Notifications</p>
+          <h2>Latest updates</h2>
+        </div>
+        <a class="text-link" href="/my-account/settings">Preferences</a>
+      </div>
+      {#if notifications.length === 0}
+        <p class="muted">No notifications yet. We will let you know when something needs attention.</p>
+      {:else}
+        <ul class="notice-list">
+          {#each notifications as notice}
+            <li>
+              <p class="label">{notice.type}</p>
+              <p class="muted">{notice.title ?? 'Account update'}</p>
+              {#if notice.message}
+                <p class="message">{notice.message}</p>
+              {/if}
+              <p class="time">{new Date(notice.created_at).toLocaleString()}</p>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  </section>
+
+  <section class="grid two-col">
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Holds</p>
+          <h2>Ready & queued</h2>
+        </div>
+        <a class="text-link" href="/my-account/holds">Manage holds</a>
+      </div>
+      {#if holds.length === 0}
+        <p class="muted">You have no holds placed. Place a hold from search results.</p>
+      {:else}
+        <div class="holds">
+          {#each holds.slice(0, 3) as hold}
+            <div class="hold">
+              <div>
+                <p class="label">{hold.marc_record?.title_statement?.a ?? 'Untitled'}</p>
+                <p class="muted">
+                  {hold.status.replace('_', ' ')} · Queue #{hold.queue_position ?? '—'}
+                </p>
+              </div>
+              <span class="pill">{hold.pickup_location ?? 'Pickup desk'}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Reading lists</p>
+          <h2>Your lists</h2>
+        </div>
+        <a class="text-link" href="/catalog/my-lists">Open lists</a>
+      </div>
+      {#if data.readingLists.length === 0}
+        <p class="muted">Create a list to track items you love or want to borrow later.</p>
+      {:else}
+        <ul class="list-list">
+          {#each data.readingLists as list}
+            <li>
+              <div>
+                <p class="label">{list.name}</p>
+                <p class="muted">Created {formatDate(list.created_at)}</p>
+              </div>
+              <span class="pill {list.is_public ? 'success' : ''}">{list.is_public ? 'Public' : 'Private'}</span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  </section>
 </div>
 
 <style>
-	.account-page {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 2rem;
-		min-height: 100vh;
-		background: #f5f5f5;
-	}
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-	.loading,
-	.error {
-		text-align: center;
-		padding: 3rem;
-		background: white;
-		border-radius: 8px;
-		margin-top: 2rem;
-	}
+  .hero {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid #f0f0f0;
+  }
 
-	.error {
-		color: #c33;
-		background: #fee;
-		border: 1px solid #fcc;
-	}
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    color: #e73b42;
+    margin: 0 0 0.25rem 0;
+  }
 
-	.page-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 2rem;
-		padding: 2rem;
-		background: white;
-		border-radius: 8px;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	}
+  h1 {
+    margin: 0;
+    color: #1f2933;
+  }
 
-	h1 {
-		margin: 0 0 0.5rem 0;
-		color: #2c3e50;
-	}
+  .lede {
+    color: #5f6c72;
+    margin: 0.35rem 0 0.75rem 0;
+  }
 
-	.patron-name {
-		margin: 0;
-		color: #666;
-		font-size: 1.125rem;
-	}
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
 
-	.header-actions {
-		display: flex;
-		gap: 1rem;
-	}
+  .badge {
+    background: #fff5f5;
+    color: #e73b42;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid #f4d3d6;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
 
-	.summary-cards {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 2rem;
-	}
+  .badge.subtle {
+    color: #6b7280;
+    border-color: #e5e7eb;
+    background: #f9fafb;
+  }
 
-	.summary-card {
-		background: white;
-		padding: 1.5rem;
-		border-radius: 8px;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		text-align: center;
-	}
+  .badge.warning {
+    background: #fff4e5;
+    color: #c05621;
+    border-color: #fbd38d;
+  }
 
-	.summary-number {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: #e73b42;
-		margin-bottom: 0.5rem;
-	}
+  .quick-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
 
-	.summary-label {
-		color: #666;
-		font-size: 0.875rem;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
+  .btn {
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.1rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    color: #1f2933;
+    background: #fff;
+  }
 
-	.section {
-		background: white;
-		padding: 2rem;
-		border-radius: 8px;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		margin-bottom: 2rem;
-	}
+  .btn.primary {
+    background: #e73b42;
+    color: #fff;
+    border-color: #e73b42;
+  }
 
-	.section h2 {
-		margin: 0 0 1.5rem 0;
-		color: #2c3e50;
-	}
+  .btn.ghost {
+    border-color: #e5e7eb;
+  }
 
-	.empty {
-		color: #666;
-		font-style: italic;
-		margin-bottom: 1rem;
-	}
+  .grid {
+    display: grid;
+    gap: 1rem;
+  }
 
-	.items-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
+  .stats {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
 
-	.item-card {
-		padding: 1.5rem;
-		border: 1px solid #e0e0e0;
-		border-radius: 8px;
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 1.5rem;
-		transition: all 0.2s;
-	}
+  .two-col {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
 
-	.item-card:hover {
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	}
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #f0f0f0;
+  }
 
-	.item-card.overdue {
-		border-left: 4px solid #f44336;
-		background: #ffebee;
-	}
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
 
-	.item-main {
-		flex: 1;
-	}
+  .label {
+    margin: 0;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
 
-	.item-main h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.125rem;
-	}
+  .value {
+    font-size: 2rem;
+    margin: 0;
+    font-weight: 700;
+  }
 
-	.item-main h3 a {
-		color: #2c3e50;
-		text-decoration: none;
-	}
+  .value.warning {
+    color: #f97316;
+  }
 
-	.item-main h3 a:hover {
-		color: #e73b42;
-		text-decoration: underline;
-	}
+  .value.accent {
+    color: #e73b42;
+  }
 
-	.subtitle {
-		margin: 0 0 1rem 0;
-		color: #666;
-		font-style: italic;
-	}
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 
-	.item-details p {
-		margin: 0.25rem 0;
-		font-size: 0.875rem;
-		color: #666;
-	}
+  h2 {
+    margin: 0;
+    color: #1f2933;
+  }
 
-	.overdue-text {
-		color: #f44336 !important;
-		font-weight: 600 !important;
-	}
+  .text-link {
+    color: #e73b42;
+    text-decoration: none;
+    font-weight: 600;
+  }
 
-	.due-soon-text {
-		color: #ff9800 !important;
-		font-weight: 600 !important;
-	}
+  .checkout-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
 
-	.available-text {
-		color: #28a745 !important;
-		font-weight: 600 !important;
-	}
+  .checkout {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 0.75rem;
+    align-items: center;
+  }
 
-	.hold-status {
-		text-transform: capitalize;
-		font-weight: 500;
-	}
+  .checkout-meta h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
 
-	.hold-status.available {
-		color: #28a745;
-	}
+  .checkout-meta a {
+    text-decoration: none;
+    color: #1f2933;
+  }
 
-	.hold-status.placed {
-		color: #1976d2;
-	}
+  .checkout-meta a:hover {
+    color: #e73b42;
+  }
 
-	.hold-status.in_transit {
-		color: #f57c00;
-	}
+  .muted {
+    margin: 0.25rem 0;
+    color: #6b7280;
+  }
 
-	.item-actions {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
+  .due {
+    margin: 0.35rem 0;
+    color: #1f2933;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-	.btn-primary,
-	.btn-secondary,
-	.btn-renew,
-	.btn-cancel,
-	.btn-logout {
-		padding: 0.75rem 1.5rem;
-		border-radius: 4px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		cursor: pointer;
-		border: none;
-		text-decoration: none;
-		transition: all 0.2s;
-		display: inline-block;
-		text-align: center;
-		white-space: nowrap;
-	}
+  .pill {
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
 
-	.btn-primary {
-		background: #e73b42;
-		color: white;
-	}
+  .pill.overdue {
+    background: #fff5f5;
+    color: #e73b42;
+  }
 
-	.btn-primary:hover {
-		background: #d12d34;
-	}
+  .pill.success {
+    background: #e6f4ea;
+    color: #15803d;
+  }
 
-	.btn-secondary {
-		background: #6c757d;
-		color: white;
-	}
+  .notice-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 
-	.btn-secondary:hover {
-		background: #5a6268;
-	}
+  .notice-list li {
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+  }
 
-	.btn-renew {
-		background: #28a745;
-		color: white;
-	}
+  .notice-list .message {
+    margin: 0.35rem 0;
+    color: #374151;
+  }
 
-	.btn-renew:hover:not(:disabled) {
-		background: #218838;
-	}
+  .notice-list .time {
+    margin: 0;
+    color: #9ca3af;
+    font-size: 0.85rem;
+  }
 
-	.btn-renew:disabled {
-		background: #ccc;
-		cursor: not-allowed;
-	}
+  .holds,
+  .list-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 1rem;
+  }
 
-	.btn-cancel {
-		background: #6c757d;
-		color: white;
-	}
+  .hold,
+  .list-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+  }
 
-	.btn-cancel:hover {
-		background: #5a6268;
-	}
+  .message {
+    color: #374151;
+    margin: 0.35rem 0;
+  }
 
-	.btn-logout {
-		background: #f44336;
-		color: white;
-	}
-
-	.btn-logout:hover {
-		background: #d32f2f;
-	}
-
-	@media (max-width: 768px) {
-		.account-page {
-			padding: 1rem;
-		}
-
-		.page-header {
-			flex-direction: column;
-			gap: 1rem;
-		}
-
-		.header-actions {
-			width: 100%;
-			flex-direction: column;
-		}
-
-		.header-actions button,
-		.header-actions a {
-			width: 100%;
-		}
-
-		.summary-cards {
-			grid-template-columns: repeat(2, 1fr);
-		}
-
-		.item-card {
-			flex-direction: column;
-		}
-
-		.item-actions {
-			width: 100%;
-		}
-
-		.item-actions button {
-			width: 100%;
-		}
-	}
+  @media (max-width: 768px) {
+    .hero {
+      flex-direction: column;
+    }
+    .checkout {
+      grid-template-columns: 60px 1fr;
+    }
+  }
 </style>
