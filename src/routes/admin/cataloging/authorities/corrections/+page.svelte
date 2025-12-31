@@ -48,17 +48,18 @@
 	}
 
 	function toggleCorrection(item: any, apply: boolean) {
+		const key = item.marc_record_id + item.field + (item.field_index ?? 0);
 		if (apply) {
-			corrections.set(item.marc_record_id + item.field, {
+			corrections.set(key, {
 				marc_record_id: item.marc_record_id,
 				field: item.field,
-				field_index: 0,
+				field_index: item.field_index ?? 0,
 				authority_id: item.suggested_authority_id,
 				old_heading: item.heading,
 				new_heading: item.suggested_heading
 			});
 		} else {
-			corrections.delete(item.marc_record_id + item.field);
+			corrections.delete(key);
 		}
 		corrections = corrections; // Trigger reactivity
 	}
@@ -205,7 +206,7 @@
 				</thead>
 				<tbody>
 					{#each unauthorized as item}
-						{@const key = item.marc_record_id + item.field}
+						{@const key = item.marc_record_id + item.field + (item.field_index ?? 0)}
 						{@const isSelected = corrections.has(key)}
 						{@const confidence = Math.round(item.confidence * 100)}
 						<tr class:selected={isSelected} class:high-confidence={confidence >= 80}>
