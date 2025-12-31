@@ -6,7 +6,7 @@
 -- 1. AUTHORITIES TABLE
 -- ============================================================================
 
-CREATE TABLE authorities (
+CREATE TABLE IF NOT EXISTS authorities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -66,20 +66,20 @@ CREATE TABLE authorities (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_authorities_heading ON authorities(heading);
-CREATE INDEX idx_authorities_type ON authorities(type);
-CREATE INDEX idx_authorities_source ON authorities(source);
-CREATE INDEX idx_authorities_lccn ON authorities(lccn) WHERE lccn IS NOT NULL;
-CREATE INDEX idx_authorities_variant_forms ON authorities USING GIN(variant_forms);
+CREATE INDEX IF NOT EXISTS idx_authorities_heading ON authorities(heading);
+CREATE INDEX IF NOT EXISTS idx_authorities_type ON authorities(type);
+CREATE INDEX IF NOT EXISTS idx_authorities_source ON authorities(source);
+CREATE INDEX IF NOT EXISTS idx_authorities_lccn ON authorities(lccn) WHERE lccn IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_authorities_variant_forms ON authorities USING GIN(variant_forms);
 
 -- Unique constraint: same heading + type can't exist twice from same source
-CREATE UNIQUE INDEX idx_authorities_unique ON authorities(heading, type, source);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_authorities_unique ON authorities(heading, type, source);
 
 -- Add search_vector column for full-text search
-ALTER TABLE authorities ADD COLUMN search_vector TSVECTOR;
+ALTER TABLE authorities ADD COLUMN IF NOT EXISTS search_vector TSVECTOR;
 
 -- Create index on search_vector
-CREATE INDEX idx_authorities_search_vector ON authorities USING GIN(search_vector);
+CREATE INDEX IF NOT EXISTS idx_authorities_search_vector ON authorities USING GIN(search_vector);
 
 -- Create function to update search_vector
 CREATE OR REPLACE FUNCTION update_authority_search_vector()
@@ -103,7 +103,7 @@ CREATE TRIGGER trigger_authority_search_vector
 -- 2. AUTHORITY CROSS REFERENCES TABLE
 -- ============================================================================
 
-CREATE TABLE authority_cross_refs (
+CREATE TABLE IF NOT EXISTS authority_cross_refs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -129,15 +129,15 @@ CREATE TABLE authority_cross_refs (
   note TEXT
 );
 
-CREATE INDEX idx_cross_refs_authority ON authority_cross_refs(authority_id);
-CREATE INDEX idx_cross_refs_type ON authority_cross_refs(ref_type);
-CREATE INDEX idx_cross_refs_text ON authority_cross_refs(reference_text);
+CREATE INDEX IF NOT EXISTS idx_cross_refs_authority ON authority_cross_refs(authority_id);
+CREATE INDEX IF NOT EXISTS idx_cross_refs_type ON authority_cross_refs(ref_type);
+CREATE INDEX IF NOT EXISTS idx_cross_refs_text ON authority_cross_refs(reference_text);
 
 -- ============================================================================
 -- 3. MARC RECORDS TO AUTHORITIES LINKS
 -- ============================================================================
 
-CREATE TABLE marc_authority_links (
+CREATE TABLE IF NOT EXISTS marc_authority_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -164,12 +164,12 @@ CREATE TABLE marc_authority_links (
   created_by UUID REFERENCES auth.users(id)
 );
 
-CREATE INDEX idx_marc_auth_links_marc ON marc_authority_links(marc_record_id);
-CREATE INDEX idx_marc_auth_links_authority ON marc_authority_links(authority_id);
-CREATE INDEX idx_marc_auth_links_field ON marc_authority_links(marc_field);
+CREATE INDEX IF NOT EXISTS idx_marc_auth_links_marc ON marc_authority_links(marc_record_id);
+CREATE INDEX IF NOT EXISTS idx_marc_auth_links_authority ON marc_authority_links(authority_id);
+CREATE INDEX IF NOT EXISTS idx_marc_auth_links_field ON marc_authority_links(marc_field);
 
 -- Unique constraint: one authority per MARC field per record
-CREATE UNIQUE INDEX idx_marc_auth_links_unique ON marc_authority_links(
+CREATE UNIQUE INDEX IF NOT EXISTS idx_marc_auth_links_unique ON marc_authority_links(
   marc_record_id, marc_field, field_index
 );
 
@@ -177,7 +177,7 @@ CREATE UNIQUE INDEX idx_marc_auth_links_unique ON marc_authority_links(
 -- 4. AUTHORITY UPDATE LOG
 -- ============================================================================
 
-CREATE TABLE authority_update_log (
+CREATE TABLE IF NOT EXISTS authority_update_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -208,9 +208,9 @@ CREATE TABLE authority_update_log (
   note TEXT
 );
 
-CREATE INDEX idx_auth_log_authority ON authority_update_log(authority_id);
-CREATE INDEX idx_auth_log_action ON authority_update_log(action);
-CREATE INDEX idx_auth_log_created ON authority_update_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_log_authority ON authority_update_log(authority_id);
+CREATE INDEX IF NOT EXISTS idx_auth_log_action ON authority_update_log(action);
+CREATE INDEX IF NOT EXISTS idx_auth_log_created ON authority_update_log(created_at DESC);
 
 -- ============================================================================
 -- 5. ROW LEVEL SECURITY (RLS)
