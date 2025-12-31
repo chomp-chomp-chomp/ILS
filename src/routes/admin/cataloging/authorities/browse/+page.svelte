@@ -17,24 +17,22 @@
 	];
 
 	$effect(() => {
-		loadAuthorities();
+		loadAuthorities(letter, type);
 	});
 
-	async function loadAuthorities() {
+	async function loadAuthorities(currentLetter: string, currentType: string) {
 		loading = true;
 
 		try {
 			const params = new URLSearchParams();
-			if (type) params.set('type', type);
-			params.set('limit', '100');
+			if (currentType) params.set('type', currentType);
+			params.set('limit', '200');
+			params.set('starts_with', currentLetter);
 
 			const response = await fetch(`/api/authorities?${params.toString()}`);
 			const data = await response.json();
 
-			// Filter by starting letter
-			authorities = (data.authorities || []).filter((auth: any) =>
-				auth.heading.toUpperCase().startsWith(letter)
-			);
+			authorities = data.authorities || [];
 		} catch (error) {
 			console.error('Error loading authorities:', error);
 		} finally {

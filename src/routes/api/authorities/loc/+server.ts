@@ -78,7 +78,11 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({
 			authorities: authorities.filter((a) => a !== null),
 			count: authorities.length,
-			source: 'loc'
+			source: 'loc',
+			bulkDownloads: {
+				names: 'https://id.loc.gov/static/data/lcnaf.madsrdf.nt.gz',
+				subjects: 'https://id.loc.gov/static/data/authoritiessubjects.madsrdf.nt.gz'
+			}
 		});
 	} catch (err: any) {
 		console.error('Error searching LoC authorities:', err);

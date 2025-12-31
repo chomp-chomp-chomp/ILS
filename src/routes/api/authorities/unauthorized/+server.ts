@@ -28,19 +28,29 @@ export const GET: RequestHandler = async ({ url, locals: { supabase, safeGetSess
 
 		if (dbError) throw dbError;
 
-		// Limit results
-		const results = unauthorized?.slice(0, limit) || [];
+		const unauthorizedHeadings = unauthorized || [];
+
+		// Fetch linked heading count to calculate coverage
+		const { count: linkedCount } = await supabase
+			.from('marc_authority_links')
+			.select('*', { head: true, count: 'exact' });
+
+		const results = unauthorizedHeadings.slice(0, limit);
 
 		// Group by heading for statistics
 		const headingCounts = new Map<string, number>();
-		results.forEach((item: any) => {
+		unauthorizedHeadings.forEach((item: any) => {
 			const count = headingCounts.get(item.heading) || 0;
 			headingCounts.set(item.heading, count + 1);
 		});
 
+		const totalUnauthorized = unauthorizedHeadings.length;
+		const coverageDenominator = totalUnauthorized + (linkedCount || 0);
+
 		const summary = {
-			total_unauthorized: results.length,
+			total_unauthorized: totalUnauthorized,
 			unique_headings: headingCounts.size,
+			coverage: coverageDenominator > 0 ? Math.round(((linkedCount || 0) / coverageDenominator) * 100) : 100,
 			top_headings: Array.from(headingCounts.entries())
 				.sort((a, b) => b[1] - a[1])
 				.slice(0, 10)
@@ -85,7 +95,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 		for (const correction of corrections) {
 			try {
-				const { marc_record_id, field, field_index, authority_id, new_heading } = correction;
+				const { marc_record_id, field, field_index = 0, authority_id, new_heading, old_heading } = correction;
 
 				// Create authority link
 				const { error: linkError } = await supabase
@@ -94,7 +104,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 						marc_record_id,
 						authority_id,
 						marc_field: field,
-						field_index: field_index || 0,
+						field_index,
 						is_automatic: false,
 						confidence: 1.0,
 						created_by: session.user.id
@@ -160,6 +170,19 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		await supabase.from('authority_update_log').insert({
 			action: 'heading_corrected',
 			records_affected: results.success,
+			old_value: corrections.map((c: any) => ({
+				marc_record_id: c.marc_record_id,
+				field: c.field,
+				field_index: c.field_index ?? 0,
+				old_heading: c.old_heading
+			})),
+			new_value: corrections.map((c: any) => ({
+				marc_record_id: c.marc_record_id,
+				field: c.field,
+				field_index: c.field_index ?? 0,
+				authority_id: c.authority_id,
+				new_heading: c.new_heading
+			})),
 			performed_by: session.user.id,
 			note: `Batch correction: ${results.success} succeeded, ${results.failed} failed`
 		});

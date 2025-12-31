@@ -42,6 +42,9 @@
 	}
 
 	function calculateCoverage(): number {
+		if (unauthorized?.coverage !== undefined) {
+			return unauthorized.coverage;
+		}
 		if (!unauthorized || !stats) return 0;
 		const totalHeadings = stats.total + (unauthorized.total_unauthorized || 0);
 		if (totalHeadings === 0) return 100;
