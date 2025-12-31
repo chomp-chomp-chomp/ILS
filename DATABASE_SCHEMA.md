@@ -262,6 +262,35 @@ CREATE POLICY "Authenticated users can manage serial_issues"
   USING (true);
 ```
 
+## Authority Control
+
+Authority control tables track authorized headings, cross-references, and links to MARC bibliographic records.
+
+### `authorities`
+- `id` UUID primary key with timestamps
+- `heading` authorized form of the name/subject
+- `type` ENUM-like string: `personal_name`, `corporate_name`, `geographic_name`, `topical_subject`
+- `source` (`lcnaf`, `lcsh`, `local`) plus identifiers `lccn`, `viaf_id`, `fast_id`
+- `variant_forms` TEXT[] for non-authorized headings
+- `marc_authority` JSONB for the raw LC record
+- `usage_count` cached count of linked bibliographic records
+- `search_vector` TSVECTOR for full-text/fuzzy matching
+
+### `authority_cross_refs`
+- Cross-reference rows tied to an `authority_id`
+- `ref_type`: `see`, `see_also`, `see_from`
+- `reference_text` free-text heading, optional `related_authority_id`, `note`
+
+### `marc_authority_links`
+- Joins MARC bib records to authorities
+- `marc_record_id`, `authority_id`, `marc_field` (`100`, `650`, etc.), and `field_index` for repeatable fields
+- `confidence` (0–1) and `is_automatic` to track automated matches
+- Unique constraint on `marc_record_id`, `marc_field`, `field_index` prevents duplicate links
+
+### `authority_update_log`
+- Audit table capturing `action` (`created`, `updated`, `merged`, `deleted`, `synced_from_loc`, `heading_corrected`)
+- Stores `old_value`, `new_value`, `records_affected`, `performed_by`, and notes for traceability
+
 ## Setup Instructions
 
 1. Go to your Supabase project dashboard
