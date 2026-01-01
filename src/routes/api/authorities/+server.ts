@@ -15,11 +15,56 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 	const query = url.searchParams.get('q') || '';
 	const type = url.searchParams.get('type');
 	const source = url.searchParams.get('source');
+	const id = url.searchParams.get('id');
+	const startsWith = url.searchParams.get('starts_with');
+	const includeLinks = url.searchParams.get('include_links') === 'true';
+	const includeSummary = url.searchParams.get('summary') === 'true';
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = parseInt(url.searchParams.get('limit') || '20');
 	const offset = (page - 1) * limit;
 
 	try {
+		// Fetch a single authority with relationships
+		if (id) {
+			let select = '*, authority_cross_refs(*)';
+
+			if (includeLinks) {
+				select +=
+					`, marc_authority_links (
+						id,
+						marc_record_id,
+						marc_field,
+						field_index,
+						confidence,
+						is_automatic,
+						marc_records:marc_record_id (
+							id,
+							title_statement,
+							material_type
+						)
+					)`;
+			}
+
+			const { data: authority, error: authorityError } = await supabase
+				.from('authorities')
+				.select(select)
+				.eq('id', id)
+				.single();
+
+			if (authorityError) throw authorityError;
+
+			let stats: any = null;
+			if (includeSummary) {
+				const { data: summary } = await supabase.rpc('get_authority_stats');
+				stats = summary;
+			}
+
+			return json({
+				authority,
+				stats
+			});
+		}
+
 		let dbQuery = supabase
 			.from('authorities')
 			.select('*, authority_cross_refs(*)', { count: 'exact' });
@@ -32,6 +77,11 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 		// Filter by source if specified
 		if (source) {
 			dbQuery = dbQuery.eq('source', source);
+		}
+
+		// Alphabetical browse filter
+		if (startsWith) {
+			dbQuery = dbQuery.ilike('heading', `${startsWith}%`);
 		}
 
 		// Search query
@@ -91,11 +141,18 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 
 		if (dbError) throw dbError;
 
+		let stats: any = null;
+		if (includeSummary) {
+			const { data: summary } = await supabase.rpc('get_authority_stats');
+			stats = summary;
+		}
+
 		return json({
 			authorities: data || [],
 			total: count || 0,
 			page,
-			limit
+			limit,
+			stats
 		});
 	} catch (err) {
 		console.error('Error fetching authorities:', err);
@@ -213,7 +270,7 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 
 	try {
 		const body = await request.json();
-		const { id, ...updates } = body;
+		const { id, cross_references, ...updates } = body;
 
 		if (!id) {
 			throw error(400, 'Authority ID is required');
@@ -238,6 +295,37 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 			.single();
 
 		if (authError) throw authError;
+
+		// Replace cross-references if provided
+		if (cross_references) {
+			await supabase.from('authority_cross_refs').delete().eq('authority_id', id);
+
+			const variantRefs =
+				authority?.variant_forms?.map((variant: string) => ({
+					authority_id: id,
+					ref_type: 'see_from',
+					reference_text: variant,
+					note: 'Non-authorized form'
+				})) || [];
+
+			const providedRefs = (cross_references as any[]).map((ref) => ({
+				authority_id: id,
+				ref_type: ref.ref_type,
+				reference_text: ref.reference_text,
+				related_authority_id: ref.related_authority_id,
+				note: ref.note
+			}));
+
+			const combined = [...providedRefs, ...variantRefs];
+			const uniqueRefs = Array.from(
+				new Map(combined.map((ref) => [`${ref.ref_type}:${ref.reference_text}`, ref])).values()
+			);
+
+			if (uniqueRefs.length > 0) {
+				const { error: refError } = await supabase.from('authority_cross_refs').insert(uniqueRefs);
+				if (refError) throw refError;
+			}
+		}
 
 		// Log the update
 		await supabase.from('authority_update_log').insert({
