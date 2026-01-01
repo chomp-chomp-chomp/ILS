@@ -224,72 +224,86 @@ ALTER TABLE marc_authority_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE authority_update_log ENABLE ROW LEVEL SECURITY;
 
 -- Public read access to authorities and cross-references
+DROP POLICY IF EXISTS "Public read access to authorities" ON authorities;
 CREATE POLICY "Public read access to authorities"
   ON authorities FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read access to cross references" ON authority_cross_refs;
 CREATE POLICY "Public read access to cross references"
   ON authority_cross_refs FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read access to authority links" ON marc_authority_links;
 CREATE POLICY "Public read access to authority links"
   ON marc_authority_links FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read access to update log" ON authority_update_log;
 CREATE POLICY "Public read access to update log"
   ON authority_update_log FOR SELECT
   TO anon, authenticated
   USING (true);
 
 -- Authenticated users can write (admin access)
+DROP POLICY IF EXISTS "Authenticated users can insert authorities" ON authorities;
 CREATE POLICY "Authenticated users can insert authorities"
   ON authorities FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update authorities" ON authorities;
 CREATE POLICY "Authenticated users can update authorities"
   ON authorities FOR UPDATE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can delete authorities" ON authorities;
 CREATE POLICY "Authenticated users can delete authorities"
   ON authorities FOR DELETE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert cross refs" ON authority_cross_refs;
 CREATE POLICY "Authenticated users can insert cross refs"
   ON authority_cross_refs FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update cross refs" ON authority_cross_refs;
 CREATE POLICY "Authenticated users can update cross refs"
   ON authority_cross_refs FOR UPDATE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can delete cross refs" ON authority_cross_refs;
 CREATE POLICY "Authenticated users can delete cross refs"
   ON authority_cross_refs FOR DELETE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert authority links" ON marc_authority_links;
 CREATE POLICY "Authenticated users can insert authority links"
   ON marc_authority_links FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update authority links" ON marc_authority_links;
 CREATE POLICY "Authenticated users can update authority links"
   ON marc_authority_links FOR UPDATE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can delete authority links" ON marc_authority_links;
 CREATE POLICY "Authenticated users can delete authority links"
   ON marc_authority_links FOR DELETE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert log entries" ON authority_update_log;
 CREATE POLICY "Authenticated users can insert log entries"
   ON authority_update_log FOR INSERT
   TO authenticated
