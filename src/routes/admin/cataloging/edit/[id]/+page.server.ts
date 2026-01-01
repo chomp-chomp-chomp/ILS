@@ -12,7 +12,23 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
     throw error(404, 'Record not found');
   }
 
+  const { data: authorityLinks } = await supabase
+    .from('marc_authority_links')
+    .select(`
+      marc_field,
+      field_index,
+      confidence,
+      is_automatic,
+      authority:authority_id (
+        id,
+        heading,
+        source
+      )
+    `)
+    .eq('marc_record_id', params.id);
+
   return {
     record,
+    authorityLinks: authorityLinks || []
   };
 };

@@ -6,7 +6,7 @@
 -- 1. AUTHORITIES TABLE
 -- ============================================================================
 
-CREATE TABLE authorities (
+CREATE TABLE IF NOT EXISTS authorities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -66,20 +66,20 @@ CREATE TABLE authorities (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_authorities_heading ON authorities(heading);
-CREATE INDEX idx_authorities_type ON authorities(type);
-CREATE INDEX idx_authorities_source ON authorities(source);
-CREATE INDEX idx_authorities_lccn ON authorities(lccn) WHERE lccn IS NOT NULL;
-CREATE INDEX idx_authorities_variant_forms ON authorities USING GIN(variant_forms);
+CREATE INDEX IF NOT EXISTS idx_authorities_heading ON authorities(heading);
+CREATE INDEX IF NOT EXISTS idx_authorities_type ON authorities(type);
+CREATE INDEX IF NOT EXISTS idx_authorities_source ON authorities(source);
+CREATE INDEX IF NOT EXISTS idx_authorities_lccn ON authorities(lccn) WHERE lccn IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_authorities_variant_forms ON authorities USING GIN(variant_forms);
 
 -- Unique constraint: same heading + type can't exist twice from same source
-CREATE UNIQUE INDEX idx_authorities_unique ON authorities(heading, type, source);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_authorities_unique ON authorities(heading, type, source);
 
 -- Add search_vector column for full-text search
-ALTER TABLE authorities ADD COLUMN search_vector TSVECTOR;
+ALTER TABLE authorities ADD COLUMN IF NOT EXISTS search_vector TSVECTOR;
 
 -- Create index on search_vector
-CREATE INDEX idx_authorities_search_vector ON authorities USING GIN(search_vector);
+CREATE INDEX IF NOT EXISTS idx_authorities_search_vector ON authorities USING GIN(search_vector);
 
 -- Create function to update search_vector
 CREATE OR REPLACE FUNCTION update_authority_search_vector()
@@ -94,6 +94,7 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Create trigger to auto-update search_vector
+DROP TRIGGER IF EXISTS trigger_authority_search_vector ON authorities;
 CREATE TRIGGER trigger_authority_search_vector
   BEFORE INSERT OR UPDATE ON authorities
   FOR EACH ROW
@@ -103,7 +104,7 @@ CREATE TRIGGER trigger_authority_search_vector
 -- 2. AUTHORITY CROSS REFERENCES TABLE
 -- ============================================================================
 
-CREATE TABLE authority_cross_refs (
+CREATE TABLE IF NOT EXISTS authority_cross_refs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -129,15 +130,15 @@ CREATE TABLE authority_cross_refs (
   note TEXT
 );
 
-CREATE INDEX idx_cross_refs_authority ON authority_cross_refs(authority_id);
-CREATE INDEX idx_cross_refs_type ON authority_cross_refs(ref_type);
-CREATE INDEX idx_cross_refs_text ON authority_cross_refs(reference_text);
+CREATE INDEX IF NOT EXISTS idx_cross_refs_authority ON authority_cross_refs(authority_id);
+CREATE INDEX IF NOT EXISTS idx_cross_refs_type ON authority_cross_refs(ref_type);
+CREATE INDEX IF NOT EXISTS idx_cross_refs_text ON authority_cross_refs(reference_text);
 
 -- ============================================================================
 -- 3. MARC RECORDS TO AUTHORITIES LINKS
 -- ============================================================================
 
-CREATE TABLE marc_authority_links (
+CREATE TABLE IF NOT EXISTS marc_authority_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -164,12 +165,12 @@ CREATE TABLE marc_authority_links (
   created_by UUID REFERENCES auth.users(id)
 );
 
-CREATE INDEX idx_marc_auth_links_marc ON marc_authority_links(marc_record_id);
-CREATE INDEX idx_marc_auth_links_authority ON marc_authority_links(authority_id);
-CREATE INDEX idx_marc_auth_links_field ON marc_authority_links(marc_field);
+CREATE INDEX IF NOT EXISTS idx_marc_auth_links_marc ON marc_authority_links(marc_record_id);
+CREATE INDEX IF NOT EXISTS idx_marc_auth_links_authority ON marc_authority_links(authority_id);
+CREATE INDEX IF NOT EXISTS idx_marc_auth_links_field ON marc_authority_links(marc_field);
 
 -- Unique constraint: one authority per MARC field per record
-CREATE UNIQUE INDEX idx_marc_auth_links_unique ON marc_authority_links(
+CREATE UNIQUE INDEX IF NOT EXISTS idx_marc_auth_links_unique ON marc_authority_links(
   marc_record_id, marc_field, field_index
 );
 
@@ -177,7 +178,7 @@ CREATE UNIQUE INDEX idx_marc_auth_links_unique ON marc_authority_links(
 -- 4. AUTHORITY UPDATE LOG
 -- ============================================================================
 
-CREATE TABLE authority_update_log (
+CREATE TABLE IF NOT EXISTS authority_update_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -208,9 +209,9 @@ CREATE TABLE authority_update_log (
   note TEXT
 );
 
-CREATE INDEX idx_auth_log_authority ON authority_update_log(authority_id);
-CREATE INDEX idx_auth_log_action ON authority_update_log(action);
-CREATE INDEX idx_auth_log_created ON authority_update_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_log_authority ON authority_update_log(authority_id);
+CREATE INDEX IF NOT EXISTS idx_auth_log_action ON authority_update_log(action);
+CREATE INDEX IF NOT EXISTS idx_auth_log_created ON authority_update_log(created_at DESC);
 
 -- ============================================================================
 -- 5. ROW LEVEL SECURITY (RLS)
@@ -223,72 +224,86 @@ ALTER TABLE marc_authority_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE authority_update_log ENABLE ROW LEVEL SECURITY;
 
 -- Public read access to authorities and cross-references
+DROP POLICY IF EXISTS "Public read access to authorities" ON authorities;
 CREATE POLICY "Public read access to authorities"
   ON authorities FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read access to cross references" ON authority_cross_refs;
 CREATE POLICY "Public read access to cross references"
   ON authority_cross_refs FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read access to authority links" ON marc_authority_links;
 CREATE POLICY "Public read access to authority links"
   ON marc_authority_links FOR SELECT
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read access to update log" ON authority_update_log;
 CREATE POLICY "Public read access to update log"
   ON authority_update_log FOR SELECT
   TO anon, authenticated
   USING (true);
 
 -- Authenticated users can write (admin access)
+DROP POLICY IF EXISTS "Authenticated users can insert authorities" ON authorities;
 CREATE POLICY "Authenticated users can insert authorities"
   ON authorities FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update authorities" ON authorities;
 CREATE POLICY "Authenticated users can update authorities"
   ON authorities FOR UPDATE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can delete authorities" ON authorities;
 CREATE POLICY "Authenticated users can delete authorities"
   ON authorities FOR DELETE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert cross refs" ON authority_cross_refs;
 CREATE POLICY "Authenticated users can insert cross refs"
   ON authority_cross_refs FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update cross refs" ON authority_cross_refs;
 CREATE POLICY "Authenticated users can update cross refs"
   ON authority_cross_refs FOR UPDATE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can delete cross refs" ON authority_cross_refs;
 CREATE POLICY "Authenticated users can delete cross refs"
   ON authority_cross_refs FOR DELETE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert authority links" ON marc_authority_links;
 CREATE POLICY "Authenticated users can insert authority links"
   ON marc_authority_links FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update authority links" ON marc_authority_links;
 CREATE POLICY "Authenticated users can update authority links"
   ON marc_authority_links FOR UPDATE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can delete authority links" ON marc_authority_links;
 CREATE POLICY "Authenticated users can delete authority links"
   ON marc_authority_links FOR DELETE
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert log entries" ON authority_update_log;
 CREATE POLICY "Authenticated users can insert log entries"
   ON authority_update_log FOR INSERT
   TO authenticated
@@ -307,6 +322,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_authority_updated_at ON authorities;
 CREATE TRIGGER trigger_authority_updated_at
   BEFORE UPDATE ON authorities
   FOR EACH ROW
@@ -323,6 +339,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_increment_usage ON marc_authority_links;
 CREATE TRIGGER trigger_increment_usage
   AFTER INSERT ON marc_authority_links
   FOR EACH ROW
@@ -339,6 +356,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_decrement_usage ON marc_authority_links;
 CREATE TRIGGER trigger_decrement_usage
   AFTER DELETE ON marc_authority_links
   FOR EACH ROW
@@ -399,12 +417,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to find unauthorized headings in MARC records
+DROP FUNCTION IF EXISTS find_unauthorized_headings(VARCHAR);
+DROP FUNCTION IF EXISTS find_unauthorized_headings();
+
 CREATE OR REPLACE FUNCTION find_unauthorized_headings(
   field_type VARCHAR(10) DEFAULT NULL
 )
 RETURNS TABLE (
   marc_record_id UUID,
   field VARCHAR(10),
+  field_index INTEGER,
   heading TEXT,
   suggested_authority_id UUID,
   suggested_heading TEXT,
@@ -416,6 +438,7 @@ BEGIN
   SELECT
     m.id as marc_record_id,
     '100' as field,
+    0 as field_index,
     m.main_entry_personal_name->>'a' as heading,
     a.id as suggested_authority_id,
     a.heading as suggested_heading,
@@ -441,6 +464,7 @@ BEGIN
   SELECT
     m.id as marc_record_id,
     '650' as field,
+    (t.idx - 1) as field_index,
     subj->>'a' as heading,
     a.id as suggested_authority_id,
     a.heading as suggested_heading,
@@ -472,31 +496,27 @@ $$ LANGUAGE plpgsql;
 -- 8. SAMPLE DATA (for testing)
 -- ============================================================================
 
--- Insert some sample authorities
+-- Insert some sample authorities (skip if already present)
 INSERT INTO authorities (heading, type, source, lccn, variant_forms, note) VALUES
   ('Twain, Mark, 1835-1910', 'personal_name', 'lcnaf', 'n79021164',
    ARRAY['Clemens, Samuel Langhorne', 'Clemens, Samuel L.', 'Mark Twain'],
    'American author and humorist'),
-
   ('Shakespeare, William, 1564-1616', 'personal_name', 'lcnaf', 'n78095332',
    ARRAY['Shakspeare, William', 'Shaksper, William'],
    'English playwright and poet'),
-
   ('United States. Congress', 'corporate_name', 'lcnaf', 'n79022775',
    ARRAY['Congress (U.S.)', 'U.S. Congress'],
    'Legislative branch of the United States government'),
-
   ('World War (1939-1945)', 'topical_subject', 'lcsh', 'sh85148273',
    ARRAY['Second World War', 'WWII', 'WW2'],
    'Global war 1939-1945'),
-
   ('Artificial intelligence', 'topical_subject', 'lcsh', 'sh85008180',
    ARRAY['AI', 'Machine intelligence'],
    'Intelligence demonstrated by machines'),
-
   ('New York (N.Y.)', 'geographic_name', 'lcsh', 'sh85091221',
    ARRAY['New York City', 'NYC', 'New York'],
-   'Largest city in the United States');
+   'Largest city in the United States')
+ON CONFLICT (heading, type, source) DO NOTHING;
 
 -- Insert cross-references
 INSERT INTO authority_cross_refs (authority_id, ref_type, reference_text, note)
