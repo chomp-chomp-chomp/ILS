@@ -94,6 +94,7 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Create trigger to auto-update search_vector
+DROP TRIGGER IF EXISTS trigger_authority_search_vector ON authorities;
 CREATE TRIGGER trigger_authority_search_vector
   BEFORE INSERT OR UPDATE ON authorities
   FOR EACH ROW
@@ -307,6 +308,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_authority_updated_at ON authorities;
 CREATE TRIGGER trigger_authority_updated_at
   BEFORE UPDATE ON authorities
   FOR EACH ROW
@@ -323,6 +325,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_increment_usage ON marc_authority_links;
 CREATE TRIGGER trigger_increment_usage
   AFTER INSERT ON marc_authority_links
   FOR EACH ROW
@@ -339,6 +342,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_decrement_usage ON marc_authority_links;
 CREATE TRIGGER trigger_decrement_usage
   AFTER DELETE ON marc_authority_links
   FOR EACH ROW
@@ -400,6 +404,7 @@ $$ LANGUAGE plpgsql;
 
 -- Function to find unauthorized headings in MARC records
 DROP FUNCTION IF EXISTS find_unauthorized_headings(VARCHAR);
+DROP FUNCTION IF EXISTS find_unauthorized_headings();
 
 CREATE OR REPLACE FUNCTION find_unauthorized_headings(
   field_type VARCHAR(10) DEFAULT NULL
