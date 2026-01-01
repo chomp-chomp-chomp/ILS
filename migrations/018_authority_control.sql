@@ -520,7 +520,8 @@ INSERT INTO authorities (heading, type, source, lccn, variant_forms, note) VALUE
 
   ('New York (N.Y.)', 'geographic_name', 'lcsh', 'sh85091221',
    ARRAY['New York City', 'NYC', 'New York'],
-   'Largest city in the United States');
+   'Largest city in the United States')
+ON CONFLICT (heading, type, source) DO NOTHING;
 
 -- Insert cross-references
 INSERT INTO authority_cross_refs (authority_id, ref_type, reference_text, note)
@@ -531,16 +532,36 @@ SELECT
   'Non-authorized form'
 FROM authorities a,
      unnest(a.variant_forms) variant
-WHERE a.variant_forms IS NOT NULL;
+WHERE a.variant_forms IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM authority_cross_refs acr
+    WHERE acr.authority_id = a.id
+      AND acr.ref_type = 'see_from'
+      AND acr.reference_text = variant
+  );
 
 -- Add some "see also" references
 INSERT INTO authority_cross_refs (authority_id, ref_type, reference_text)
 SELECT id, 'see_also', 'World War (1914-1918)'
-FROM authorities WHERE heading = 'World War (1939-1945)';
+FROM authorities
+WHERE heading = 'World War (1939-1945)'
+  AND NOT EXISTS (
+    SELECT 1 FROM authority_cross_refs acr
+    WHERE acr.authority_id = authorities.id
+      AND acr.ref_type = 'see_also'
+      AND acr.reference_text = 'World War (1914-1918)'
+  );
 
 INSERT INTO authority_cross_refs (authority_id, ref_type, reference_text)
 SELECT id, 'see_also', 'Machine learning'
-FROM authorities WHERE heading = 'Artificial intelligence';
+FROM authorities
+WHERE heading = 'Artificial intelligence'
+  AND NOT EXISTS (
+    SELECT 1 FROM authority_cross_refs acr
+    WHERE acr.authority_id = authorities.id
+      AND acr.ref_type = 'see_also'
+      AND acr.reference_text = 'Machine learning'
+  );
 
 -- ============================================================================
 -- 9. COMMENTS
