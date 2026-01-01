@@ -4,6 +4,7 @@
 -- Cleanup any prior signatures to prevent return type conflicts
 DROP FUNCTION IF EXISTS find_unauthorized_headings(VARCHAR);
 DROP FUNCTION IF EXISTS find_unauthorized_headings();
+-- Adds field-aware unauthorized heading detection and keeps stats consistent
 
 -- Refresh the unauthorized headings helper to return field_index
 CREATE OR REPLACE FUNCTION find_unauthorized_headings(
