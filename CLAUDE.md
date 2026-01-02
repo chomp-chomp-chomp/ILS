@@ -252,6 +252,22 @@ Locally uploaded cover images for catalog records.
 #### 20. `related_records` - Record Relationships
 Links between related bibliographic records (series, editions, translations).
 
+#### 21. `marc_attachments` - Record Attachments
+External file attachments linked to MARC records (storage-agnostic system).
+
+**Key Fields**:
+- `marc_record_id` (UUID) - FK to marc_records
+- `external_url` (TEXT) - Share link from external storage provider
+- `external_expires_at` (TIMESTAMPTZ) - Optional expiration timestamp
+- `file_metadata` (JSONB) - Title, description, MIME type, size, original filename
+- `access_level` (VARCHAR) - public, authenticated, staff_only
+- `sort_order` (INTEGER) - Display ordering
+- `view_count`, `download_count` (INTEGER) - Analytics
+
+**Access Control**: Staff-only insert/update/delete via RLS; read access enforces access_level
+
+**Analytics**: Automatic view/download tracking, stats view per record
+
 ### Row Level Security (RLS)
 
 All tables use Supabase RLS:
@@ -314,7 +330,8 @@ migrations/
 ├── 018_faceted_search_configuration.sql
 ├── 018_ill_module.sql
 ├── 019_patron_self_service.sql
-└── 020_authority_control_enhancements.sql
+├── 020_authority_control_enhancements.sql
+└── 021_marc_attachments.sql
 ```
 
 **To apply migrations**:
@@ -568,6 +585,69 @@ const query = supabase
 - Series display on detail pages
 
 **Relationship Types**: series, edition, translation, adaptation, related, part_of, has_part
+
+### 15. Record Attachments (Storage-Agnostic)
+
+**Files**: `src/routes/api/attachments/`, `src/routes/admin/cataloging/edit/[id]/`, `migrations/021_marc_attachments.sql`
+
+**Features**:
+- **External Storage Integration**: Links to files hosted on any provider (pCloud, S3, Google Drive, etc.)
+- **No File Storage**: Stores only metadata and external share links, not file bytes
+- **Expiration Management**: Optional expiration timestamps aligned with provider link expiry
+- **Access Control**: Three levels - public, authenticated, staff-only
+- **Analytics**: Automatic view and download counting
+- **Proxied Downloads**: All downloads route through ILS for access control and analytics
+- **File Metadata**: Title, description, MIME type, size, original filename
+- **Ordering**: Staff-controlled display order with up/down controls
+
+**API Endpoints**:
+- `POST /api/attachments` - Create attachment metadata (staff-only)
+- `PATCH /api/attachments/:id` - Update attachment (staff-only)
+- `DELETE /api/attachments/:id` - Remove attachment (staff-only)
+- `GET /api/attachments/record/:recordId` - List attachments for a record (increments views)
+- `GET /api/attachments/:id/download` - Proxied download with expiry check (302 redirect)
+
+**Public OPAC Integration**:
+- Attachments section on record detail pages
+- Inline image preview (proxied through download endpoint)
+- Metadata display with size and status badges
+- Expiring/expired indicators
+- Downloads always use internal endpoint
+
+**Admin Interface** (`/admin/cataloging/edit/[id]` - Attachments tab):
+- Paste external share links from storage providers
+- Set expiration dates to match provider link expiry
+- Configure title, description, file type, size, access level
+- Reorder attachments (up/down buttons)
+- Refresh external URLs when provider links change
+- Copy internal download URL for testing
+- Status badges (valid/expired)
+- View/download analytics display
+
+**Typical Workflow**:
+1. Staff creates expiring share link in external provider (e.g., pCloud presigned URL)
+2. Staff pastes URL into admin Attachments form
+3. Staff sets `external_expires_at` to match provider's expiry
+4. Staff configures access level and metadata
+5. Patrons/staff access files through ILS endpoints
+6. ILS enforces access rules, tracks analytics, handles expiry
+7. Downloads redirect to external provider (302) but log through ILS
+
+**Use Cases**:
+- Supplementary materials (teacher guides, answer keys)
+- High-resolution images or maps
+- Audio/video content too large for database
+- Subscription content with time-limited access
+- Course reserves with semester-based expiration
+- Digital special collections
+
+**Key Benefits**:
+- Storage-agnostic (works with any provider)
+- Cost-effective (no file storage in database)
+- Access control remains in ILS
+- Analytics captured regardless of storage provider
+- Easy to update/replace external links
+- Respects provider expiration policies
 
 ---
 
@@ -1172,6 +1252,7 @@ supabase db reset        # Reset database (dev only)
 7. ✅ **Branding Customization** - UI-based branding configuration
 8. ✅ **Search Configuration** - Customizable search fields and behavior
 9. ✅ **Display Configuration** - Customizable field display
+10. ✅ **Record Attachments** - Storage-agnostic external file linking with expiry and analytics
 
 ### Planned Features
 1. **Binary MARC Support** - Import/export .mrc files
@@ -2507,6 +2588,7 @@ This version adds documentation for:
 - Cover Image Management
 - Batch Operations for cataloging
 - Related Records and Series Linking
+- Record Attachments (storage-agnostic external file system)
 - Enhanced migration list with all recent additions
 
 ## Key Updates Since v1.0
@@ -2524,6 +2606,7 @@ This version adds documentation for:
 - `pages` - Content management
 - `cover_images` - Local cover uploads
 - `related_records` - Record relationships
+- `marc_attachments` - External file attachments with expiry and analytics
 
 **New Features**:
 - LC authority synchronization
@@ -2532,5 +2615,6 @@ This version adds documentation for:
 - Cover upload and management
 - Global find/replace in cataloging
 - Series browsing
+- Storage-agnostic attachment system with expiration and access control
 
 This document is designed to help AI assistants understand the codebase structure, conventions, and best practices. When in doubt, refer to existing code patterns and this documentation.
