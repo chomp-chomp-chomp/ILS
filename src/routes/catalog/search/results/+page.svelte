@@ -25,6 +25,7 @@
 	let generatingShortUrl = $state(false);
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
+	let showCovers = $state(true);
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -691,6 +692,15 @@
 							<option value="date_old">Oldest First</option>
 						</select>
 					</div>
+					<div class="left-controls">
+						<button
+							class="toggle-covers-btn"
+							onclick={() => showCovers = !showCovers}
+							aria-label={showCovers ? 'Hide covers' : 'Show covers'}
+						>
+							{showCovers ? 'Hide Covers' : 'Show Covers'}
+						</button>
+					</div>
 					<div class="view-controls">
 						<span class="results-range"
 							>Showing {startResult}-{endResult} of {data.total.toLocaleString()}</span
@@ -750,7 +760,7 @@
 				<!-- Results List -->
 				<div class="results-list">
 					{#each data.results as record}
-						<article class="result-card" class:selected={selectedRecords.includes(record.id)}>
+						<article class="result-card" class:selected={selectedRecords.includes(record.id)} class:no-cover={!showCovers}>
 							<div class="result-checkbox">
 								<input
 									type="checkbox"
@@ -760,9 +770,11 @@
 									aria-label="Select {record.title_statement?.a || 'Untitled'}"
 								/>
 							</div>
-							<div class="result-cover">
-								<BookCover isbn={record.isbn} size="medium" />
-							</div>
+							{#if showCovers}
+								<div class="result-cover">
+									<BookCover isbn={record.isbn} size="medium" />
+								</div>
+							{/if}
 							<div class="result-content">
 								<h3>
 									<a href="/catalog/record/{record.id}">
@@ -1600,17 +1612,39 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 1.5rem;
-		padding: 1rem;
-		background: white;
-		border-radius: 8px;
-		border: 1px solid #e0e0e0;
+		margin-bottom: 0;
+		padding: 1rem 1.5rem;
+		background: #fafafa;
+		border-top: 1px solid #e0e0e0;
+		border-bottom: 1px solid #e0e0e0;
 	}
 
 	.sort-controls {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	.left-controls {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.toggle-covers-btn {
+		padding: 0.5rem 1rem;
+		background: white;
+		color: #666;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.toggle-covers-btn:hover {
+		border-color: #667eea;
+		color: #667eea;
 	}
 
 	.sort-controls label {
@@ -1689,29 +1723,35 @@
 	.results-list {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 0;
 	}
 
 	.result-card {
 		display: grid;
 		grid-template-columns: 40px 120px 1fr;
 		gap: 1.5rem;
-		padding: 1.5rem;
+		padding: 1.25rem 1.5rem;
 		background: white;
-		border-radius: 8px;
-		border: 1px solid #e0e0e0;
-		transition: all 0.2s;
+		border-bottom: 1px solid #e8e8e8;
+		transition: background-color 0.15s;
+	}
+
+	.result-card.no-cover {
+		grid-template-columns: 40px 1fr;
+	}
+
+	.result-card:first-child {
+		border-top: 1px solid #e8e8e8;
 	}
 
 	.result-card:hover {
-		border-color: #667eea;
-		box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+		background: #fafafa;
 	}
 
 	.result-card.selected {
-		border-color: #e73b42;
 		background: #fff5f5;
-		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.15);
+		border-left: 3px solid #e73b42;
+		padding-left: calc(1.5rem - 3px);
 	}
 
 	.result-checkbox {
@@ -2179,7 +2219,11 @@
 		.result-card {
 			grid-template-columns: 30px 80px 1fr;
 			gap: 1rem;
-			padding: 1rem;
+			padding: 1rem 0.75rem;
+		}
+
+		.result-card.no-cover {
+			grid-template-columns: 30px 1fr;
 		}
 
 		.result-checkbox input[type="checkbox"] {
