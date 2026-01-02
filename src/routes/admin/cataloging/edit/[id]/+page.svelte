@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import SubjectHeadingInput from '$lib/components/SubjectHeadingInput.svelte';
 	import BookCover from '$lib/components/BookCover.svelte';
@@ -33,6 +34,19 @@ let authorityMessage = $state('');
 let uploadingCover = $state(false);
 let coverMessage = $state('');
 let manualCoverUrl = $state('');
+	let attachments = $state<any[]>([]);
+	let loadingAttachments = $state(true);
+	let attachmentMessage = $state('');
+	let attachmentForm = $state({
+		title: '',
+		description: '',
+		file_type: '',
+		file_size: '',
+		access_level: 'public',
+		external_url: '',
+		external_expires_at: '',
+		filename_original: ''
+	});
 
 function isNameLinked() {
 	return authorityLinks.some((link) => link.marc_field === '100');
@@ -258,7 +272,7 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 		}
 	}
 
-	async function saveManualUrl() {
+async function saveManualUrl() {
 		if (!manualCoverUrl || !manualCoverUrl.trim()) {
 			coverMessage = 'Please enter a valid URL';
 			return;
@@ -292,7 +306,167 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 			}
 		} finally {
 			uploadingCover = false;
+	}
+}
+
+	onMount(loadAttachments);
+
+	async function loadAttachments() {
+		loadingAttachments = true;
+		attachmentMessage = '';
+
+		const { data, error } = await supabase
+			.from('marc_attachments')
+			.select('*')
+			.eq('marc_record_id', record.id)
+			.order('sort_order', { ascending: true })
+			.order('upload_date', { ascending: false });
+
+		if (error) {
+			attachmentMessage = 'Failed to load attachments';
+			console.error(error);
+			loadingAttachments = false;
+			return;
 		}
+
+		attachments = data || [];
+		loadingAttachments = false;
+	}
+
+	function resetAttachmentForm() {
+		attachmentForm = {
+			title: '',
+			description: '',
+			file_type: '',
+			file_size: '',
+			access_level: 'public',
+			external_url: '',
+			external_expires_at: '',
+			filename_original: ''
+		};
+	}
+
+	async function createAttachment() {
+		attachmentMessage = '';
+
+		if (!attachmentForm.external_url) {
+			attachmentMessage = 'External URL is required';
+			return;
+		}
+
+		const body = {
+			...attachmentForm,
+			file_size: attachmentForm.file_size ? Number(attachmentForm.file_size) : null,
+			marc_record_id: record.id
+		};
+
+		const response = await fetch('/api/attachments', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		});
+
+		const result = await response.json();
+
+		if (!response.ok) {
+			attachmentMessage = result.error || 'Failed to create attachment';
+			return;
+		}
+
+		attachments = [...attachments, result.attachment].sort(
+			(a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+		);
+		resetAttachmentForm();
+		attachmentMessage = 'Attachment added';
+	}
+
+	async function updateAttachment(id: string, updates: Record<string, any>) {
+		const response = await fetch(`/api/attachments/${id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(updates)
+		});
+
+		const result = await response.json();
+
+		if (!response.ok) {
+			attachmentMessage = result.error || 'Failed to update attachment';
+			return;
+		}
+
+		attachments = attachments.map((a) => (a.id === id ? { ...a, ...result.attachment } : a));
+	}
+
+	async function deleteAttachment(id: string) {
+		if (!confirm('Delete this attachment?')) return;
+
+		const response = await fetch(`/api/attachments/${id}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			const result = await response.json();
+			attachmentMessage = result.error || 'Failed to delete attachment';
+			return;
+		}
+
+		attachments = attachments.filter((a) => a.id !== id);
+	}
+
+	async function moveAttachment(id: string, direction: 'up' | 'down') {
+		const index = attachments.findIndex((a) => a.id === id);
+		if (index === -1) return;
+
+		const targetIndex = direction === 'up' ? index - 1 : index + 1;
+		if (targetIndex < 0 || targetIndex >= attachments.length) return;
+
+		const reordered = [...attachments];
+		const [moved] = reordered.splice(index, 1);
+		reordered.splice(targetIndex, 0, moved);
+
+		// Reassign sort orders
+		const updates = reordered.map((attachment, idx) => ({ ...attachment, sort_order: idx }));
+		attachments = updates;
+
+		// Persist sort orders
+		await Promise.all(
+			updates.map((attachment) =>
+				fetch(`/api/attachments/${attachment.id}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ sort_order: attachment.sort_order })
+				})
+			)
+		);
+	}
+
+	function attachmentStatus(expiresAt?: string | null) {
+		if (!expiresAt) return 'Valid';
+		const expiry = new Date(expiresAt);
+		if (expiry < new Date()) return 'Expired';
+		const soon = Date.now() + 72 * 60 * 60 * 1000;
+		return expiry.getTime() <= soon ? 'Expiring soon' : 'Valid';
+	}
+
+function statusClass(status: string) {
+	if (status === 'Expired') return 'badge danger';
+	if (status === 'Expiring soon') return 'badge warning';
+	return 'badge success';
+}
+
+	function formatAttachmentSize(bytes?: number | null) {
+		if (!bytes || bytes <= 0) return 'Unknown size';
+		const units = ['B', 'KB', 'MB', 'GB'];
+		const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+		const value = bytes / Math.pow(1024, exponent);
+		return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[exponent]}`;
+	}
+
+	async function copyDownloadUrl(id: string) {
+		if (typeof window === 'undefined') return;
+		const url = `${window.location.origin}/api/attachments/${id}/download`;
+		await navigator.clipboard.writeText(url);
+		attachmentMessage = 'Download URL copied';
 	}
 </script>
 
@@ -427,6 +601,189 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 						</small>
 					</div>
 				</div>
+			</div>
+		</section>
+
+		<section class="form-section">
+			<h2>Attachments</h2>
+			<p class="section-note">
+				Attach external files (PDF, images, audio, video, documents). Links should be expiring share
+				URLs from your storage provider. Downloads route through the ILS for access control.
+			</p>
+
+			{#if attachmentMessage}
+				<div class={attachmentMessage.includes('Failed') ? 'message error' : 'message success'}>
+					{attachmentMessage}
+				</div>
+			{/if}
+
+			<div class="attachment-form-grid">
+				<div class="form-group">
+					<label for="attachment-title">Title</label>
+					<input
+						id="attachment-title"
+						type="text"
+						bind:value={attachmentForm.title}
+						placeholder="Table of contents, Author photo, Sample chapter..."
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="attachment-file-type">File Type (MIME)</label>
+					<input
+						id="attachment-file-type"
+						type="text"
+						bind:value={attachmentForm.file_type}
+						placeholder="application/pdf, image/jpeg..."
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="attachment-file-size">File Size (bytes)</label>
+					<input
+						id="attachment-file-size"
+						type="number"
+						min="0"
+						bind:value={attachmentForm.file_size}
+						placeholder="Optional"
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="attachment-access-level">Access Level</label>
+					<select id="attachment-access-level" bind:value={attachmentForm.access_level}>
+						<option value="public">Public</option>
+						<option value="authenticated">Authenticated</option>
+						<option value="staff-only">Staff only</option>
+					</select>
+				</div>
+
+				<div class="form-group" style="grid-column: span 2;">
+					<label for="attachment-description">Description</label>
+					<textarea
+						id="attachment-description"
+						bind:value={attachmentForm.description}
+						rows="2"
+						placeholder="Short description or notes"
+					></textarea>
+				</div>
+
+				<div class="form-group">
+					<label for="attachment-url">External URL (share link)</label>
+					<input
+						id="attachment-url"
+						type="url"
+						bind:value={attachmentForm.external_url}
+						placeholder="https://provider.com/share/..."
+						required
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="attachment-expires">Expires At (optional)</label>
+					<input
+						id="attachment-expires"
+						type="datetime-local"
+						bind:value={attachmentForm.external_expires_at}
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="attachment-filename">Original Filename (optional)</label>
+					<input
+						id="attachment-filename"
+						type="text"
+						bind:value={attachmentForm.filename_original}
+						placeholder="example.pdf"
+					/>
+				</div>
+			</div>
+
+			<div class="form-actions">
+				<button type="button" class="btn-primary" onclick={createAttachment}>Add Attachment</button>
+				<button type="button" class="btn-secondary" onclick={resetAttachmentForm}>Reset</button>
+			</div>
+
+			<div class="attachment-list">
+				<div class="attachment-list-header">
+					<h3>Existing Attachments</h3>
+					{#if loadingAttachments}
+						<span class="badge muted">Loading…</span>
+					{:else}
+						<span class="badge muted">{attachments.length} attached</span>
+					{/if}
+				</div>
+
+				{#if !loadingAttachments && attachments.length === 0}
+					<p class="muted">No attachments yet.</p>
+				{/if}
+
+				{#each attachments as attachment, index}
+					<div class="attachment-row">
+						<div class="attachment-row-main">
+							<p class="attachment-title-row">
+								{attachment.title || attachment.filename_original || 'Untitled attachment'}
+							</p>
+							<p class="attachment-meta">
+								{attachment.file_type || 'Unknown type'} • {formatAttachmentSize(attachment.file_size)} •
+								<span class={statusClass(attachmentStatus(attachment.external_expires_at))}>
+									{attachmentStatus(attachment.external_expires_at)}
+								</span>
+								<span class="badge muted">Access: {attachment.access_level}</span>
+								{#if attachment.view_count !== undefined}
+									<span class="badge muted">Views: {attachment.view_count}</span>
+								{/if}
+								{#if attachment.download_count !== undefined}
+									<span class="badge muted">Downloads: {attachment.download_count}</span>
+								{/if}
+							</p>
+
+							{#if attachment.description}
+								<p class="attachment-description-row">{attachment.description}</p>
+							{/if}
+						</div>
+
+						<div class="attachment-actions-row">
+							<button
+								type="button"
+								class="btn-secondary"
+								aria-label="Move up"
+								disabled={index === 0}
+								onclick={() => moveAttachment(attachment.id, 'up')}
+							>
+								↑
+							</button>
+							<button
+								type="button"
+								class="btn-secondary"
+								aria-label="Move down"
+								disabled={index === attachments.length - 1}
+								onclick={() => moveAttachment(attachment.id, 'down')}
+							>
+								↓
+							</button>
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick={() => copyDownloadUrl(attachment.id)}
+							>
+								Copy Download URL
+							</button>
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick={() => updateAttachment(attachment.id, {
+									external_url: prompt('New external URL', attachment.external_url) || attachment.external_url
+								})}
+							>
+								Refresh Link
+							</button>
+							<button type="button" class="btn-delete" onclick={() => deleteAttachment(attachment.id)}>
+								Delete
+							</button>
+						</div>
+					</div>
+				{/each}
 			</div>
 		</section>
 
@@ -618,6 +975,10 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 		color: #666;
 	}
 
+	.muted {
+		color: #666;
+	}
+
 .section-note strong {
 	color: #e73b42;
 }
@@ -800,6 +1161,90 @@ textarea:focus {
 		cursor: pointer;
 		font-size: 1rem;
 		transition: background 0.2s;
+	}
+
+	/* Attachments */
+	.attachment-form-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.attachment-list {
+		margin-top: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.attachment-list-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.attachment-row {
+		border: 1px solid #e0e0e0;
+		border-radius: 6px;
+		padding: 1rem;
+		background: #f8f9fa;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.attachment-row-main {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.attachment-title-row {
+		margin: 0;
+		font-weight: 600;
+		color: #2c3e50;
+	}
+
+	.attachment-description-row {
+		margin: 0.25rem 0 0 0;
+		color: #555;
+	}
+
+	.attachment-actions-row {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.25rem 0.6rem;
+		border-radius: 999px;
+		font-size: 0.8rem;
+	}
+
+	.badge.success {
+		background: #e8f5e9;
+		color: #1b5e20;
+	}
+
+	.badge.warning {
+		background: #fff3cd;
+		color: #856404;
+	}
+
+	.badge.danger {
+		background: #f8d7da;
+		color: #721c24;
+	}
+
+	.badge.muted {
+		background: #eef2ff;
+		color: #4f46e5;
 	}
 
 	.upload-label:hover {
