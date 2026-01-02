@@ -161,7 +161,7 @@
 							<span class="value">
 								{#if record.publication_info.b}{record.publication_info.b}{/if}
 								{#if record.publication_info.a} ({record.publication_info.a}){/if}
-								{#if record.publication_info.c}, {record.publication_info.c}{/if}
+								{#if record.publication_info.c},{record.publication_info.c}{/if}
 							</span>
 						</div>
 					{/if}
@@ -211,16 +211,18 @@
 				{#if record.subject_topical && record.subject_topical.length > 0}
 					<section class="info-section">
 						<h3>Subjects</h3>
-						<div class="subjects">
+						<ul class="subjects-list">
 							{#each record.subject_topical as subject}
-								<a
-									href="/catalog/search/results?subject={encodeURIComponent(subject.a)}"
-									class="subject-tag"
-								>
-									{subject.a}
-								</a>
+								<li>
+									<a
+										href="/catalog/search/results?subject={encodeURIComponent(subject.a)}"
+										class="subject-link"
+									>
+										{subject.a}
+									</a>
+								</li>
 							{/each}
-						</div>
+						</ul>
 					</section>
 				{/if}
 
@@ -526,29 +528,31 @@
 		text-decoration: underline;
 	}
 
-	.subjects {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
+	.subjects-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
 	}
 
-	.subject-tag {
-		display: inline-block;
-		padding: 0.5rem 1rem;
-		background: #e8eaf6;
-		color: #3f51b5;
-		border-radius: 16px;
-		font-size: 0.875rem;
+	.subjects-list li {
+		padding: 0.5rem 0;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.subjects-list li:last-child {
+		border-bottom: none;
+	}
+
+	.subject-link {
+		color: #667eea;
 		text-decoration: none;
-		transition: all 0.2s;
-		cursor: pointer;
+		font-size: 0.95rem;
+		transition: color 0.2s;
 	}
 
-	.subject-tag:hover {
-		background: #c5cae9;
-		color: #303f9f;
-		transform: translateY(-2px);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	.subject-link:hover {
+		color: #5568d3;
+		text-decoration: underline;
 	}
 
 	.related-records {
