@@ -222,19 +222,28 @@ async function fetchLocAuthorityDetails(uri: string): Promise<LocAuthority | nul
 		// (avoid blank nodes which start with _:)
 		let mainResource;
 		if (Array.isArray(data)) {
-			// Find the resource with @id matching the requested URI
+			// Find the resource with @id matching the requested URI AND has a proper label
 			mainResource = data.find((item: any) => {
 				const id = item['@id'];
-				return id && !id.startsWith('_:') && (id === uri || id.startsWith(uri));
+				const hasLabel = item['skos:prefLabel'] || item['rdfs:label'] || item['madsrdf:authoritativeLabel'];
+				return id && !id.startsWith('_:') && (id === uri || id.startsWith(uri)) && hasLabel;
 			});
-			// Fallback to first non-blank-node resource
+			// Fallback to first non-blank-node resource with a label
+			if (!mainResource) {
+				mainResource = data.find((item: any) => {
+					const id = item['@id'];
+					const hasLabel = item['skos:prefLabel'] || item['rdfs:label'] || item['madsrdf:authoritativeLabel'];
+					return id && !id.startsWith('_:') && hasLabel;
+				});
+			}
+			// Last resort: any non-blank-node resource
 			if (!mainResource) {
 				mainResource = data.find((item: any) => {
 					const id = item['@id'];
 					return id && !id.startsWith('_:');
 				});
 			}
-			// Last resort: use first item (even if blank node)
+			// Very last resort: first item
 			if (!mainResource) {
 				mainResource = data[0];
 			}
@@ -303,6 +312,7 @@ async function fetchLocAuthorityDetails(uri: string): Promise<LocAuthority | nul
  * Extract primary label from LoC resource
  */
 function extractLabel(resource: any): string {
+	// Try skos:prefLabel
 	if (resource['skos:prefLabel']) {
 		const label = Array.isArray(resource['skos:prefLabel'])
 			? resource['skos:prefLabel'][0]
@@ -310,6 +320,15 @@ function extractLabel(resource: any): string {
 		return label['@value'] || label;
 	}
 
+	// Try madsrdf:authoritativeLabel (common in LoC data)
+	if (resource['madsrdf:authoritativeLabel']) {
+		const label = Array.isArray(resource['madsrdf:authoritativeLabel'])
+			? resource['madsrdf:authoritativeLabel'][0]
+			: resource['madsrdf:authoritativeLabel'];
+		return label['@value'] || label;
+	}
+
+	// Try rdfs:label
 	if (resource['rdfs:label']) {
 		const label = Array.isArray(resource['rdfs:label'])
 			? resource['rdfs:label'][0]
@@ -317,7 +336,8 @@ function extractLabel(resource: any): string {
 		return label['@value'] || label;
 	}
 
-	if (resource['@id']) {
+	// Only use @id as last resort if it's not a blank node
+	if (resource['@id'] && !resource['@id'].startsWith('_:')) {
 		return resource['@id'].split('/').pop() || 'Unknown';
 	}
 

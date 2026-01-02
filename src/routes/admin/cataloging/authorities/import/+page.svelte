@@ -158,7 +158,14 @@
 						<li>
 							<div class="heading-row">
 								<div>
-									<div class="heading">{authority.label || authority.heading}</div>
+									<div class="heading">
+										{authority.label || authority.heading}
+										{#if authority.uri}
+											<a href={authority.uri} target="_blank" rel="noopener noreferrer" class="loc-link" title="View at Library of Congress">
+												🔗
+											</a>
+										{/if}
+									</div>
 									<div class="meta">
 										{#if authority.lccn}<span class="badge">LCCN {authority.lccn}</span>{/if}
 										<span class="badge">{type === 'subjects' ? 'LCSH' : 'LCNAF'}</span>
@@ -476,6 +483,18 @@
 	.muted {
 		color: #666;
 		font-size: 14px;
+	}
+
+	.loc-link {
+		margin-left: 8px;
+		text-decoration: none;
+		font-size: 16px;
+		opacity: 0.7;
+		transition: opacity 0.2s;
+	}
+
+	.loc-link:hover {
+		opacity: 1;
 	}
 
 	@media (max-width: 768px) {

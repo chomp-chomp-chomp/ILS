@@ -675,7 +675,6 @@ function statusClass(status: string) {
 						type="url"
 						bind:value={attachmentForm.external_url}
 						placeholder="https://provider.com/share/..."
-						required
 					/>
 				</div>
 
