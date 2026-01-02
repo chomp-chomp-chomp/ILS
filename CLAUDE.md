@@ -49,6 +49,7 @@ src/
 │   ├── +layout.svelte              # Root layout
 │   ├── +layout.server.ts           # Root server load (session)
 │   ├── +page.svelte                # Homepage
+│   ├── [slug]/                     # Dynamic WYSIWYG pages
 │   ├── catalog/                    # Public OPAC
 │   │   ├── search/                 # Search interface
 │   │   ├── browse/                 # Browse by subjects
@@ -57,15 +58,28 @@ src/
 │   ├── admin/                      # Admin panel (protected)
 │   │   ├── +layout.server.ts       # Auth guard
 │   │   ├── cataloging/             # MARC cataloging
+│   │   │   ├── authorities/        # Authority control
+│   │   │   ├── batch/              # Batch operations
+│   │   │   ├── covers/             # Cover management
+│   │   │   └── templates/          # Cataloging templates
 │   │   ├── circulation/            # Checkout/checkin
 │   │   ├── acquisitions/           # Purchase orders
 │   │   ├── serials/                # Periodicals
+│   │   ├── ill/                    # Interlibrary Loan
+│   │   ├── pages/                  # WYSIWYG page editor
+│   │   ├── branding/               # Branding customization
+│   │   ├── search-config/          # Search configuration
+│   │   ├── display-config/         # Display configuration
 │   │   └── holdings/               # Item management
 │   ├── api/                        # API endpoints
 │   │   ├── reading-lists/          # List CRUD
 │   │   ├── book-cover/             # Cover proxy
 │   │   ├── shorten/                # URL shortener
-│   │   └── subject-headings/       # Authority control
+│   │   ├── authorities/            # Authority control
+│   │   ├── branding/               # Branding config
+│   │   ├── search-config/          # Search config
+│   │   ├── display-config/         # Display config
+│   │   └── attachments/            # Record attachments (CRUD + download)
 │   └── r/[code]/                   # Short URL redirects
 ├── lib/
 │   ├── components/                 # Reusable components
@@ -209,6 +223,52 @@ User-created book lists.
 #### 10. `short_urls` - URL Shortener
 Shortened URLs for sharing searches/records.
 
+#### 11. `authorities` - Authority Control
+Name and subject authority records (LCNAF, LCSH, local).
+
+#### 12. `authority_references` - Authority Links
+Links between bibliographic records and authority records.
+
+#### 13. `ill_partners` - ILL Partner Libraries
+Partner library information for interlibrary loan.
+
+#### 14. `ill_requests` - ILL Requests
+Borrowing and lending requests between libraries.
+
+#### 15. `pages` - WYSIWYG Content Pages
+Editable content pages (homepage, about, help, etc.).
+
+#### 16. `branding_configuration` - Branding Settings
+Customizable branding, colors, and library information.
+
+#### 17. `search_field_configuration` - Search Field Config
+Customizable search field settings and behavior.
+
+#### 18. `display_field_configuration` - Display Field Config
+Customizable MARC field display settings.
+
+#### 19. `cover_images` - Cover Image Management
+Locally uploaded cover images for catalog records.
+
+#### 20. `related_records` - Record Relationships
+Links between related bibliographic records (series, editions, translations).
+
+#### 21. `marc_attachments` - Record Attachments
+External file attachments linked to MARC records (storage-agnostic system).
+
+**Key Fields**:
+- `marc_record_id` (UUID) - FK to marc_records
+- `external_url` (TEXT) - Share link from external storage provider
+- `external_expires_at` (TIMESTAMPTZ) - Optional expiration timestamp
+- `file_metadata` (JSONB) - Title, description, MIME type, size, original filename
+- `access_level` (VARCHAR) - public, authenticated, staff_only
+- `sort_order` (INTEGER) - Display ordering
+- `view_count`, `download_count` (INTEGER) - Analytics
+
+**Access Control**: Staff-only insert/update/delete via RLS; read access enforces access_level
+
+**Analytics**: Automatic view/download tracking, stats view per record
+
 ### Row Level Security (RLS)
 
 All tables use Supabase RLS:
@@ -257,7 +317,22 @@ migrations/
 ├── 008_receiving_enhancements.sql
 ├── 009_serials_management.sql
 ├── 010_spell_correction.sql
-└── 011_short_urls.sql
+├── 011_short_urls.sql
+├── 012_electronic_resources.sql
+├── 013_related_records.sql
+├── 014_wysiwyg_pages.sql
+├── 015_branding_configuration.sql
+├── 016_search_configuration.sql
+├── 017_display_configuration.sql
+├── 018_authority_control.sql
+├── 018_batch_operations.sql
+├── 018_book_cover_management.sql
+├── 018_custom_cover_images.sql
+├── 018_faceted_search_configuration.sql
+├── 018_ill_module.sql
+├── 019_patron_self_service.sql
+├── 020_authority_control_enhancements.sql
+└── 021_marc_attachments.sql
 ```
 
 **To apply migrations**:
@@ -393,6 +468,187 @@ const query = supabase
 - High contrast mode support
 - Font size adjustment
 - Focus indicators
+
+### 9. Authority Control
+
+**Files**: `src/routes/admin/cataloging/authorities/`, `migrations/018_authority_control.sql`
+
+**Features**:
+- Name authority records (LCNAF - Library of Congress Name Authority File)
+- Subject authority records (LCSH - Library of Congress Subject Headings)
+- Local authority creation and management
+- Authority linking to bibliographic records
+- Variant form tracking (see/see also references)
+- Authority record browsing and searching
+- LC authority synchronization
+- Global find/replace for authority corrections
+- Authority usage reports
+
+**Authority Types**:
+- Personal names (100)
+- Corporate names (110)
+- Meeting names (111)
+- Geographic names (151)
+- Topical subjects (150)
+- Genre/form terms (155)
+
+**Key Functions**:
+- Link bibliographic records to authority records
+- Track variant forms and cross-references
+- Maintain consistency across catalog
+- Support batch authority updates
+
+### 10. Interlibrary Loan (ILL)
+
+**Files**: `src/routes/admin/ill/`, `migrations/018_ill_module.sql`
+
+**Features**:
+- Partner library management
+- Borrowing requests (requesting materials from other libraries)
+- Lending requests (fulfilling requests from other libraries)
+- Request tracking and status management
+- Due date and renewal tracking
+- Shipping/delivery information
+- ILL statistics and reporting
+- Partner agreements and policies
+
+**Request Statuses**: pending, requested, shipped, received, returned, cancelled
+
+**Request Types**: loan, copy (article/chapter), returnables, non-returnables
+
+**Delivery Methods**: mail, courier, electronic, pickup
+
+### 11. WYSIWYG Content Pages
+
+**Files**: `src/routes/admin/pages/`, `src/routes/[slug]/`, `migrations/014_wysiwyg_pages.sql`
+
+**Features**:
+- Rich text editor (TipTap) for content creation
+- Dynamic page creation (About, Help, Contact, etc.)
+- SEO fields (meta description, keywords)
+- Menu management (show in menu, ordering)
+- Page templates and layouts
+- Draft/published workflow
+- View tracking
+- Image embedding
+
+**Common Pages**: homepage, about, help, contact, policies, hours
+
+### 12. Cover Image Management
+
+**Files**: `src/routes/admin/cataloging/covers/`, `migrations/018_book_cover_management.sql`
+
+**Features**:
+- Upload custom cover images
+- Automatic cover fetching from Open Library
+- Cover image cropping and resizing
+- Fallback to external sources (Open Library, Google Books)
+- Cover quality management
+- Bulk cover fetching
+- Missing cover identification
+- Cover replacement/updates
+
+**Cover Sources**: local upload, Open Library API, Google Books API
+
+### 13. Batch Operations
+
+**Files**: `src/routes/admin/cataloging/batch/`, `migrations/018_batch_operations.sql`
+
+**Features**:
+- Bulk edit MARC records
+- Batch field updates (material type, location, etc.)
+- Global find/replace
+- Batch deletion
+- Batch export
+- Batch authority linking
+- Tag manipulation (add/remove/edit MARC tags)
+- Progress tracking for long operations
+
+**Common Batch Operations**:
+- Update material types
+- Change locations
+- Fix publisher names
+- Normalize ISBNs
+- Apply authority headings
+
+### 14. Related Records & Series
+
+**Files**: `src/routes/admin/cataloging/[id]/related/`, `migrations/013_related_records.sql`
+
+**Features**:
+- Link related bibliographic records
+- Series tracking and browsing
+- Edition relationships
+- Translation linking
+- Format variations (print/ebook/audio)
+- Part/whole relationships
+- Reciprocal linking
+- Series display on detail pages
+
+**Relationship Types**: series, edition, translation, adaptation, related, part_of, has_part
+
+### 15. Record Attachments (Storage-Agnostic)
+
+**Files**: `src/routes/api/attachments/`, `src/routes/admin/cataloging/edit/[id]/`, `migrations/021_marc_attachments.sql`
+
+**Features**:
+- **External Storage Integration**: Links to files hosted on any provider (pCloud, S3, Google Drive, etc.)
+- **No File Storage**: Stores only metadata and external share links, not file bytes
+- **Expiration Management**: Optional expiration timestamps aligned with provider link expiry
+- **Access Control**: Three levels - public, authenticated, staff-only
+- **Analytics**: Automatic view and download counting
+- **Proxied Downloads**: All downloads route through ILS for access control and analytics
+- **File Metadata**: Title, description, MIME type, size, original filename
+- **Ordering**: Staff-controlled display order with up/down controls
+
+**API Endpoints**:
+- `POST /api/attachments` - Create attachment metadata (staff-only)
+- `PATCH /api/attachments/:id` - Update attachment (staff-only)
+- `DELETE /api/attachments/:id` - Remove attachment (staff-only)
+- `GET /api/attachments/record/:recordId` - List attachments for a record (increments views)
+- `GET /api/attachments/:id/download` - Proxied download with expiry check (302 redirect)
+
+**Public OPAC Integration**:
+- Attachments section on record detail pages
+- Inline image preview (proxied through download endpoint)
+- Metadata display with size and status badges
+- Expiring/expired indicators
+- Downloads always use internal endpoint
+
+**Admin Interface** (`/admin/cataloging/edit/[id]` - Attachments tab):
+- Paste external share links from storage providers
+- Set expiration dates to match provider link expiry
+- Configure title, description, file type, size, access level
+- Reorder attachments (up/down buttons)
+- Refresh external URLs when provider links change
+- Copy internal download URL for testing
+- Status badges (valid/expired)
+- View/download analytics display
+
+**Typical Workflow**:
+1. Staff creates expiring share link in external provider (e.g., pCloud presigned URL)
+2. Staff pastes URL into admin Attachments form
+3. Staff sets `external_expires_at` to match provider's expiry
+4. Staff configures access level and metadata
+5. Patrons/staff access files through ILS endpoints
+6. ILS enforces access rules, tracks analytics, handles expiry
+7. Downloads redirect to external provider (302) but log through ILS
+
+**Use Cases**:
+- Supplementary materials (teacher guides, answer keys)
+- High-resolution images or maps
+- Audio/video content too large for database
+- Subscription content with time-limited access
+- Course reserves with semester-based expiration
+- Digital special collections
+
+**Key Benefits**:
+- Storage-agnostic (works with any provider)
+- Cost-effective (no file storage in database)
+- Access control remains in ILS
+- Analytics captured regardless of storage provider
+- Easy to update/replace external links
+- Respects provider expiration policies
 
 ---
 
@@ -976,23 +1232,40 @@ supabase db reset        # Reset database (dev only)
 - **CATALOGING_FEATURES.md** - Advanced cataloging features
 - **SPELL_CORRECTION.md** - Spell correction implementation
 - **ACQUISITIONS_SCHEMA.md** - Acquisitions module documentation
+- **AUTHORITY_CONTROL.md** - Authority control system documentation
+- **ILL_MODULE.md** - Interlibrary loan module guide
+- **COVER_MANAGEMENT.md** - Cover image management guide
+- **SERIES_AND_LINKING.md** - Related records and series documentation
+- **USER_GUIDE.md** - End-user guide for patrons
 - **migrations/** - SQL migration files
 
 ---
 
 ## Future Enhancements
 
+### Recently Implemented Features
+1. ✅ **Authority Control** - Name and subject authority files (LCNAF, LCSH)
+2. ✅ **Interlibrary Loan** - Complete ILL borrowing/lending system
+3. ✅ **WYSIWYG Pages** - Content management for custom pages
+4. ✅ **Cover Management** - Upload and manage book covers
+5. ✅ **Batch Operations** - Bulk editing capabilities
+6. ✅ **Related Records** - Series and relationship linking
+7. ✅ **Branding Customization** - UI-based branding configuration
+8. ✅ **Search Configuration** - Customizable search fields and behavior
+9. ✅ **Display Configuration** - Customizable field display
+10. ✅ **Record Attachments** - Storage-agnostic external file linking with expiry and analytics
+
 ### Planned Features
 1. **Binary MARC Support** - Import/export .mrc files
-2. **Authority Control** - Name and subject authority files
+2. **Patron Self-Service Portal** - Account management, hold requests (in progress)
 3. **Enhanced Reporting** - Statistical reports, charts
-4. **Patron Self-Service** - Account management, hold requests
-5. **Mobile App** - React Native companion app
-6. **API Access** - RESTful API for external integrations
-7. **LDAP Integration** - Enterprise authentication
-8. **Multilingual Support** - i18n for interface
-9. **Z39.50 Client** - Search external library catalogs
-10. **RFID Support** - Self-checkout stations
+4. **Mobile App** - React Native companion app
+5. **API Access** - RESTful API for external integrations
+6. **LDAP Integration** - Enterprise authentication
+7. **Multilingual Support** - i18n for interface
+8. **Z39.50 Client** - Search external library catalogs
+9. **RFID Support** - Self-checkout stations
+10. **Analytics Dashboard** - Usage statistics and insights
 
 ### Technical Debt
 - Add comprehensive test suite (Vitest, Playwright)
@@ -2303,8 +2576,46 @@ All documentation is in the repository root and `migrations/` directory.
 
 ---
 
-**Last Updated**: 2025-12-29
-**Version**: 1.0
+**Last Updated**: 2026-01-01
+**Version**: 1.1
 **Maintained By**: Development team via GitHub
+
+## Recent Updates (2026-01-01)
+
+This version adds documentation for:
+- Authority Control System (LCNAF/LCSH integration)
+- Interlibrary Loan (ILL) Module
+- WYSIWYG Content Pages
+- Cover Image Management
+- Batch Operations for cataloging
+- Related Records and Series Linking
+- Record Attachments (storage-agnostic external file system)
+- Enhanced migration list with all recent additions
+
+## Key Updates Since v1.0
+
+**New Modules**:
+- `/admin/ill/` - Complete interlibrary loan system
+- `/admin/cataloging/authorities/` - Authority control interface
+- `/admin/pages/` - WYSIWYG page editor
+- `/admin/cataloging/batch/` - Bulk editing tools
+- `/admin/cataloging/covers/` - Cover management
+
+**New Database Tables**:
+- `authorities`, `authority_references` - Authority control
+- `ill_partners`, `ill_requests` - Interlibrary loan
+- `pages` - Content management
+- `cover_images` - Local cover uploads
+- `related_records` - Record relationships
+- `marc_attachments` - External file attachments with expiry and analytics
+
+**New Features**:
+- LC authority synchronization
+- Partner library management
+- Rich text page editing
+- Cover upload and management
+- Global find/replace in cataloging
+- Series browsing
+- Storage-agnostic attachment system with expiration and access control
 
 This document is designed to help AI assistants understand the codebase structure, conventions, and best practices. When in doubt, refer to existing code patterns and this documentation.
