@@ -218,8 +218,29 @@ async function fetchLocAuthorityDetails(uri: string): Promise<LocAuthority | nul
 		const data = await response.json();
 
 		// Parse JSON-LD response
-		// LoC returns an array with the main resource first
-		const mainResource = Array.isArray(data) ? data[0] : data;
+		// LoC returns an array - find the resource that matches the requested URI
+		// (avoid blank nodes which start with _:)
+		let mainResource;
+		if (Array.isArray(data)) {
+			// Find the resource with @id matching the requested URI
+			mainResource = data.find((item: any) => {
+				const id = item['@id'];
+				return id && !id.startsWith('_:') && (id === uri || id.startsWith(uri));
+			});
+			// Fallback to first non-blank-node resource
+			if (!mainResource) {
+				mainResource = data.find((item: any) => {
+					const id = item['@id'];
+					return id && !id.startsWith('_:');
+				});
+			}
+			// Last resort: use first item (even if blank node)
+			if (!mainResource) {
+				mainResource = data[0];
+			}
+		} else {
+			mainResource = data;
+		}
 
 		const authority: LocAuthority = {
 			uri,

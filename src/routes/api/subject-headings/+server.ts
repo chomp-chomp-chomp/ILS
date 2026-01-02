@@ -27,9 +27,12 @@ export const GET: RequestHandler = async ({ url }) => {
 		const data = await response.json();
 		console.log('LC API response:', JSON.stringify(data, null, 2));
 
-		// The response format is [query, [labels], [uris], [extras]]
-		if (data && data[1] && Array.isArray(data[1])) {
-			const suggestions = data[1].slice(0, 10);
+		// The suggest2 API returns: { query: "...", hits: [{ uri: "...", suggestLabel: "..." }] }
+		if (data && data.hits && Array.isArray(data.hits)) {
+			// Extract just the labels from the hits
+			const suggestions = data.hits
+				.slice(0, 10)
+				.map((hit: any) => hit.suggestLabel || hit.aLabel || 'Unknown');
 			console.log('Returning suggestions:', suggestions);
 			return json(suggestions);
 		}
