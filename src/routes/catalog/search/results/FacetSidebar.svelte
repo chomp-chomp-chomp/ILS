@@ -131,6 +131,7 @@
 		border-radius: 8px;
 		border: 1px solid #e0e0e0;
 		overflow: hidden;
+		max-width: 100%;
 	}
 
 	.facet-group {
@@ -201,6 +202,10 @@
 		flex: 1;
 		font-size: 0.875rem;
 		color: #333;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		word-wrap: break-word;
+		min-width: 0;
 	}
 
 	.facet-count {

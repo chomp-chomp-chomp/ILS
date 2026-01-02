@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import BookCover from '$lib/components/BookCover.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -11,6 +12,128 @@
 	let copyingLink = $state(false);
 	let showCopiedToast = $state(false);
 	let showMarcRecord = $state(false);
+
+	// Format record as readable MARC text
+	let formattedMarc = $derived(() => {
+		if (!record) return '';
+
+		let text = 'MARC RECORD\n';
+		text += '='.repeat(80) + '\n\n';
+
+		// Leader
+		if (record.leader) {
+			text += `LEADER: ${record.leader}\n`;
+		}
+
+		// Control fields
+		if (record.control_number) {
+			text += `001: ${record.control_number}\n`;
+		}
+		if (record.control_number_identifier) {
+			text += `003: ${record.control_number_identifier}\n`;
+		}
+		if (record.date_entered) {
+			text += `008: ${record.date_entered}\n`;
+		}
+
+		// ISBN
+		if (record.isbn) {
+			text += `020: $a ${record.isbn}\n`;
+		}
+
+		// ISSN
+		if (record.issn) {
+			text += `022: $a ${record.issn}\n`;
+		}
+
+		// Main entry - personal name (100)
+		if (record.main_entry_personal_name) {
+			const field = record.main_entry_personal_name;
+			text += '100: ';
+			if (field.a) text += `$a ${field.a} `;
+			if (field.d) text += `$d ${field.d} `;
+			text += '\n';
+		}
+
+		// Title statement (245)
+		if (record.title_statement) {
+			const field = record.title_statement;
+			text += '245: ';
+			if (field.a) text += `$a ${field.a} `;
+			if (field.b) text += `$b ${field.b} `;
+			if (field.c) text += `$c ${field.c} `;
+			text += '\n';
+		}
+
+		// Edition (250)
+		if (record.edition_statement?.a) {
+			text += `250: $a ${record.edition_statement.a}\n`;
+		}
+
+		// Publication info (260/264)
+		if (record.publication_info) {
+			const field = record.publication_info;
+			text += '260: ';
+			if (field.a) text += `$a ${field.a} `;
+			if (field.b) text += `$b ${field.b} `;
+			if (field.c) text += `$c ${field.c} `;
+			text += '\n';
+		}
+
+		// Physical description (300)
+		if (record.physical_description) {
+			const field = record.physical_description;
+			text += '300: ';
+			if (field.a) text += `$a ${field.a} `;
+			if (field.b) text += `$b ${field.b} `;
+			if (field.c) text += `$c ${field.c} `;
+			text += '\n';
+		}
+
+		// Series statement (490)
+		if (record.series_statement?.a) {
+			text += `490: $a ${record.series_statement.a}\n`;
+		}
+
+		// Summary/abstract (520)
+		if (record.summary) {
+			text += `520: $a ${record.summary}\n`;
+		}
+
+		// Subject headings (650)
+		if (record.subject_topical && Array.isArray(record.subject_topical)) {
+			record.subject_topical.forEach((subject: any) => {
+				text += '650: ';
+				if (subject.a) text += `$a ${subject.a} `;
+				if (subject.x) text += `$x ${subject.x} `;
+				if (subject.y) text += `$y ${subject.y} `;
+				if (subject.z) text += `$z ${subject.z} `;
+				text += '\n';
+			});
+		}
+
+		// Added entry - personal name (700)
+		if (record.added_entry_personal_name && Array.isArray(record.added_entry_personal_name)) {
+			record.added_entry_personal_name.forEach((name: any) => {
+				text += '700: ';
+				if (name.a) text += `$a ${name.a} `;
+				if (name.e) text += `$e ${name.e} `;
+				text += '\n';
+			});
+		}
+
+		// Material type
+		if (record.material_type) {
+			text += `Material Type: ${record.material_type}\n`;
+		}
+
+		// Language
+		if (record.language_code) {
+			text += `Language: ${record.language_code}\n`;
+		}
+
+		return text;
+	});
 
 	// Helper function to get relationship label
 	function getRelationshipLabel(type: string): string {
@@ -138,6 +261,18 @@
 
 		<div class="record-body">
 			<div class="main-info">
+				<!-- Book Cover -->
+				<div class="cover-container">
+					<BookCover
+						recordId={record.id}
+						isbn={record.isbn}
+						title={record.title_statement?.a}
+						author={record.main_entry_personal_name?.a}
+						size="large"
+						showPlaceholder={false}
+					/>
+				</div>
+
 				<section class="info-section">
 					<h3>Bibliographic Information</h3>
 
@@ -159,9 +294,9 @@
 						<div class="field">
 							<span class="label">Publisher:</span>
 							<span class="value">
-								{#if record.publication_info.b}{record.publication_info.b}{/if}
+								{#if record.publication_info.b}{record.publication_info.b}{#if record.publication_info.c},{/if}{/if}
 								{#if record.publication_info.a} ({record.publication_info.a}){/if}
-								{#if record.publication_info.c},{record.publication_info.c}{/if}
+								{#if record.publication_info.c} {record.publication_info.c}{/if}
 							</span>
 						</div>
 					{/if}
@@ -323,7 +458,7 @@
 					</button>
 					{#if showMarcRecord}
 						<div class="marc-display">
-							<pre>{JSON.stringify(record, null, 2)}</pre>
+							<pre>{formattedMarc()}</pre>
 						</div>
 					{/if}
 				</section>
@@ -484,6 +619,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2rem;
+	}
+
+	.cover-container {
+		display: flex;
+		justify-content: center;
+		padding: 1rem 0;
 	}
 
 	.info-section {

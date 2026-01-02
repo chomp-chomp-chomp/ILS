@@ -7,8 +7,14 @@
 	let holdings = $state<any[]>([]);
 	let loading = $state(true);
 	let error = $state('');
+	let bulkCreating = $state(false);
+	let bulkMessage = $state('');
 
 	onMount(async () => {
+		await loadHoldings();
+	});
+
+	async function loadHoldings() {
 		try {
 			const { data: holdingsData, error: fetchError } = await data.supabase
 				.from('holdings')
@@ -30,14 +36,54 @@
 		} finally {
 			loading = false;
 		}
-	});
+	}
+
+	async function bulkCreateHoldings() {
+		if (!confirm('This will create holdings for all records that don\'t have them. Continue?')) {
+			return;
+		}
+
+		bulkCreating = true;
+		bulkMessage = '';
+
+		try {
+			const response = await fetch('/api/holdings/bulk-create', {
+				method: 'POST'
+			});
+
+			if (!response.ok) throw new Error('Failed to bulk create holdings');
+
+			const result = await response.json();
+			bulkMessage = result.message;
+
+			// Reload holdings
+			await loadHoldings();
+		} catch (err) {
+			bulkMessage = `Error: ${err.message}`;
+		} finally {
+			bulkCreating = false;
+		}
+	}
 </script>
 
 <div class="holdings-page">
 	<header class="page-header">
-		<h1>Holdings</h1>
-		<p class="subtitle">Manage physical and electronic copies</p>
+		<div class="header-content">
+			<div>
+				<h1>Holdings</h1>
+				<p class="subtitle">Manage physical and electronic copies</p>
+			</div>
+			<button class="btn-primary" onclick={bulkCreateHoldings} disabled={bulkCreating}>
+				{bulkCreating ? 'Creating...' : 'Bulk Create Holdings'}
+			</button>
+		</div>
 	</header>
+
+	{#if bulkMessage}
+		<div class="message {bulkMessage.includes('Error') ? 'error' : 'success'}">
+			{bulkMessage}
+		</div>
+	{/if}
 
 	{#if loading}
 		<div class="loading">Loading holdings...</div>
@@ -103,6 +149,27 @@
 
 	.page-header {
 		margin-bottom: 2rem;
+	}
+
+	.header-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.message {
+		padding: 1rem;
+		margin-bottom: 1rem;
+		border-radius: 4px;
+		background: #d4edda;
+		color: #155724;
+		border: 1px solid #c3e6cb;
+	}
+
+	.message.error {
+		background: #f8d7da;
+		color: #721c24;
+		border-color: #f5c6cb;
 	}
 
 	h1 {

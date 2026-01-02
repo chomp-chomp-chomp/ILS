@@ -13,7 +13,7 @@
 
 	let searchQuery = $state('');
 	let selectedRecords = $state<Set<string>>(new Set());
-	let exportFormat = $state<'marcxml' | 'marc'>('marcxml');
+	let exportFormat = $state<'marcxml' | 'marc' | 'text'>('marcxml');
 	let exportScope = $state<'selected' | 'all'>('selected');
 
 	onMount(async () => {
@@ -234,6 +234,133 @@
 			.replace(/'/g, '&apos;');
 	}
 
+	function convertToMARCText(records: any[]): string {
+		let text = '';
+
+		records.forEach((record, index) => {
+			if (index > 0) text += '\n' + '='.repeat(80) + '\n\n';
+
+			text += `RECORD ${index + 1}\n`;
+			text += '='.repeat(80) + '\n\n';
+
+			// Leader
+			if (record.leader) {
+				text += `LEADER: ${record.leader}\n`;
+			}
+
+			// Control fields
+			if (record.control_number) {
+				text += `001: ${record.control_number}\n`;
+			}
+			if (record.control_number_identifier) {
+				text += `003: ${record.control_number_identifier}\n`;
+			}
+			if (record.date_entered) {
+				text += `008: ${record.date_entered}\n`;
+			}
+
+			// ISBN
+			if (record.isbn) {
+				text += `020: $a ${record.isbn}\n`;
+			}
+
+			// ISSN
+			if (record.issn) {
+				text += `022: $a ${record.issn}\n`;
+			}
+
+			// Main entry - personal name (100)
+			if (record.main_entry_personal_name) {
+				const field = record.main_entry_personal_name;
+				text += '100: ';
+				if (field.a) text += `$a ${field.a} `;
+				if (field.d) text += `$d ${field.d} `;
+				text += '\n';
+			}
+
+			// Title statement (245)
+			if (record.title_statement) {
+				const field = record.title_statement;
+				text += '245: ';
+				if (field.a) text += `$a ${field.a} `;
+				if (field.b) text += `$b ${field.b} `;
+				if (field.c) text += `$c ${field.c} `;
+				text += '\n';
+			}
+
+			// Edition (250)
+			if (record.edition_statement?.a) {
+				text += `250: $a ${record.edition_statement.a}\n`;
+			}
+
+			// Publication info (260/264)
+			if (record.publication_info) {
+				const field = record.publication_info;
+				text += '260: ';
+				if (field.a) text += `$a ${field.a} `;
+				if (field.b) text += `$b ${field.b} `;
+				if (field.c) text += `$c ${field.c} `;
+				text += '\n';
+			}
+
+			// Physical description (300)
+			if (record.physical_description) {
+				const field = record.physical_description;
+				text += '300: ';
+				if (field.a) text += `$a ${field.a} `;
+				if (field.b) text += `$b ${field.b} `;
+				if (field.c) text += `$c ${field.c} `;
+				text += '\n';
+			}
+
+			// Series statement (490)
+			if (record.series_statement?.a) {
+				text += `490: $a ${record.series_statement.a}\n`;
+			}
+
+			// Summary/abstract (520)
+			if (record.summary) {
+				text += `520: $a ${record.summary}\n`;
+			}
+
+			// Subject headings (650)
+			if (record.subject_topical && Array.isArray(record.subject_topical)) {
+				record.subject_topical.forEach((subject: any) => {
+					text += '650: ';
+					if (subject.a) text += `$a ${subject.a} `;
+					if (subject.x) text += `$x ${subject.x} `;
+					if (subject.y) text += `$y ${subject.y} `;
+					if (subject.z) text += `$z ${subject.z} `;
+					text += '\n';
+				});
+			}
+
+			// Added entry - personal name (700)
+			if (record.added_entry_personal_name && Array.isArray(record.added_entry_personal_name)) {
+				record.added_entry_personal_name.forEach((name: any) => {
+					text += '700: ';
+					if (name.a) text += `$a ${name.a} `;
+					if (name.e) text += `$e ${name.e} `;
+					text += '\n';
+				});
+			}
+
+			// Material type
+			if (record.material_type) {
+				text += `Material Type: ${record.material_type}\n`;
+			}
+
+			// Language
+			if (record.language_code) {
+				text += `Language: ${record.language_code}\n`;
+			}
+
+			text += '\n';
+		});
+
+		return text;
+	}
+
 	async function performExport() {
 		if (exportScope === 'selected' && selectedRecords.size === 0) {
 			message = 'Error: Please select at least one record to export';
@@ -266,9 +393,13 @@
 				content = convertToMARCXML(recordsToExport);
 				filename = `marc_export_${new Date().toISOString().split('T')[0]}.xml`;
 				mimeType = 'application/xml';
+			} else if (exportFormat === 'text') {
+				content = convertToMARCText(recordsToExport);
+				filename = `marc_export_${new Date().toISOString().split('T')[0]}.txt`;
+				mimeType = 'text/plain';
 			} else {
 				// Binary MARC not yet implemented
-				message = 'Error: Binary MARC export not yet implemented. Please use MARCXML format.';
+				message = 'Error: Binary MARC export not yet implemented. Please use MARCXML or Text format.';
 				exporting = false;
 				return;
 			}
@@ -315,6 +446,10 @@
 							<label>
 								<input type="radio" bind:group={exportFormat} value="marcxml" />
 								MARCXML (.xml) - Recommended
+							</label>
+							<label>
+								<input type="radio" bind:group={exportFormat} value="text" />
+								Readable Text (.txt)
 							</label>
 							<label>
 								<input type="radio" bind:group={exportFormat} value="marc" disabled />

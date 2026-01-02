@@ -59,7 +59,7 @@
 <style>
 	.catalog-home {
 		min-height: 100vh;
-		background: linear-gradient(135deg, #3a3a3a 0%, #4d4d4d 100%);
+		background: linear-gradient(135deg, #6a6a6a 0%, #7d7d7d 100%);
 		padding: 0;
 	}
 
