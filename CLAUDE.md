@@ -78,7 +78,8 @@ src/
 │   │   ├── authorities/            # Authority control
 │   │   ├── branding/               # Branding config
 │   │   ├── search-config/          # Search config
-│   │   └── display-config/         # Display config
+│   │   ├── display-config/         # Display config
+│   │   └── attachments/            # Record attachments (CRUD + download)
 │   └── r/[code]/                   # Short URL redirects
 ├── lib/
 │   ├── components/                 # Reusable components
