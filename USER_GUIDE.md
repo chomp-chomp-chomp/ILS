@@ -294,6 +294,64 @@ This crucial section shows **availability and location** of physical copies:
 - Special features (maps, charts, appendices)
 - Edition-specific information
 
+**Attachments:**
+
+Some records may include **attached files** that provide supplementary materials:
+
+**What you might find:**
+- Teacher guides and answer keys
+- High-resolution images or maps
+- Audio or video content
+- Supplementary materials
+- Course reserves documents
+- Digital special collections items
+
+**How attachments work:**
+- Files are hosted externally (not on the library server)
+- Access may be restricted based on library policy
+- Some attachments may have expiration dates
+- All downloads are tracked for analytics
+
+**Access Levels:**
+1. **Public** - Anyone can view and download
+2. **Authenticated** - Library account required
+3. **Staff Only** - Librarians and staff only
+
+**Viewing attachments:**
+- Scroll to the "Attachments" section on the record detail page
+- Each attachment shows:
+  - Title and description
+  - File type (PDF, image, audio, video, etc.)
+  - File size
+  - Status (available, expiring soon, expired)
+  - Access level indicator
+
+**Downloading attachments:**
+1. Click the **"Download"** button on any attachment
+2. If access restricted, you may need to log in
+3. File opens or downloads from external storage
+4. Downloads are counted for usage statistics
+
+**Images:**
+- Image attachments display inline (no download needed)
+- Full-size preview available
+- Click to zoom or download original
+
+**Status indicators:**
+- ✅ **Available** - Ready to access
+- ⏳ **Expires Soon** - Will expire within 7 days
+- ❌ **Expired** - No longer available (link expired)
+
+**Expiration:**
+- Some attachments have time-limited access
+- Expiring/expired status shown clearly
+- Contact library staff if you need access to expired content
+
+**Privacy:**
+- Your downloads are logged for statistics
+- Personal information is not shared
+- Usage helps library improve collections
+
 ---
 
 ## Reading Lists
@@ -3224,6 +3282,286 @@ Keep notes on:
 - Print on reports
 - Scan with phone camera
 
+### Record Attachments Management
+
+**Manage external file attachments for catalog records.**
+
+**Access:** Cataloging → Edit Record → Attachments Tab
+
+**Overview:**
+The attachments system allows you to link external files to bibliographic records without storing the files in the database. This is ideal for supplementary materials, course reserves, digital collections, and subscription content with time-limited access.
+
+#### How It Works
+
+**Storage-Agnostic Design:**
+- Files are hosted on external providers (pCloud, Amazon S3, Google Drive, Dropbox, etc.)
+- ILS stores only metadata and links, not file bytes
+- Staff creates share links in their storage provider
+- Links are pasted into the ILS admin interface
+- Patrons access files through ILS endpoints
+- ILS enforces access rules and tracks analytics
+
+#### Adding an Attachment
+
+**From the record edit page:**
+
+1. Click the **"Attachments"** tab
+2. Click **"+ Add Attachment"**
+3. Fill in the form:
+
+**External File URL:**
+- Create a share link in your storage provider (pCloud, S3, etc.)
+- For temporary access, use presigned/expiring URLs
+- Paste the full external URL
+
+**Expiration (Optional):**
+- Set `external_expires_at` to match your provider's link expiry
+- System will check expiration before allowing downloads
+- Helps manage time-limited content (course reserves, subscriptions)
+- Leave empty for permanent access
+
+**File Metadata:**
+- **Title** - Descriptive name (e.g., "Teacher's Guide - Chapter 1")
+- **Description** - What the file contains
+- **File Type** - Select MIME type (PDF, Image, Audio, Video, etc.)
+  - application/pdf
+  - image/jpeg, image/png
+  - audio/mpeg, video/mp4
+  - text/plain
+  - application/zip
+  - Other
+- **File Size** - Enter size (e.g., "2.5 MB")
+- **Original Filename** - Original file name for reference
+
+**Access Control:**
+- **Public** - Anyone can view/download
+- **Authenticated** - Requires library account login
+- **Staff Only** - Librarians and staff only
+
+**Ordering:**
+- Attachments display in order of `sort_order` field
+- Use up/down arrows to reorder
+- Lowest numbers appear first
+
+4. Click **"Save"**
+
+#### Managing Attachments
+
+**From the Attachments tab:**
+
+**View all attachments** for the current record in a table:
+- Title and description
+- File type and size
+- Access level
+- External URL (truncated)
+- Expiration date and status
+- View count and download count
+- Action buttons
+
+**Actions available:**
+
+1. **Edit** (✏️)
+   - Update title, description, metadata
+   - Change access level
+   - Refresh external URL when provider link changes
+   - Update expiration date
+
+2. **Delete** (🗑️)
+   - Removes attachment metadata from ILS
+   - Does not delete file from external storage
+   - Confirmation required
+
+3. **Reorder** (↑↓)
+   - Move attachment up or down in display order
+   - Changes `sort_order` field
+   - Affects order on public record page
+
+4. **Copy Download URL** (📋)
+   - Copies internal ILS download URL to clipboard
+   - Format: `/api/attachments/{id}/download`
+   - Use for testing access control
+   - Share with patrons (downloads through ILS)
+
+**Status Badges:**
+- 🟢 **Valid** - External URL accessible, not expired
+- 🟡 **Expiring** - Expires within 7 days
+- 🔴 **Expired** - Past expiration date, downloads blocked
+
+**Analytics Display:**
+- **Views** - Number of times attachment list was viewed
+- **Downloads** - Number of times file was downloaded
+- Helps track usage and value
+
+#### Typical Workflows
+
+**Course Reserves (Semester-Based):**
+1. Upload file to pCloud or S3
+2. Create share link with expiration (end of semester)
+3. Paste URL into ILS attachment form
+4. Set `external_expires_at` to match semester end
+5. Set access level to "Authenticated" (students only)
+6. Students access through ILS during semester
+7. Link expires automatically after semester
+8. Refresh URL for next semester if reusing
+
+**Permanent Supplementary Materials:**
+1. Upload to long-term storage (S3, institutional repository)
+2. Create permanent share link (no expiration)
+3. Paste URL into ILS
+4. Leave `external_expires_at` empty
+5. Set appropriate access level (Public, Authenticated, Staff)
+6. Material remains available indefinitely
+7. Update URL if storage location changes
+
+**Subscription Content:**
+1. Link to vendor-provided content
+2. Set expiration to match subscription end date
+3. Set access level to "Authenticated" or "Staff Only"
+4. Monitor usage via download counts
+5. Update when subscription renews
+
+**Digital Special Collections:**
+1. Store high-res images/documents in repository
+2. Create public share links
+3. Add descriptive metadata
+4. Set access level to "Public" for open access
+5. Track views and downloads for impact reporting
+
+#### Access Control & Security
+
+**How access levels work:**
+
+- **Public:** No authentication required
+  - Anyone with the link can access
+  - Good for open educational resources
+  - Community materials
+
+- **Authenticated:** Library account required
+  - User must log in to ILS
+  - Verified against patron database
+  - Good for licensed content, course reserves
+
+- **Staff Only:** Librarian accounts only
+  - Restricted to staff patron types
+  - Staff, faculty, librarian, or admin roles
+  - Good for internal documents, procedures
+
+**Download flow:**
+1. Patron clicks "Download" on public record page
+2. Request goes to `/api/attachments/{id}/download`
+3. ILS checks:
+   - User's authentication status
+   - Access level permissions
+   - Expiration date (if set)
+4. If authorized and not expired:
+   - Download count incremented
+   - User redirected (302) to external URL
+   - File downloads from provider
+5. If unauthorized:
+   - 401 error (authentication required)
+6. If expired:
+   - 410 error (gone/expired)
+
+**Security notes:**
+- External URLs should be from trusted providers
+- Expiring URLs recommended for sensitive content
+- Staff-only for confidential materials
+- Never store passwords or API keys in ILS
+- Provider handles actual file security
+
+#### Expiration Management
+
+**Why use expiration:**
+- Course reserves (semester-based access)
+- Temporary exhibits or events
+- Subscription content (annual renewals)
+- Comply with licensing restrictions
+- Storage provider link expiration
+
+**Setting expiration:**
+1. Create expiring share link in provider (e.g., pCloud presigned URL)
+2. Note the expiration timestamp
+3. Enter matching timestamp in `external_expires_at` field
+4. ILS enforces expiration on download requests
+
+**Expiration behavior:**
+- System checks expiration before each download
+- Expired attachments show ❌ **Expired** badge
+- Download button disabled on public page
+- Returns 410 error if download attempted
+- Staff can still see expired attachments (for renewal)
+
+**Renewing expired attachments:**
+1. Create new share link in provider
+2. Edit attachment in ILS
+3. Update `external_url` with new link
+4. Update `external_expires_at` if needed
+5. Save changes
+6. Attachment becomes available again
+
+#### Best Practices
+
+**URL Management:**
+- Test external URLs before saving
+- Use HTTPS links for security
+- Bookmark provider dashboards for easy access
+- Document provider account credentials securely
+
+**Metadata Quality:**
+- Write clear, descriptive titles
+- Include helpful descriptions
+- Specify accurate file types and sizes
+- Use consistent naming conventions
+
+**Access Control:**
+- Default to most restrictive, open up as needed
+- Review access levels periodically
+- Align with library policies
+- Consider copyright and licensing
+
+**Expiration:**
+- Set expiration for time-limited content
+- Leave empty for permanent access
+- Calendar reminders for renewals
+- Batch renew at semester/year end
+
+**Organization:**
+- Use sort order meaningfully (primary first, supplements after)
+- Group related attachments together
+- Delete obsolete attachments
+- Archive rather than delete if historical value
+
+**Analytics:**
+- Monitor view/download counts
+- Identify popular resources
+- Justify subscription renewals
+- Report impact to stakeholders
+
+#### Troubleshooting
+
+**"External URL not accessible"**
+- Check URL in browser
+- Verify share permissions in provider
+- Ensure URL hasn't expired
+- Regenerate share link if needed
+
+**"Download button disabled"**
+- Check expiration date (may be expired)
+- Verify access level matches user status
+- Check if user is logged in (if authenticated required)
+
+**"File won't download"**
+- Provider may have rate limits
+- Storage quota may be exceeded
+- File may have been deleted from provider
+- Update URL with new location
+
+**"Analytics not updating"**
+- Views increment on list load
+- Downloads increment on download request
+- May have caching delay
+- Check database directly if needed
+
 ### Call Number Labels
 
 **Print spine labels.**
@@ -3388,8 +3726,16 @@ Keep notes on:
 
 ---
 
-**Last Updated:** December 29, 2025
-**Version:** 1.0
+**Last Updated:** January 1, 2026
+**Version:** 1.1
 **System Version:** ILS 0.1.0-beta
+
+## Recent Updates (v1.1)
+
+**New Features Documented:**
+- Record Attachments (storage-agnostic external file system)
+  - For patrons: Viewing and downloading attachments
+  - For librarians: Managing attachments with expiration and access control
+  - Access levels, expiration management, and analytics
 
 Happy cataloging! 📚✨
