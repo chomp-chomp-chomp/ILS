@@ -43,6 +43,15 @@
 				<span>|</span>
 				<a href="/catalog/browse">Browse Collection</a>
 			</div>
+
+			<section class="catalog-info">
+				<h2>What's in this catalog?</h2>
+				<p>
+					This catalog contains bibliographic records for books, serials, audiovisual materials, and electronic resources.
+					Use the search box above to find items by title, author, subject headings, or ISBN.
+					Advanced search options allow for more precise queries using multiple criteria.
+				</p>
+			</section>
 		</div>
 	</header>
 
@@ -200,6 +209,31 @@
 	.search-links span {
 		opacity: 0.3;
 		color: #888;
+	}
+
+	.catalog-info {
+		max-width: 700px;
+		width: 100%;
+		margin: 3rem auto 0;
+		padding: 2rem;
+		background: rgba(255, 255, 255, 0.03);
+		border-radius: var(--radius-md);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.catalog-info h2 {
+		font-size: 1.125rem;
+		color: rgba(255, 255, 255, 0.6);
+		margin: 0 0 1rem 0;
+		font-weight: 500;
+		text-transform: none;
+	}
+
+	.catalog-info p {
+		color: rgba(255, 255, 255, 0.5);
+		font-size: 0.95rem;
+		line-height: 1.6;
+		margin: 0;
 	}
 
 	.homepage-content {

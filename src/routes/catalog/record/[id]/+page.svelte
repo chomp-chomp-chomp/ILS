@@ -10,6 +10,7 @@
 
 	let copyingLink = $state(false);
 	let showCopiedToast = $state(false);
+	let showMarcRecord = $state(false);
 
 	// Helper function to get relationship label
 	function getRelationshipLabel(type: string): string {
@@ -310,6 +311,20 @@
 						</div>
 					</section>
 				{/if}
+
+				<section class="info-section marc-section">
+					<button class="marc-toggle" onclick={() => showMarcRecord = !showMarcRecord}>
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="transform: rotate({showMarcRecord ? '90deg' : '0deg'}); transition: transform 0.2s;">
+							<polyline points="9 18 15 12 9 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
+						View MARC Record
+					</button>
+					{#if showMarcRecord}
+						<div class="marc-display">
+							<pre>{JSON.stringify(record, null, 2)}</pre>
+						</div>
+					{/if}
+				</section>
 			</div>
 
 			<aside class="sidebar">
@@ -597,6 +612,55 @@
 		font-size: 0.875rem;
 		color: #666;
 		font-style: italic;
+	}
+
+	.marc-section {
+		border: 1px solid #e0e0e0;
+		padding: 0;
+		overflow: hidden;
+	}
+
+	.marc-toggle {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 1rem 1.5rem;
+		background: #f8f9fa;
+		border: none;
+		cursor: pointer;
+		font-size: 0.95rem;
+		font-weight: 500;
+		color: #666;
+		transition: all 0.2s;
+		text-align: left;
+	}
+
+	.marc-toggle:hover {
+		background: #eef0f2;
+		color: #667eea;
+	}
+
+	.marc-toggle svg {
+		flex-shrink: 0;
+	}
+
+	.marc-display {
+		padding: 1.5rem;
+		background: #fafafa;
+		border-top: 1px solid #e0e0e0;
+		max-height: 500px;
+		overflow-y: auto;
+	}
+
+	.marc-display pre {
+		margin: 0;
+		font-family: 'Courier New', Courier, monospace;
+		font-size: 0.85rem;
+		line-height: 1.5;
+		color: #333;
+		white-space: pre-wrap;
+		word-wrap: break-word;
 	}
 
 	.sidebar {
