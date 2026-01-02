@@ -6,6 +6,7 @@
 	const record = $derived(data.record);
 	const holdings = $derived(data.holdings || []);
 	const relatedRecords = $derived(data.relatedRecords || []);
+	const attachments = $derived(data.attachments || []);
 
 	let copyingLink = $state(false);
 	let showCopiedToast = $state(false);
@@ -80,6 +81,29 @@
 		} finally {
 			copyingLink = false;
 		}
+	}
+
+	function formatFileSize(bytes?: number | null) {
+		if (!bytes || bytes <= 0) return 'Size unknown';
+		const units = ['B', 'KB', 'MB', 'GB'];
+		const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+		const value = bytes / Math.pow(1024, exponent);
+		return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[exponent]}`;
+	}
+
+	function isImage(type?: string | null) {
+		return type?.startsWith('image/');
+	}
+
+	function isExpired(expiresAt?: string | null) {
+		return expiresAt ? new Date(expiresAt) < new Date() : false;
+	}
+
+	function isExpiringSoon(expiresAt?: string | null) {
+		if (!expiresAt) return false;
+		const expiry = new Date(expiresAt).getTime();
+		const soon = Date.now() + 72 * 60 * 60 * 1000;
+		return expiry >= Date.now() && expiry <= soon;
 	}
 </script>
 
@@ -194,6 +218,65 @@
 								>
 									{subject.a}
 								</a>
+							{/each}
+						</div>
+					</section>
+				{/if}
+
+				{#if attachments.length > 0}
+					<section class="info-section">
+						<h3>Attachments</h3>
+						<div class="attachments">
+							{#each attachments as attachment}
+								<div class="attachment-card">
+									<div class="attachment-header">
+										<div>
+											<p class="attachment-title">
+												{attachment.title || attachment.filename_original || 'Attachment'}
+											</p>
+											<p class="attachment-meta">
+												{attachment.file_type || 'File'} • {formatFileSize(attachment.file_size)}
+												{#if isExpiringSoon(attachment.external_expires_at)}
+													<span class="badge warning">Expiring soon</span>
+												{:else if isExpired(attachment.external_expires_at)}
+													<span class="badge danger">Expired</span>
+												{/if}
+											</p>
+										</div>
+										{#if attachment.access_level === 'staff-only'}
+											<span class="badge muted">Staff only</span>
+										{:else if attachment.access_level === 'authenticated'}
+											<span class="badge muted">Login required</span>
+										{/if}
+									</div>
+
+									{#if attachment.description}
+										<p class="attachment-description">{attachment.description}</p>
+									{/if}
+
+									{#if isImage(attachment.file_type)}
+										<div class="attachment-preview">
+											<img
+												src={`/api/attachments/${attachment.id}/download`}
+												alt={attachment.title || attachment.filename_original || 'Attachment preview'}
+											/>
+										</div>
+									{/if}
+
+									<div class="attachment-actions">
+										{#if isExpired(attachment.external_expires_at)}
+											<span class="expired-note">This link has expired.</span>
+										{:else}
+											<a
+												class="btn-secondary"
+												href={`/api/attachments/${attachment.id}/download`}
+												aria-label={`Download ${attachment.title || 'attachment'}`}
+											>
+												Download
+											</a>
+										{/if}
+									</div>
+								</div>
 							{/each}
 						</div>
 					</section>
@@ -663,6 +746,99 @@
 
 	.toast svg {
 		flex-shrink: 0;
+	}
+
+	/* Attachments */
+	.attachments {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.attachment-card {
+		border: 1px solid #e0e0e0;
+		border-radius: 8px;
+		padding: 1rem;
+		background: #fafafa;
+	}
+
+	.attachment-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+	}
+
+	.attachment-title {
+		margin: 0;
+		font-weight: 600;
+		color: #2c3e50;
+	}
+
+	.attachment-meta {
+		margin: 0.25rem 0 0 0;
+		color: #666;
+		font-size: 0.95rem;
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.attachment-description {
+		margin: 0.75rem 0;
+		color: #444;
+	}
+
+	.attachment-preview {
+		border: 1px solid #eee;
+		border-radius: 6px;
+		padding: 0.5rem;
+		background: white;
+		max-width: 320px;
+	}
+
+	.attachment-preview img {
+		max-width: 100%;
+		border-radius: 4px;
+		display: block;
+	}
+
+	.attachment-actions {
+		display: flex;
+		justify-content: flex-start;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 0.5rem;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.25rem 0.6rem;
+		border-radius: 999px;
+		font-size: 0.8rem;
+	}
+
+	.badge.warning {
+		background: #fff3cd;
+		color: #856404;
+	}
+
+	.badge.danger {
+		background: #f8d7da;
+		color: #721c24;
+	}
+
+	.badge.muted {
+		background: #eef2ff;
+		color: #4f46e5;
+	}
+
+	.expired-note {
+		color: #e73b42;
+		font-weight: 600;
 	}
 
 	@media (max-width: 768px) {

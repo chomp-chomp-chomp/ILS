@@ -12,6 +12,22 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
     throw error(404, 'Record not found');
   }
 
+  const { data: attachments } = await supabase
+    .from('marc_attachments')
+    .select(
+      'id, title, description, file_type, file_size, access_level, external_expires_at, filename_original, sort_order'
+    )
+    .eq('marc_record_id', params.id)
+    .order('sort_order', { ascending: true })
+    .order('upload_date', { ascending: false });
+
+  // Increment view counts for visible attachments (best-effort)
+  if (attachments && attachments.length > 0) {
+    await supabase.rpc('increment_attachment_views', {
+      p_attachment_ids: attachments.map((a) => a.id),
+    });
+  }
+
   const { data: holdings } = await supabase
     .from('items')
     .select('*')
@@ -41,5 +57,6 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
     record,
     holdings,
     relatedRecords: relatedRecords || [],
+    attachments: attachments || [],
   };
 };

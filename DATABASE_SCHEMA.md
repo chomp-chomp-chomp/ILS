@@ -196,6 +196,38 @@ CREATE INDEX idx_serial_issues_date ON serial_issues(issue_date);
 CREATE INDEX idx_serial_issues_checked_in ON serial_issues(checked_in);
 ```
 
+### 5. `marc_attachments`
+External file attachments linked to MARC records. The ILS manages access control and analytics while the actual file bytes live in external storage (e.g., expiring share links).
+
+```sql
+CREATE TABLE marc_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  marc_record_id UUID NOT NULL REFERENCES marc_records(id) ON DELETE CASCADE,
+  filename_original TEXT,
+  external_url TEXT NOT NULL,
+  external_expires_at TIMESTAMPTZ,
+  title TEXT,
+  description TEXT,
+  file_type VARCHAR(100),
+  file_size INTEGER,
+  access_level VARCHAR(20) NOT NULL DEFAULT 'public', -- public, authenticated, staff-only
+  uploaded_by UUID REFERENCES auth.users(id),
+  upload_date TIMESTAMPTZ DEFAULT NOW(),
+  sort_order INTEGER DEFAULT 0,
+  view_count INTEGER DEFAULT 0,
+  download_count INTEGER DEFAULT 0,
+
+  CONSTRAINT marc_attachment_access_level_valid CHECK (access_level IN ('public', 'authenticated', 'staff-only'))
+);
+
+CREATE INDEX idx_marc_attachments_record_order ON marc_attachments(marc_record_id, sort_order, upload_date DESC);
+CREATE INDEX idx_marc_attachments_access_level ON marc_attachments(access_level);
+CREATE INDEX idx_marc_attachments_expiration ON marc_attachments(external_expires_at);
+```
+
 ## Row Level Security (RLS)
 
 Enable RLS for all tables and create policies:
