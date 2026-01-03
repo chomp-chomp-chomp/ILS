@@ -2217,22 +2217,22 @@
 		}
 
 		.result-card {
-			grid-template-columns: 30px 80px 1fr;
-			gap: 1rem;
+			grid-template-columns: 25px 60px 1fr;
+			gap: 0.75rem;
 			padding: 1rem 0.75rem;
 		}
 
 		.result-card.no-cover {
-			grid-template-columns: 30px 1fr;
+			grid-template-columns: 25px 1fr;
 		}
 
 		.result-checkbox input[type="checkbox"] {
-			width: 18px;
-			height: 18px;
+			width: 16px;
+			height: 16px;
 		}
 
 		.result-cover {
-			width: 80px;
+			width: 60px;
 		}
 
 		.result-content h3 {

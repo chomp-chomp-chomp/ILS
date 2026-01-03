@@ -253,10 +253,6 @@
 					{/if}
 				</button>
 			</div>
-			<h1>{record.title_statement?.a || 'Untitled'}</h1>
-			{#if record.title_statement?.b}
-				<h2 class="subtitle">{record.title_statement.b}</h2>
-			{/if}
 		</div>
 
 		<div class="record-body">
@@ -271,6 +267,14 @@
 						size="large"
 						showPlaceholder={false}
 					/>
+				</div>
+
+				<!-- Title below cover -->
+				<div class="title-section">
+					<h1>{record.title_statement?.a || 'Untitled'}</h1>
+					{#if record.title_statement?.b}
+						<h2 class="subtitle">{record.title_statement.b}</h2>
+					{/if}
 				</div>
 
 				<section class="info-section">
@@ -549,14 +553,14 @@
 	}
 
 	.record-header {
-		margin-bottom: 2rem;
+		margin-bottom: 1rem;
 	}
 
 	.header-top {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 1rem;
+		margin-bottom: 0;
 	}
 
 	.back-link {
@@ -596,16 +600,21 @@
 		flex-shrink: 0;
 	}
 
+	.title-section {
+		text-align: center;
+		margin-bottom: 2rem;
+	}
+
 	h1 {
 		margin: 0 0 0.5rem 0;
 		font-size: 2.5rem;
-		color: #2c3e50;
+		color: #555;
 	}
 
 	.subtitle {
 		margin: 0 0 1rem 0;
 		font-size: 1.5rem;
-		color: #666;
+		color: #777;
 		font-weight: normal;
 	}
 
