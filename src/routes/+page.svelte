@@ -59,7 +59,7 @@
 <style>
 	.catalog-home {
 		min-height: 100vh;
-		background: linear-gradient(135deg, #6a6a6a 0%, #7d7d7d 100%);
+		background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
 		padding: 0;
 	}
 
@@ -68,7 +68,7 @@
 		margin: 0 auto;
 		padding: 1rem 2rem;
 		text-align: right;
-		background: rgba(0, 0, 0, 0.3);
+		background: rgba(255, 255, 255, 0.6);
 		border-bottom: 1px solid rgba(231, 59, 66, 0.2);
 	}
 
@@ -117,7 +117,7 @@
 	.tagline {
 		font-size: 1.5rem;
 		margin-bottom: 3rem;
-		color: #b0b0b0;
+		color: #666;
 		font-weight: 300;
 	}
 
@@ -126,11 +126,11 @@
 		max-width: 600px;
 		width: 100%;
 		margin: 0 auto 1.5rem;
-		background: rgba(255, 255, 255, 0.05);
+		background: rgba(255, 255, 255, 0.9);
 		border-radius: var(--radius-md);
 		overflow: hidden;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-		border: 2px solid rgba(255, 255, 255, 0.1);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+		border: 2px solid rgba(0, 0, 0, 0.1);
 		backdrop-filter: blur(10px);
 	}
 
@@ -144,12 +144,12 @@
 		padding: 1rem 1.5rem;
 		border: none;
 		font-size: 1.125rem;
-		color: white;
+		color: #333;
 		background: transparent;
 	}
 
 	.search-box input::placeholder {
-		color: rgba(255, 255, 255, 0.4);
+		color: rgba(0, 0, 0, 0.4);
 	}
 
 	.search-box input:focus {
@@ -178,12 +178,12 @@
 		justify-content: center;
 		font-size: 1rem;
 		padding: 1rem 1.5rem;
-		background: rgba(255, 255, 255, 0.05);
+		background: rgba(255, 255, 255, 0.8);
 		border-radius: var(--radius-md);
 		max-width: 600px;
 		width: 100%;
 		margin: 0 auto;
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		border: 1px solid rgba(0, 0, 0, 0.1);
 	}
 
 	.search-links a {
@@ -208,21 +208,21 @@
 		width: 100%;
 		margin: 3rem auto 0;
 		padding: 2rem;
-		background: rgba(255, 255, 255, 0.03);
+		background: rgba(255, 255, 255, 0.7);
 		border-radius: var(--radius-md);
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(0, 0, 0, 0.1);
 	}
 
 	.catalog-info h2 {
 		font-size: 1.125rem;
-		color: rgba(255, 255, 255, 0.6);
+		color: rgba(0, 0, 0, 0.7);
 		margin: 0 0 1rem 0;
 		font-weight: 500;
 		text-transform: none;
 	}
 
 	.catalog-info p {
-		color: rgba(255, 255, 255, 0.5);
+		color: rgba(0, 0, 0, 0.6);
 		font-size: 0.95rem;
 		line-height: 1.6;
 		margin: 0;

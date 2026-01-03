@@ -221,10 +221,9 @@
 
 				{#each filteredHeadings() as { heading, count }}
 					<div class="heading-item">
-						<button
-							class="heading-button"
-							class:expanded={expandedHeading === heading}
-							onclick={() => expandHeading(heading)}
+						<a
+							class="heading-link"
+							href="/catalog/search/results?{browseMode === 'subjects' ? 'subject' : 'author'}={encodeURIComponent(heading)}"
 						>
 							<div class="heading-content">
 								<span class="heading-text">{heading}</span>
@@ -236,38 +235,10 @@
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
-								style="transform: rotate({expandedHeading === heading ? '90deg' : '0deg'}); transition: transform 0.2s;"
 							>
 								<polyline points="9 18 15 12 9 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 							</svg>
-						</button>
-
-						{#if expandedHeading === heading}
-							<div class="titles-list">
-								{#if loadingTitles}
-									<p class="loading-titles">Loading titles...</p>
-								{:else if headingTitles.length === 0}
-									<p class="no-titles">No titles found.</p>
-								{:else}
-									{#each headingTitles as title}
-										<div class="title-item">
-											<a href="/catalog/record/{title.id}" class="title-link">
-												{title.title_statement?.a || 'Untitled'}
-											</a>
-											{#if title.main_entry_personal_name?.a}
-												<p class="title-author">by {title.main_entry_personal_name.a}</p>
-											{/if}
-											{#if title.publication_info?.c}
-												<p class="title-year">({title.publication_info.c})</p>
-											{/if}
-											{#if title.material_type}
-												<span class="material-badge">{title.material_type}</span>
-											{/if}
-										</div>
-									{/each}
-								{/if}
-							</div>
-						{/if}
+						</a>
 					</div>
 				{/each}
 			</div>
@@ -433,25 +404,29 @@
 		border-bottom: none;
 	}
 
-	.heading-button {
+	.heading-link {
 		width: 100%;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		padding: 1rem 1.5rem;
 		background: white;
-		border: none;
+		text-decoration: none;
 		cursor: pointer;
 		text-align: left;
-		transition: background 0.2s;
+		transition: all 0.2s;
 	}
 
-	.heading-button:hover {
-		background: #fafafa;
-	}
-
-	.heading-button.expanded {
+	.heading-link:hover {
 		background: #f8f9fa;
+	}
+
+	.heading-link:hover .heading-text {
+		color: #667eea;
+	}
+
+	.heading-link:hover svg {
+		color: #667eea;
 	}
 
 	.heading-content {
@@ -564,7 +539,7 @@
 			font-size: 0.8125rem;
 		}
 
-		.heading-button {
+		.heading-link {
 			padding: 0.875rem 1rem;
 		}
 
