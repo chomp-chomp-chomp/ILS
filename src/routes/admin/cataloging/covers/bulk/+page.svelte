@@ -382,7 +382,7 @@
 		<section class="operation-card">
 			<div class="card-header">
 				<h2>🔄 Re-fetch from Open Library</h2>
-				<p>Re-download covers from Open Library and upload to ImageKit</p>
+				<p>Re-download covers from Open Library (with Google Books fallback) and upload to ImageKit</p>
 			</div>
 
 			<div class="stats">
@@ -544,8 +544,9 @@
 				them to ImageKit CDN for better performance and reliability.
 			</li>
 			<li>
-				<strong>Re-fetch from Open Library:</strong> Downloads fresh covers from Open Library and uploads
-				them to ImageKit. Use this to get updated or higher quality covers.
+				<strong>Re-fetch from Open Library:</strong> Downloads fresh covers from Open Library (with
+				Google Books fallback) and uploads them to ImageKit. Use this to get updated or higher
+				quality covers.
 			</li>
 			<li>
 				<strong>Upload Local Files:</strong> Upload cover images from your computer. Name files with
