@@ -28,6 +28,14 @@
 	let refetchLogs = $state<string[]>([]);
 	let refetchBatchSize = $state(10);
 
+	// Local upload state
+	let selectedFiles: FileList | null = $state(null);
+	let isUploading = $state(false);
+	let uploadMessage = $state('');
+	let uploadLogs = $state<string[]>([]);
+	let uploadSucceeded = $state(0);
+	let uploadFailed = $state(0);
+
 	onMount(async () => {
 		await loadStats();
 	});
@@ -62,6 +70,10 @@
 
 	function addRefetchLog(message: string) {
 		refetchLogs = [message, ...refetchLogs].slice(0, 100);
+	}
+
+	function addUploadLog(message: string) {
+		uploadLogs = [message, ...uploadLogs].slice(0, 100);
 	}
 
 	async function startMigration() {
@@ -204,6 +216,72 @@
 	function pauseRefetch() {
 		refetchPaused = true;
 		refetchMessage = 'Pausing re-fetch...';
+	}
+
+	function handleFileSelect(event: Event) {
+		const input = event.target as HTMLInputElement;
+		selectedFiles = input.files;
+	}
+
+	async function uploadLocalFiles() {
+		if (!selectedFiles || selectedFiles.length === 0) {
+			uploadMessage = 'Please select files to upload';
+			return;
+		}
+
+		isUploading = true;
+		uploadSucceeded = 0;
+		uploadFailed = 0;
+		uploadLogs = [];
+		uploadMessage = `Uploading ${selectedFiles.length} file(s)...`;
+
+		addUploadLog(`Starting upload of ${selectedFiles.length} file(s)`);
+
+		try {
+			const formData = new FormData();
+			for (let i = 0; i < selectedFiles.length; i++) {
+				formData.append('files', selectedFiles[i]);
+			}
+
+			const response = await fetch('/api/covers/bulk-upload', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Upload failed');
+			}
+
+			uploadSucceeded = result.succeeded;
+			uploadFailed = result.failed;
+			uploadMessage = `Upload complete! ${result.succeeded} succeeded, ${result.failed} failed`;
+
+			// Log individual results
+			result.results?.forEach((r: any) => {
+				if (r.success) {
+					addUploadLog(`✓ Uploaded: ${r.filename} → ${r.title}`);
+				} else {
+					addUploadLog(`✗ Failed: ${r.filename} - ${r.error}`);
+				}
+			});
+
+			addUploadLog(`🎉 Upload complete! ${result.succeeded}/${result.total} successful`);
+
+			// Clear file input
+			selectedFiles = null;
+			const fileInput = document.getElementById('file-input') as HTMLInputElement;
+			if (fileInput) fileInput.value = '';
+
+			// Refresh stats
+			await loadStats();
+		} catch (error: any) {
+			uploadMessage = `Error: ${error.message}`;
+			addUploadLog(`❌ Error: ${error.message}`);
+		} finally {
+			isUploading = false;
+		}
 	}
 </script>
 
@@ -376,6 +454,86 @@
 				</div>
 			{/if}
 		</section>
+
+		<!-- Local File Upload -->
+		<section class="operation-card local-upload">
+			<div class="card-header">
+				<h2>📁 Upload Local Files</h2>
+				<p>Upload cover images from your computer (match by ISBN or record ID in filename)</p>
+			</div>
+
+			<div class="stats">
+				<div class="stat">
+					<span class="stat-label">Selected Files</span>
+					<span class="stat-value">{selectedFiles?.length || 0}</span>
+				</div>
+				<div class="stat success">
+					<span class="stat-label">Succeeded</span>
+					<span class="stat-value">{uploadSucceeded}</span>
+				</div>
+				<div class="stat error">
+					<span class="stat-label">Failed</span>
+					<span class="stat-value">{uploadFailed}</span>
+				</div>
+			</div>
+
+			<div class="controls">
+				<div class="file-input-wrapper">
+					<input
+						id="file-input"
+						type="file"
+						multiple
+						accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+						onchange={handleFileSelect}
+						disabled={isUploading}
+					/>
+					<label for="file-input" class="file-input-label">
+						{selectedFiles && selectedFiles.length > 0
+							? `${selectedFiles.length} file(s) selected`
+							: 'Choose Files'}
+					</label>
+				</div>
+
+				<div class="buttons">
+					<button
+						class="btn-primary"
+						onclick={uploadLocalFiles}
+						disabled={isUploading || !selectedFiles || selectedFiles.length === 0}
+					>
+						{isUploading ? 'Uploading...' : 'Upload Files'}
+					</button>
+				</div>
+			</div>
+
+			{#if uploadMessage}
+				<div class="message">{uploadMessage}</div>
+			{/if}
+
+			{#if uploadLogs.length > 0}
+				<div class="logs">
+					<h3>Upload Log</h3>
+					<div class="log-content">
+						{#each uploadLogs as log}
+							<div class="log-entry">{log}</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<div class="file-naming-guide">
+				<h4>📝 File Naming Guide</h4>
+				<p>Name your files using one of these patterns:</p>
+				<ul>
+					<li><code>9780062316097.jpg</code> - ISBN only</li>
+					<li><code>cover-9780062316097.png</code> - With "cover-" prefix</li>
+					<li><code>123e4567-e89b-12d3-a456-426614174000.jpg</code> - Record ID (UUID)</li>
+				</ul>
+				<p class="help-text">
+					The system will automatically match files to records by extracting the ISBN or record ID
+					from the filename.
+				</p>
+			</div>
+		</section>
 	</div>
 
 	<section class="info-section">
@@ -390,10 +548,14 @@
 				them to ImageKit. Use this to get updated or higher quality covers.
 			</li>
 			<li>
-				Both operations will automatically update the database with the new ImageKit URLs and create
+				<strong>Upload Local Files:</strong> Upload cover images from your computer. Name files with
+				ISBNs or record IDs (e.g., <code>9780062316097.jpg</code>) for automatic matching.
+			</li>
+			<li>
+				All operations will automatically update the database with the new ImageKit URLs and create
 				proper cover records.
 			</li>
-			<li>You can pause and resume operations at any time.</li>
+			<li>You can pause and resume batch operations at any time.</li>
 			<li>Adjust batch size based on your needs (smaller = slower but more reliable).</li>
 		</ul>
 	</section>
@@ -622,6 +784,80 @@
 	.btn-secondary:hover {
 		background: #f5f5f5;
 		border-color: #ccc;
+	}
+
+	.local-upload {
+		grid-column: 1 / -1;
+	}
+
+	.file-input-wrapper {
+		margin-bottom: 12px;
+	}
+
+	.file-input-wrapper input[type='file'] {
+		display: none;
+	}
+
+	.file-input-label {
+		display: inline-block;
+		padding: 10px 20px;
+		background: #f5f5f5;
+		border: 2px dashed #ddd;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.95rem;
+		color: #666;
+		transition: all 0.2s;
+	}
+
+	.file-input-label:hover {
+		background: #e8e8e8;
+		border-color: #ccc;
+	}
+
+	.file-naming-guide {
+		margin-top: 20px;
+		padding: 16px;
+		background: #f9f9f9;
+		border-left: 4px solid #e73b42;
+		border-radius: 4px;
+	}
+
+	.file-naming-guide h4 {
+		margin: 0 0 8px 0;
+		font-size: 0.95rem;
+		color: #333;
+	}
+
+	.file-naming-guide p {
+		margin: 8px 0;
+		font-size: 0.9rem;
+		color: #666;
+	}
+
+	.file-naming-guide ul {
+		margin: 8px 0;
+		padding-left: 20px;
+	}
+
+	.file-naming-guide li {
+		margin-bottom: 4px;
+		font-size: 0.9rem;
+		color: #666;
+	}
+
+	.file-naming-guide code {
+		background: #e8e8e8;
+		padding: 2px 6px;
+		border-radius: 3px;
+		font-family: 'Courier New', monospace;
+		font-size: 0.85rem;
+	}
+
+	.help-text {
+		font-size: 0.85rem !important;
+		color: #888 !important;
+		font-style: italic;
 	}
 
 	@media (max-width: 768px) {
