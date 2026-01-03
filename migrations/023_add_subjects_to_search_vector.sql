@@ -5,19 +5,24 @@
 -- Drop the old trigger function and recreate it with subjects included
 CREATE OR REPLACE FUNCTION update_marc_search_vector()
 RETURNS TRIGGER AS $$
+DECLARE
+  subject_text TEXT := '';
 BEGIN
+  -- Extract all subject headings from the subject_topical array
+  IF NEW.subject_topical IS NOT NULL THEN
+    SELECT string_agg(elem->>'a', ' ')
+    INTO subject_text
+    FROM unnest(NEW.subject_topical) AS elem
+    WHERE elem->>'a' IS NOT NULL;
+  END IF;
+
   NEW.search_vector :=
     -- 'A' weight (highest): Title
     setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
 
     -- 'B' weight (high): Author and Subjects
     setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
-    setweight(to_tsvector('english', COALESCE(
-      (SELECT string_agg(elem->>'a', ' ')
-       FROM jsonb_array_elements(COALESCE(NEW.subject_topical, '[]'::jsonb)) AS elem
-       WHERE elem->>'a' IS NOT NULL),
-      ''
-    )), 'B') ||
+    setweight(to_tsvector('english', COALESCE(subject_text, '')), 'B') ||
 
     -- 'C' weight (medium): Publisher and Series
     setweight(to_tsvector('english', COALESCE(NEW.publication_info->>'b', '')), 'C') ||
