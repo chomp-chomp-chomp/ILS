@@ -1,0 +1,238 @@
+/**
+ * Bulk Cover Migration API
+ * Migrates existing covers to ImageKit and/or re-fetches from Open Library
+ */
+
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import ImageKit from 'imagekit';
+import { env as privateEnv } from '$env/dynamic/private';
+import { env as publicEnv } from '$env/dynamic/public';
+
+// Initialize ImageKit
+let imagekit: ImageKit | null = null;
+try {
+	if (publicEnv.PUBLIC_IMAGEKIT_URL_ENDPOINT && privateEnv.IMAGEKIT_PUBLIC_KEY && privateEnv.IMAGEKIT_PRIVATE_KEY) {
+		imagekit = new ImageKit({
+			publicKey: privateEnv.IMAGEKIT_PUBLIC_KEY,
+			privateKey: privateEnv.IMAGEKIT_PRIVATE_KEY,
+			urlEndpoint: publicEnv.PUBLIC_IMAGEKIT_URL_ENDPOINT
+		});
+	}
+} catch (err) {
+	console.error('ImageKit initialization error:', err);
+}
+
+/**
+ * POST /api/covers/bulk-migrate
+ * Migrate existing covers to ImageKit
+ */
+export const POST: RequestHandler = async ({ request, locals: { supabase, safeGetSession } }) => {
+	const { session } = await safeGetSession();
+	if (!session) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
+
+	if (!imagekit) {
+		return json({ error: 'ImageKit not configured' }, { status: 500 });
+	}
+
+	try {
+		const { batchSize = 10, operation = 'migrate' } = await request.json();
+
+		let records: any[] = [];
+
+		if (operation === 'migrate') {
+			// Get records with cover_image_url but no ImageKit cover in covers table
+			const { data, error } = await supabase
+				.from('marc_records')
+				.select('id, isbn, title_statement, cover_image_url')
+				.not('cover_image_url', 'is', null)
+				.limit(batchSize);
+
+			if (error) throw error;
+			records = data || [];
+		} else if (operation === 'refetch') {
+			// Get records with ISBNs to re-fetch from Open Library
+			const { data, error } = await supabase
+				.from('marc_records')
+				.select('id, isbn, title_statement, cover_image_url')
+				.not('isbn', 'is', null)
+				.limit(batchSize);
+
+			if (error) throw error;
+			records = data || [];
+		}
+
+		const results = [];
+
+		for (const record of records) {
+			try {
+				let coverUrl: string | null = null;
+
+				if (operation === 'migrate' && record.cover_image_url) {
+					// Download existing cover and upload to ImageKit
+					const imageResponse = await fetch(record.cover_image_url);
+					if (!imageResponse.ok) {
+						results.push({
+							id: record.id,
+							title: record.title_statement?.a,
+							success: false,
+							error: 'Failed to download existing cover'
+						});
+						continue;
+					}
+
+					const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+					const timestamp = Date.now();
+					const fileName = `cover-${record.id}-${timestamp}.jpg`;
+
+					// Upload to ImageKit
+					const uploadResponse = await imagekit.upload({
+						file: imageBuffer,
+						fileName: fileName,
+						folder: '/library-covers',
+						tags: ['library', 'book-cover', record.id, 'migrated'],
+						useUniqueFileName: true
+					});
+
+					coverUrl = uploadResponse.url;
+
+					// Create cover record with ImageKit data
+					const thumbnailSmall = `${uploadResponse.url}?tr=w-150,h-225,fo-auto,q-80`;
+					const thumbnailMedium = `${uploadResponse.url}?tr=w-200,h-300,fo-auto,q-80`;
+					const thumbnailLarge = `${uploadResponse.url}?tr=w-300,h-450,fo-auto,q-85`;
+
+					// Deactivate old covers
+					await supabase.from('covers').update({ is_active: false }).eq('marc_record_id', record.id);
+
+					// Insert new cover record
+					await supabase.from('covers').insert({
+						marc_record_id: record.id,
+						isbn: record.isbn,
+						source: 'upload',
+						original_url: coverUrl,
+						thumbnail_small_url: thumbnailSmall,
+						thumbnail_medium_url: thumbnailMedium,
+						thumbnail_large_url: thumbnailLarge,
+						storage_path_original: uploadResponse.filePath,
+						quality_score: 90,
+						is_placeholder: false,
+						fetch_status: 'success',
+						is_active: true,
+						uploaded_by: session.user.id,
+						imagekit_file_id: uploadResponse.fileId
+					});
+
+					// Update marc_records
+					await supabase
+						.from('marc_records')
+						.update({ cover_image_url: coverUrl })
+						.eq('id', record.id);
+
+				} else if (operation === 'refetch' && record.isbn) {
+					// Re-fetch from Open Library
+					const isbn = record.isbn.replace(/[-\s]/g, '');
+					const olResponse = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`);
+
+					if (olResponse.ok && olResponse.headers.get('content-type')?.startsWith('image/')) {
+						const imageBuffer = Buffer.from(await olResponse.arrayBuffer());
+						const timestamp = Date.now();
+						const fileName = `cover-${record.id}-${timestamp}.jpg`;
+
+						// Upload to ImageKit
+						const uploadResponse = await imagekit.upload({
+							file: imageBuffer,
+							fileName: fileName,
+							folder: '/library-covers',
+							tags: ['library', 'book-cover', record.id, 'openlibrary'],
+							useUniqueFileName: true
+						});
+
+						coverUrl = uploadResponse.url;
+
+						const thumbnailSmall = `${uploadResponse.url}?tr=w-150,h-225,fo-auto,q-80`;
+						const thumbnailMedium = `${uploadResponse.url}?tr=w-200,h-300,fo-auto,q-80`;
+						const thumbnailLarge = `${uploadResponse.url}?tr=w-300,h-450,fo-auto,q-85`;
+
+						// Deactivate old covers
+						await supabase.from('covers').update({ is_active: false }).eq('marc_record_id', record.id);
+
+						// Insert new cover record
+						await supabase.from('covers').insert({
+							marc_record_id: record.id,
+							isbn: record.isbn,
+							source: 'openlibrary',
+							original_url: coverUrl,
+							thumbnail_small_url: thumbnailSmall,
+							thumbnail_medium_url: thumbnailMedium,
+							thumbnail_large_url: thumbnailLarge,
+							storage_path_original: uploadResponse.filePath,
+							quality_score: 80,
+							is_placeholder: false,
+							fetch_status: 'success',
+							is_active: true,
+							imagekit_file_id: uploadResponse.fileId
+						});
+
+						// Update marc_records
+						await supabase
+							.from('marc_records')
+							.update({ cover_image_url: coverUrl })
+							.eq('id', record.id);
+					} else {
+						results.push({
+							id: record.id,
+							title: record.title_statement?.a,
+							success: false,
+							error: 'No cover found on Open Library'
+						});
+						continue;
+					}
+				}
+
+				results.push({
+					id: record.id,
+					title: record.title_statement?.a,
+					success: true,
+					coverUrl
+				});
+			} catch (error: any) {
+				results.push({
+					id: record.id,
+					title: record.title_statement?.a,
+					success: false,
+					error: error.message
+				});
+			}
+		}
+
+		// Count remaining records
+		let remaining = 0;
+		if (operation === 'migrate') {
+			const { count } = await supabase
+				.from('marc_records')
+				.select('id', { count: 'exact', head: true })
+				.not('cover_image_url', 'is', null);
+			remaining = count || 0;
+		} else if (operation === 'refetch') {
+			const { count } = await supabase
+				.from('marc_records')
+				.select('id', { count: 'exact', head: true })
+				.not('isbn', 'is', null);
+			remaining = count || 0;
+		}
+
+		return json({
+			success: true,
+			processed: records.length,
+			succeeded: results.filter(r => r.success).length,
+			failed: results.filter(r => !r.success).length,
+			remaining,
+			results
+		});
+	} catch (error: any) {
+		console.error('Bulk migration error:', error);
+		return json({ error: error.message }, { status: 500 });
+	}
+};
