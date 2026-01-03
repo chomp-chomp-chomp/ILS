@@ -7,11 +7,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import ImageKit from 'imagekit';
-import {
-	PUBLIC_IMAGEKIT_URL_ENDPOINT,
-	IMAGEKIT_PUBLIC_KEY,
-	IMAGEKIT_PRIVATE_KEY
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 // Maximum file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -22,11 +18,11 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'im
 // Initialize ImageKit (will be null if env vars not set)
 let imagekit: ImageKit | null = null;
 try {
-	if (PUBLIC_IMAGEKIT_URL_ENDPOINT && IMAGEKIT_PUBLIC_KEY && IMAGEKIT_PRIVATE_KEY) {
+	if (env.PUBLIC_IMAGEKIT_URL_ENDPOINT && env.IMAGEKIT_PUBLIC_KEY && env.IMAGEKIT_PRIVATE_KEY) {
 		imagekit = new ImageKit({
-			publicKey: IMAGEKIT_PUBLIC_KEY,
-			privateKey: IMAGEKIT_PRIVATE_KEY,
-			urlEndpoint: PUBLIC_IMAGEKIT_URL_ENDPOINT
+			publicKey: env.IMAGEKIT_PUBLIC_KEY,
+			privateKey: env.IMAGEKIT_PRIVATE_KEY,
+			urlEndpoint: env.PUBLIC_IMAGEKIT_URL_ENDPOINT
 		});
 	}
 } catch (err) {
