@@ -2,6 +2,8 @@
 
 A modern, full-featured Integrated Library System (ILS) built with SvelteKit, PostgreSQL, and Supabase. Perfect for small to medium-sized libraries, personal collections, or library schools.
 
+**Cover Storage**: Now using ImageKit CDN for fast, optimized book cover delivery.
+
 ## ✨ Features
 
 ### 📚 Cataloging
