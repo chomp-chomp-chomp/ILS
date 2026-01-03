@@ -176,10 +176,6 @@ async function performSearch(
 	if (params.author) {
 		filters.push(`main_entry_personal_name->>a.ilike.%${params.author}%`);
 	}
-	if (params.subject) {
-		// Search in subject_topical array
-		filters.push(`subject_topical::text.ilike.%${params.subject}%`);
-	}
 	if (params.isbn) {
 		filters.push(`isbn.ilike.%${params.isbn.replace(/-/g, '')}%`);
 	}
@@ -200,6 +196,16 @@ async function performSearch(
 				}
 			});
 		}
+	}
+
+	// Handle subject search separately (JSONB array requires special handling)
+	if (params.subject) {
+		// Use full-text search on search_vector since subjects are already indexed there
+		// This provides better matching (partial words, relevance ranking)
+		query = query.textSearch('search_vector', params.subject, {
+			type: 'websearch',
+			config: 'english'
+		});
 	}
 
 	// Year range filter
