@@ -1,5 +1,33 @@
+/**
+ * Cover Upload API - ImageKit Version (Legacy Endpoint)
+ * Handles manual cover image uploads to ImageKit
+ * This endpoint maintains backward compatibility with existing UI
+ */
+
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import ImageKit from 'imagekit';
+import { env } from '$env/dynamic/private';
+
+// Maximum file size: 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+// Allowed MIME types
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+
+// Initialize ImageKit (will be null if env vars not set)
+let imagekit: ImageKit | null = null;
+try {
+	if (env.PUBLIC_IMAGEKIT_URL_ENDPOINT && env.IMAGEKIT_PUBLIC_KEY && env.IMAGEKIT_PRIVATE_KEY) {
+		imagekit = new ImageKit({
+			publicKey: env.IMAGEKIT_PUBLIC_KEY,
+			privateKey: env.IMAGEKIT_PRIVATE_KEY,
+			urlEndpoint: env.PUBLIC_IMAGEKIT_URL_ENDPOINT
+		});
+	}
+} catch (err) {
+	console.error('ImageKit initialization error:', err);
+}
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const { supabase, safeGetSession } = locals;
@@ -9,11 +37,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
+	// Check if ImageKit is configured
+	if (!imagekit) {
+		return json(
+			{ error: 'ImageKit not configured. Please set IMAGEKIT environment variables.' },
+			{ status: 500 }
+		);
+	}
+
 	try {
 		const formData = await request.formData();
 		const file = formData.get('file') as File;
 		const recordId = formData.get('recordId') as string;
 
+		// Validation
 		if (!file) {
 			return json({ error: 'No file provided' }, { status: 400 });
 		}
@@ -23,68 +60,113 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Validate file type
-		const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-		if (!allowedTypes.includes(file.type)) {
-			return json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }, { status: 400 });
+		if (!ALLOWED_TYPES.includes(file.type)) {
+			return json(
+				{ error: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+				{ status: 400 }
+			);
 		}
 
-		// Validate file size (5MB max)
-		const maxSize = 5 * 1024 * 1024; // 5MB
-		if (file.size > maxSize) {
-			return json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
+		// Validate file size
+		if (file.size > MAX_FILE_SIZE) {
+			return json(
+				{ error: `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+				{ status: 400 }
+			);
 		}
+
+		// Verify record exists
+		const { data: record, error: recordError } = await supabase
+			.from('marc_records')
+			.select('id, isbn, title_statement')
+			.eq('id', recordId)
+			.single();
+
+		if (recordError || !record) {
+			return json({ error: 'Record not found' }, { status: 404 });
+		}
+
+		// Convert file to buffer
+		const buffer = Buffer.from(await file.arrayBuffer());
 
 		// Generate unique filename
-		const fileExt = file.name.split('.').pop();
-		const fileName = `${recordId}-${Date.now()}.${fileExt}`;
-		const filePath = `covers/${fileName}`;
+		const timestamp = Date.now();
+		const extension = file.name.split('.').pop() || 'jpg';
+		const fileName = `cover-${recordId}-${timestamp}.${extension}`;
 
-		// Convert File to ArrayBuffer
-		const arrayBuffer = await file.arrayBuffer();
-		const fileBuffer = new Uint8Array(arrayBuffer);
+		// Upload to ImageKit
+		const uploadResponse = await imagekit.upload({
+			file: buffer,
+			fileName: fileName,
+			folder: '/library-covers',
+			tags: ['library', 'book-cover', recordId],
+			useUniqueFileName: true,
+			responseFields: ['tags', 'customCoordinates', 'isPrivateFile', 'metadata']
+		});
 
-		// Upload to Supabase Storage
-		const { data: uploadData, error: uploadError } = await supabase.storage
-			.from('cover-images')
-			.upload(filePath, fileBuffer, {
-				contentType: file.type,
-				upsert: false
-			});
+		// ImageKit URLs - use transformations for different sizes
+		const baseUrl = uploadResponse.url;
+		const thumbnailSmall = `${uploadResponse.url}?tr=w-150,h-225,fo-auto,q-80`;
+		const thumbnailMedium = `${uploadResponse.url}?tr=w-200,h-300,fo-auto,q-80`;
+		const thumbnailLarge = `${uploadResponse.url}?tr=w-300,h-450,fo-auto,q-85`;
 
-		if (uploadError) {
-			console.error('Upload error:', uploadError);
-			return json({ error: `Upload failed: ${uploadError.message}` }, { status: 500 });
+		// Deactivate existing covers for this record
+		await supabase.from('covers').update({ is_active: false }).eq('marc_record_id', recordId);
+
+		// Insert cover record
+		const { data: cover, error: coverError } = await supabase
+			.from('covers')
+			.insert({
+				marc_record_id: recordId,
+				isbn: record.isbn,
+				source: 'upload',
+				original_url: baseUrl,
+				thumbnail_small_url: thumbnailSmall,
+				thumbnail_medium_url: thumbnailMedium,
+				thumbnail_large_url: thumbnailLarge,
+				storage_path_original: uploadResponse.filePath,
+				mime_type: file.type,
+				file_size: file.size,
+				quality_score: 100,
+				is_placeholder: false,
+				fetch_status: 'success',
+				is_active: true,
+				uploaded_by: session.user.id,
+				uploaded_filename: file.name,
+				imagekit_file_id: uploadResponse.fileId
+			})
+			.select()
+			.single();
+
+		if (coverError) {
+			console.error('Database error:', coverError);
+			// Try to clean up uploaded file from ImageKit
+			try {
+				await imagekit.deleteFile(uploadResponse.fileId);
+			} catch (cleanupError) {
+				console.error('Cleanup error:', cleanupError);
+			}
+			return json({ error: `Database error: ${coverError.message}` }, { status: 500 });
 		}
 
-		// Get public URL
-		const { data: urlData } = supabase.storage
-			.from('cover-images')
-			.getPublicUrl(filePath);
-
-		const publicUrl = urlData.publicUrl;
-
-		// Update marc_records with cover URL
-		const { error: updateError } = await supabase
+		// Also update marc_records.cover_image_url for backward compatibility
+		await supabase
 			.from('marc_records')
-			.update({ cover_image_url: publicUrl })
+			.update({ cover_image_url: baseUrl })
 			.eq('id', recordId);
-
-		if (updateError) {
-			console.error('Database update error:', updateError);
-			// Try to delete the uploaded file if database update fails
-			await supabase.storage.from('cover-images').remove([filePath]);
-			return json({ error: 'Failed to update record' }, { status: 500 });
-		}
 
 		return json({
 			success: true,
-			coverUrl: publicUrl,
-			message: 'Cover uploaded successfully'
+			coverUrl: baseUrl, // For backward compatibility
+			cover,
+			message: 'Cover uploaded successfully to ImageKit'
 		});
-
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Cover upload error:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+		return json(
+			{ error: error?.message || 'Internal server error' },
+			{ status: 500 }
+		);
 	}
 };
 
@@ -103,41 +185,45 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'No record ID provided' }, { status: 400 });
 		}
 
-		// Get current cover URL to extract filename
-		const { data: record } = await supabase
-			.from('marc_records')
-			.select('cover_image_url')
-			.eq('id', recordId)
+		// Get active cover for this record
+		const { data: cover } = await supabase
+			.from('covers')
+			.select('*')
+			.eq('marc_record_id', recordId)
+			.eq('is_active', true)
+			.eq('source', 'upload')
 			.single();
 
-		if (record?.cover_image_url) {
-			// Extract filename from URL
-			const url = new URL(record.cover_image_url);
-			const pathParts = url.pathname.split('/');
-			const fileName = pathParts[pathParts.length - 1];
-			const filePath = `covers/${fileName}`;
-
-			// Delete from storage
-			await supabase.storage.from('cover-images').remove([filePath]);
+		// Delete from ImageKit if configured and file ID exists
+		if (imagekit && cover?.imagekit_file_id) {
+			try {
+				await imagekit.deleteFile(cover.imagekit_file_id);
+			} catch (imagekitError) {
+				console.error('ImageKit delete error:', imagekitError);
+				// Continue anyway to remove from database
+			}
 		}
 
-		// Remove cover URL from database
-		const { error: updateError } = await supabase
+		// Delete from database
+		if (cover) {
+			await supabase.from('covers').delete().eq('id', cover.id);
+		}
+
+		// Remove cover URL from marc_records for backward compatibility
+		await supabase
 			.from('marc_records')
 			.update({ cover_image_url: null })
 			.eq('id', recordId);
-
-		if (updateError) {
-			return json({ error: 'Failed to remove cover from record' }, { status: 500 });
-		}
 
 		return json({
 			success: true,
 			message: 'Cover removed successfully'
 		});
-
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Cover delete error:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+		return json(
+			{ error: error?.message || 'Internal server error' },
+			{ status: 500 }
+		);
 	}
 };
