@@ -131,12 +131,29 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 						.eq('id', record.id);
 
 				} else if (operation === 'refetch' && record.isbn) {
-					// Re-fetch from Open Library
+					// Try Open Library first, then Google Books as fallback
 					const isbn = record.isbn.replace(/[-\s]/g, '');
-					const olResponse = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`);
+					let imageBuffer: Buffer | null = null;
+					let source = '';
 
+					// Try Open Library
+					const olResponse = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`);
 					if (olResponse.ok && olResponse.headers.get('content-type')?.startsWith('image/')) {
-						const imageBuffer = Buffer.from(await olResponse.arrayBuffer());
+						imageBuffer = Buffer.from(await olResponse.arrayBuffer());
+						source = 'openlibrary';
+					}
+
+					// If Open Library failed, try Google Books
+					if (!imageBuffer) {
+						const gbResponse = await fetch(`https://books.google.com/books/content?id=${isbn}&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api`);
+						if (gbResponse.ok && gbResponse.headers.get('content-type')?.startsWith('image/')) {
+							imageBuffer = Buffer.from(await gbResponse.arrayBuffer());
+							source = 'google';
+						}
+					}
+
+					// If we got a cover from either source
+					if (imageBuffer && source) {
 						const timestamp = Date.now();
 						const fileName = `cover-${record.id}-${timestamp}.jpg`;
 
@@ -145,7 +162,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 							file: imageBuffer,
 							fileName: fileName,
 							folder: '/library-covers',
-							tags: ['library', 'book-cover', record.id, 'openlibrary'],
+							tags: ['library', 'book-cover', record.id, source],
 							useUniqueFileName: true
 						});
 
@@ -162,13 +179,13 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 						await supabase.from('covers').insert({
 							marc_record_id: record.id,
 							isbn: record.isbn,
-							source: 'openlibrary',
+							source,
 							original_url: coverUrl,
 							thumbnail_small_url: thumbnailSmall,
 							thumbnail_medium_url: thumbnailMedium,
 							thumbnail_large_url: thumbnailLarge,
 							storage_path_original: uploadResponse.filePath,
-							quality_score: 80,
+							quality_score: source === 'openlibrary' ? 80 : 75,
 							is_placeholder: false,
 							fetch_status: 'success',
 							is_active: true,
@@ -185,7 +202,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 							id: record.id,
 							title: record.title_statement?.a,
 							success: false,
-							error: 'No cover found on Open Library'
+							error: 'No cover found on Open Library or Google Books'
 						});
 						continue;
 					}
