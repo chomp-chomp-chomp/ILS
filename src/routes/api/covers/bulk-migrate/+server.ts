@@ -42,23 +42,44 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 		let records: any[] = [];
 
+		// First, get IDs of records that already have ImageKit covers
+		const { data: existingCovers } = await supabase
+			.from('covers')
+			.select('marc_record_id')
+			.eq('is_active', true)
+			.not('imagekit_file_id', 'is', null);
+
+		const processedIds = existingCovers?.map(c => c.marc_record_id) || [];
+
 		if (operation === 'migrate') {
 			// Get records with cover_image_url but no ImageKit cover in covers table
-			const { data, error } = await supabase
+			let query = supabase
 				.from('marc_records')
 				.select('id, isbn, title_statement, cover_image_url')
-				.not('cover_image_url', 'is', null)
-				.limit(batchSize);
+				.not('cover_image_url', 'is', null);
+
+			// Exclude already processed records
+			if (processedIds.length > 0) {
+				query = query.not('id', 'in', `(${processedIds.map(id => `'${id}'`).join(',')})`);
+			}
+
+			const { data, error } = await query.limit(batchSize);
 
 			if (error) throw error;
 			records = data || [];
 		} else if (operation === 'refetch') {
-			// Get records with ISBNs to re-fetch from Open Library
-			const { data, error } = await supabase
+			// Get records with ISBNs but no ImageKit cover yet
+			let query = supabase
 				.from('marc_records')
 				.select('id, isbn, title_statement, cover_image_url')
-				.not('isbn', 'is', null)
-				.limit(batchSize);
+				.not('isbn', 'is', null);
+
+			// Exclude already processed records
+			if (processedIds.length > 0) {
+				query = query.not('id', 'in', `(${processedIds.map(id => `'${id}'`).join(',')})`);
+			}
+
+			const { data, error } = await query.limit(batchSize);
 
 			if (error) throw error;
 			records = data || [];
@@ -224,19 +245,40 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			}
 		}
 
-		// Count remaining records
+		// Count remaining records (excluding ones with ImageKit covers)
+		// Re-fetch the processed IDs to include the ones we just processed
+		const { data: updatedCovers } = await supabase
+			.from('covers')
+			.select('marc_record_id')
+			.eq('is_active', true)
+			.not('imagekit_file_id', 'is', null);
+
+		const updatedProcessedIds = updatedCovers?.map(c => c.marc_record_id) || [];
+
 		let remaining = 0;
 		if (operation === 'migrate') {
-			const { count } = await supabase
+			let countQuery = supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('cover_image_url', 'is', null);
+
+			if (updatedProcessedIds.length > 0) {
+				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.map(id => `'${id}'`).join(',')})`);
+			}
+
+			const { count } = await countQuery;
 			remaining = count || 0;
 		} else if (operation === 'refetch') {
-			const { count } = await supabase
+			let countQuery = supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('isbn', 'is', null);
+
+			if (updatedProcessedIds.length > 0) {
+				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.map(id => `'${id}'`).join(',')})`);
+			}
+
+			const { count } = await countQuery;
 			remaining = count || 0;
 		}
 
