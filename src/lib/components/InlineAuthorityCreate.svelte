@@ -35,9 +35,13 @@
 	let variantForms = $state<string[]>([]);
 	let newVariant = $state('');
 
-	// Search LC on mount
+	// Search LC on mount only
+	let hasSearched = $state(false);
 	$effect(() => {
-		searchLc();
+		if (!hasSearched) {
+			hasSearched = true;
+			searchLc();
+		}
 	});
 
 	async function searchLc() {
@@ -97,10 +101,15 @@
 
 			// Link to current record if we have MARC info
 			if (marcRecordId && marcField) {
-				await linkAuthority(importData.authority.id);
+				await linkAuthority(importData.authority.id, importData.authority.heading);
 			}
 
-			message = 'Authority imported from Library of Congress';
+			// Set success message based on whether it was imported or already existed
+			if (importData.imported === false) {
+				message = 'Authority already exists - linked to record';
+			} else {
+				message = 'Authority imported from Library of Congress';
+			}
 			messageType = 'success';
 
 			// Notify parent
@@ -152,7 +161,7 @@
 
 			// Link to current record if we have MARC info
 			if (marcRecordId && marcField) {
-				await linkAuthority(data.authority.id);
+				await linkAuthority(data.authority.id, data.authority.heading);
 			}
 
 			message = 'Local authority created';
@@ -171,14 +180,14 @@
 		}
 	}
 
-	async function linkAuthority(authorityId: string) {
+	async function linkAuthority(authorityId: string, authorityHeading: string) {
 		try {
 			const response = await fetch('/api/authorities/suggest', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					marc_record_id: marcRecordId,
-					heading: localHeading,
+					heading: authorityHeading,
 					marc_field: marcField,
 					field_index: fieldIndex,
 					authority_id: authorityId,
