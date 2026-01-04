@@ -298,9 +298,9 @@
 						<div class="field">
 							<span class="label">Publisher:</span>
 							<span class="value">
-								{#if record.publication_info.b}{record.publication_info.b}{#if record.publication_info.c},{/if}{/if}
-								{#if record.publication_info.a} ({record.publication_info.a}){/if}
-								{#if record.publication_info.c} {record.publication_info.c}{/if}
+								{#if record.publication_info.b}{record.publication_info.b.trim()}{#if record.publication_info.c},{/if}{/if}
+								{#if record.publication_info.a} ({record.publication_info.a.trim()}){/if}
+								{#if record.publication_info.c} {record.publication_info.c.trim()}{/if}
 							</span>
 						</div>
 					{/if}

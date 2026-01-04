@@ -797,10 +797,10 @@
 								{#if record.publication_info}
 									<p class="publication">
 										{#if record.publication_info.b}
-											{record.publication_info.b}
+											{record.publication_info.b.trim()}
 										{/if}
 										{#if record.publication_info.c}
-											{#if record.publication_info.b}, {/if}{record.publication_info.c}
+											{#if record.publication_info.b}, {/if}{record.publication_info.c.trim()}
 										{/if}
 									</p>
 								{/if}
