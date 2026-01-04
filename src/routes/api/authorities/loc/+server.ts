@@ -125,7 +125,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		// Check if already exists
 		const { data: existing } = await supabase
 			.from('authorities')
-			.select('id')
+			.select('*')
 			.eq('lccn', locAuthority.lccn)
 			.single();
 
@@ -133,7 +133,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			return json({
 				imported: false,
 				message: 'Authority already exists',
-				authority_id: existing.id
+				authority: existing // Return full authority object for linking
 			});
 		}
 
