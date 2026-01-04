@@ -2237,6 +2237,17 @@
 			flex-shrink: 0;
 		}
 
+		/* Force BookCover component to be small on mobile */
+		.result-cover :global(.cover-wrapper),
+		.result-cover :global(.book-cover),
+		.result-cover :global(.cover-placeholder),
+		.result-cover :global(.cover-loading) {
+			width: 40px !important;
+			height: 60px !important;
+			min-width: 40px;
+			max-width: 40px;
+		}
+
 		.result-content h3 {
 			font-size: 1.125rem;
 		}
