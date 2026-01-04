@@ -5,6 +5,7 @@ import {
 	computeDynamicFacets,
 	type DynamicFacetGroup
 } from '$lib/utils/facets';
+import { normalizeSearchQuery } from '$lib/utils/text-normalize';
 
 export interface SearchParams {
 	q?: string;
@@ -156,8 +157,11 @@ async function performSearch(
 
 	// Basic keyword search using full-text search with relevance boosting
 	if (params.q) {
+		// Normalize query to remove diacritics (e.g., "Zizek" matches "Žižek")
+		const normalizedQuery = normalizeSearchQuery(params.q);
+
 		// Use PostgreSQL full-text search for relevance ranking
-		query = query.textSearch('search_vector', params.q, {
+		query = query.textSearch('search_vector', normalizedQuery, {
 			type: 'websearch',
 			config: 'english'
 		});
@@ -169,18 +173,21 @@ async function performSearch(
 		// We'll order by ts_rank which already considers the search_vector
 	}
 
-	// Advanced search fields
+	// Advanced search fields (normalize text to remove diacritics)
 	if (params.title) {
-		filters.push(`title_statement->>a.ilike.%${params.title}%`);
+		const normalizedTitle = normalizeSearchQuery(params.title);
+		filters.push(`title_statement->>a.ilike.%${normalizedTitle}%`);
 	}
 	if (params.author) {
-		filters.push(`main_entry_personal_name->>a.ilike.%${params.author}%`);
+		const normalizedAuthor = normalizeSearchQuery(params.author);
+		filters.push(`main_entry_personal_name->>a.ilike.%${normalizedAuthor}%`);
 	}
 	if (params.isbn) {
 		filters.push(`isbn.ilike.%${params.isbn.replace(/-/g, '')}%`);
 	}
 	if (params.publisher) {
-		filters.push(`publication_info->>b.ilike.%${params.publisher}%`);
+		const normalizedPublisher = normalizeSearchQuery(params.publisher);
+		filters.push(`publication_info->>b.ilike.%${normalizedPublisher}%`);
 	}
 
 	// Apply filters based on operator
@@ -200,9 +207,12 @@ async function performSearch(
 
 	// Handle subject search separately (JSONB array requires special handling)
 	if (params.subject) {
+		// Normalize subject query to remove diacritics
+		const normalizedSubject = normalizeSearchQuery(params.subject);
+
 		// Use full-text search on search_vector since subjects are already indexed there
 		// This provides better matching (partial words, relevance ranking)
-		query = query.textSearch('search_vector', params.subject, {
+		query = query.textSearch('search_vector', normalizedSubject, {
 			type: 'websearch',
 			config: 'english'
 		});
