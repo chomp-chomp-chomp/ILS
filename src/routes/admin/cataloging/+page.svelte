@@ -300,6 +300,7 @@
 			<a href="/admin/cataloging/marc-import" class="btn-secondary">MARC Import</a>
 			<a href="/admin/cataloging/marc-export" class="btn-secondary">MARC Export</a>
 			<a href="/admin/cataloging/export-csv" class="btn-secondary">📊 Export to CSV</a>
+			<a href="/admin/cataloging/import-csv" class="btn-secondary">📤 Import from CSV</a>
 			<a href="/admin/cataloging/covers/bulk" class="btn-secondary">📷 Manage Covers</a>
 			<a href="/admin/cataloging/holdings/bulk" class="btn-secondary">📦 Bulk Create Holdings</a>
 			{#if duplicates.size > 0}
