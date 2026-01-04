@@ -7,6 +7,8 @@
 	 * Allows linking heading to authority
 	 */
 
+	import InlineAuthorityCreate from './InlineAuthorityCreate.svelte';
+
 	interface Props {
 		heading: string;
 		type: 'personal_name' | 'corporate_name' | 'topical_subject' | 'geographic_name';
@@ -24,6 +26,7 @@
 	let showSuggestions = $state(false);
 	let selectedAuthority = $state<any>(null);
 	let message = $state('');
+	let showCreateModal = $state(false);
 
 	// Debounce timer
 	let debounceTimer: number;
@@ -111,6 +114,25 @@
 
 	function formatConfidence(score: number): string {
 		return `${Math.round(score * 100)}%`;
+	}
+
+	function handleAuthorityCreated(authority: any) {
+		selectedAuthority = authority;
+		showCreateModal = false;
+		message = '✓ Authority created and linked';
+
+		// Notify parent component
+		if (onAuthoritySelected) {
+			onAuthoritySelected(authority);
+		}
+	}
+
+	function openCreateModal() {
+		showCreateModal = true;
+	}
+
+	function closeCreateModal() {
+		showCreateModal = false;
 	}
 </script>
 
@@ -214,18 +236,30 @@
 		<strong>No authority match found</strong>
 		<p>This heading is not in the authority file.</p>
 		<div class="actions">
+			<button class="btn-primary btn-small" onclick={openCreateModal}>
+				Add New Authority
+			</button>
 			<a
-				href="/admin/cataloging/authorities/import?q={encodeURIComponent(heading)}&type={type}"
+				href="/admin/cataloging/authorities?q={encodeURIComponent(heading)}"
 				target="_blank"
 				class="btn-small"
 			>
-				Search Library of Congress
-			</a>
-			<a href="/admin/cataloging/authorities/new?heading={encodeURIComponent(heading)}&type={type}" target="_blank" class="btn-small">
-				Create Local Authority
+				Search All Authorities
 			</a>
 		</div>
 	</div>
+{/if}
+
+{#if showCreateModal}
+	<InlineAuthorityCreate
+		{heading}
+		{type}
+		{marcRecordId}
+		{marcField}
+		{fieldIndex}
+		onAuthorityCreated={handleAuthorityCreated}
+		onCancel={closeCreateModal}
+	/>
 {/if}
 
 <style>

@@ -16,6 +16,7 @@ import type { RequestHandler } from './$types';
 interface LocAuthority {
 	uri: string;
 	label: string;
+	heading?: string; // Same as label, for compatibility
 	lccn?: string;
 	broader?: string[];
 	narrower?: string[];
@@ -56,7 +57,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		const data = await response.json();
 
 		// Parse LoC response
-		// Format: { query: "...", hits: [{ uri: "...", suggestLabel: "..." }] }
+		// Format: { query: "...", hits: [{ uri: "...", aLabel: "...", suggestLabel: "..." }] }
 		const results = data.hits || [];
 
 		// Fetch full details for each result
@@ -66,9 +67,13 @@ export const GET: RequestHandler = async ({ url }) => {
 					return await fetchLocAuthorityDetails(hit.uri);
 				} catch (err) {
 					console.error(`Error fetching details for ${hit.uri}:`, err);
+					// Extract label from suggest API response
+					// The suggest2 API returns aLabel (authorized label) as the primary field
+					const label = hit.aLabel || hit.suggestLabel || hit.label || extractLccn(hit.uri);
 					return {
 						uri: hit.uri,
-						label: hit.suggestLabel || hit.aLabel || 'Unknown',
+						label: label,
+						heading: label, // Ensure heading field is also populated
 						lccn: extractLccn(hit.uri)
 					};
 				}
@@ -251,9 +256,11 @@ async function fetchLocAuthorityDetails(uri: string): Promise<LocAuthority | nul
 			mainResource = data;
 		}
 
+		const label = extractLabel(mainResource);
 		const authority: LocAuthority = {
 			uri,
-			label: extractLabel(mainResource),
+			label: label,
+			heading: label, // For compatibility with frontend display
 			lccn: extractLccn(uri)
 		};
 
