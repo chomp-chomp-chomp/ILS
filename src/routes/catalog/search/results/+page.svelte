@@ -2184,21 +2184,24 @@
 		}
 
 		.sidebar {
+			display: none;
 			position: fixed;
 			top: 0;
-			left: -100%;
+			left: 0;
 			width: 80%;
 			max-width: 320px;
 			height: 100vh;
 			background: white;
 			z-index: 1000;
 			padding: 1rem;
-			transition: left 0.3s ease;
+			transition: transform 0.3s ease;
+			transform: translateX(-100%);
 			overflow-y: auto;
 		}
 
 		.sidebar.mobile-open {
-			left: 0;
+			display: block;
+			transform: translateX(0);
 		}
 
 		.mobile-close {
