@@ -43,13 +43,16 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		let records: any[] = [];
 
 		// First, get IDs of records that already have ImageKit covers
-		const { data: existingCovers } = await supabase
+		const { data: existingCovers, error: coversError } = await supabase
 			.from('covers')
-			.select('marc_record_id')
+			.select('marc_record_id, imagekit_file_id')
 			.eq('is_active', true)
 			.not('imagekit_file_id', 'is', null);
 
-		const processedIds = existingCovers?.map(c => c.marc_record_id) || [];
+		// If covers table doesn't have imagekit_file_id column or query fails, just process all
+		const processedIds = (coversError ? [] : existingCovers?.map(c => c.marc_record_id)) || [];
+
+		console.log(`Cover migration - Found ${processedIds.length} records already with ImageKit covers`);
 
 		if (operation === 'migrate') {
 			// Get records with cover_image_url but no ImageKit cover in covers table

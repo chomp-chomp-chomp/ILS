@@ -25,15 +25,15 @@
 
 			totalRecords = totalCount || 0;
 
-			// Count records that already have holdings
-			const { data: existingHoldings } = await data.supabase
-				.from('holdings')
+			// Count records that already have items
+			const { data: existingItems } = await data.supabase
+				.from('items')
 				.select('marc_record_id');
 
-			const recordsWithHoldings = new Set(existingHoldings?.map(h => h.marc_record_id) || []);
-			recordsWithoutHoldings = totalRecords - recordsWithHoldings.size;
+			const recordsWithItems = new Set(existingItems?.map(h => h.marc_record_id) || []);
+			recordsWithoutHoldings = totalRecords - recordsWithItems.size;
 
-			addLog(`Found ${recordsWithoutHoldings} records without holdings out of ${totalRecords} total records`);
+			addLog(`Found ${recordsWithoutHoldings} records without items out of ${totalRecords} total records`);
 		} catch (error: any) {
 			console.error('Error loading stats:', error);
 			showMessage('Failed to load statistics', 'error');

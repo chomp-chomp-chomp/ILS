@@ -24,28 +24,28 @@ export const POST: RequestHandler = async ({ locals: { supabase, safeGetSession 
 		if (recordsError) throw recordsError;
 		if (!records) throw error(404, 'No records found');
 
-		// Get existing holdings to avoid duplicates
-		const { data: existingHoldings, error: holdingsError } = await supabase
-			.from('holdings')
+		// Get existing items to avoid duplicates
+		const { data: existingItems, error: itemsError } = await supabase
+			.from('items')
 			.select('marc_record_id');
 
-		if (holdingsError) throw holdingsError;
+		if (itemsError) throw itemsError;
 
-		const existingRecordIds = new Set(existingHoldings?.map(h => h.marc_record_id) || []);
+		const existingRecordIds = new Set(existingItems?.map(h => h.marc_record_id) || []);
 
-		// Filter records that don't have holdings
-		const recordsNeedingHoldings = records.filter(r => !existingRecordIds.has(r.id));
+		// Filter records that don't have items
+		const recordsNeedingItems = records.filter(r => !existingRecordIds.has(r.id));
 
-		if (recordsNeedingHoldings.length === 0) {
+		if (recordsNeedingItems.length === 0) {
 			return json({
 				success: true,
-				message: 'All records already have holdings',
+				message: 'All records already have items',
 				created: 0
 			});
 		}
 
-		// Generate holdings for each record
-		const holdingsToCreate = recordsNeedingHoldings.map(record => {
+		// Generate items for each record
+		const itemsToCreate = recordsNeedingItems.map(record => {
 			const year = record.publication_info?.c || '0000';
 			const callNumber = generateTXCallNumber(record, year);
 
@@ -56,18 +56,18 @@ export const POST: RequestHandler = async ({ locals: { supabase, safeGetSession 
 				copy_number: 'c.1',
 				location: 'The Kitchen',
 				status: 'available',
-				is_electronic: false
+				material_type: 'book'
 			};
 		});
 
-		// Insert holdings in batches of 100
+		// Insert items in batches of 100
 		const batchSize = 100;
 		let created = 0;
 
-		for (let i = 0; i < holdingsToCreate.length; i += batchSize) {
-			const batch = holdingsToCreate.slice(i, i + batchSize);
+		for (let i = 0; i < itemsToCreate.length; i += batchSize) {
+			const batch = itemsToCreate.slice(i, i + batchSize);
 			const { error: insertError } = await supabase
-				.from('holdings')
+				.from('items')
 				.insert(batch);
 
 			if (insertError) {
@@ -80,14 +80,14 @@ export const POST: RequestHandler = async ({ locals: { supabase, safeGetSession 
 
 		return json({
 			success: true,
-			message: `Successfully created ${created} holdings`,
+			message: `Successfully created ${created} items`,
 			created
 		});
 
 	} catch (err: any) {
-		console.error('Error bulk creating holdings:', err);
+		console.error('Error bulk creating items:', err);
 		if (err.status) throw err;
-		throw error(500, 'Failed to bulk create holdings');
+		throw error(500, 'Failed to bulk create items');
 	}
 };
 
