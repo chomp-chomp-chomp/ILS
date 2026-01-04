@@ -290,6 +290,20 @@
 			Manage cover images for your catalog: verify existing covers and fetch new ones from Google
 			Books and Open Library APIs.
 		</p>
+
+		<!-- Link to Bulk Operations -->
+		<div class="info-banner">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+				<circle cx="12" cy="12" r="10" stroke-width="2" />
+				<path d="M12 16v-4M12 8h.01" stroke-width="2" stroke-linecap="round" />
+			</svg>
+			<div>
+				<strong>New!</strong> Looking for bulk cover operations with ImageKit CDN support?
+				<a href="/admin/cataloging/covers/bulk" class="bulk-link">
+					Go to Bulk Cover Operations →
+				</a>
+			</div>
+		</div>
 	</div>
 
 	<!-- Cleanup Section -->
@@ -621,6 +635,41 @@
 	.header p {
 		margin: 0;
 		color: #666;
+	}
+
+	.info-banner {
+		display: flex;
+		gap: 1rem;
+		padding: 1rem 1.25rem;
+		background: #e3f2fd;
+		border: 1px solid #2196f3;
+		border-radius: 8px;
+		margin-top: 1.5rem;
+		align-items: flex-start;
+	}
+
+	.info-banner svg {
+		flex-shrink: 0;
+		color: #2196f3;
+		margin-top: 2px;
+	}
+
+	.info-banner strong {
+		color: #1976d2;
+	}
+
+	.bulk-link {
+		display: inline-block;
+		margin-left: 0.5rem;
+		color: #1976d2;
+		font-weight: 600;
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+
+	.bulk-link:hover {
+		color: #1565c0;
+		text-decoration: underline;
 	}
 
 	.cleanup-section,
