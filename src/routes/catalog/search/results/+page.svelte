@@ -2184,7 +2184,6 @@
 		}
 
 		.sidebar {
-			display: none;
 			position: fixed;
 			top: 0;
 			left: 0;
@@ -2200,7 +2199,6 @@
 		}
 
 		.sidebar.mobile-open {
-			display: block;
 			transform: translateX(0);
 		}
 
@@ -2220,13 +2218,13 @@
 		}
 
 		.result-card {
-			grid-template-columns: 20px 50px 1fr;
+			grid-template-columns: 18px 40px 1fr;
 			gap: 0.5rem;
-			padding: 0.875rem 0.5rem;
+			padding: 0.75rem 0.5rem;
 		}
 
 		.result-card.no-cover {
-			grid-template-columns: 20px 1fr;
+			grid-template-columns: 18px 1fr;
 		}
 
 		.result-checkbox input[type="checkbox"] {
@@ -2235,7 +2233,7 @@
 		}
 
 		.result-cover {
-			width: 50px;
+			width: 40px;
 			flex-shrink: 0;
 		}
 
