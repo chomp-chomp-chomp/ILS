@@ -2218,7 +2218,7 @@
 		}
 
 		.result-card {
-			grid-template-columns: 18px 40px 1fr;
+			grid-template-columns: 18px 55px 1fr;
 			gap: 0.5rem;
 			padding: 0.75rem 0.5rem;
 		}
@@ -2233,7 +2233,7 @@
 		}
 
 		.result-cover {
-			width: 40px;
+			width: 55px;
 			flex-shrink: 0;
 		}
 
@@ -2242,10 +2242,10 @@
 		.result-cover :global(.book-cover),
 		.result-cover :global(.cover-placeholder),
 		.result-cover :global(.cover-loading) {
-			width: 40px !important;
-			height: 60px !important;
-			min-width: 40px;
-			max-width: 40px;
+			width: 55px !important;
+			height: 82px !important;
+			min-width: 55px;
+			max-width: 55px;
 		}
 
 		.result-content h3 {
