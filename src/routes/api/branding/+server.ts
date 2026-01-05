@@ -32,6 +32,7 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 					library_name: body.library_name,
 					library_tagline: body.library_tagline || null,
 					logo_url: body.logo_url || null,
+					homepage_logo_url: body.homepage_logo_url || null,
 					favicon_url: body.favicon_url || null,
 					primary_color: body.primary_color || '#e73b42',
 					secondary_color: body.secondary_color || '#667eea',
@@ -53,6 +54,12 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 					show_covers: body.show_covers !== false,
 					show_facets: body.show_facets !== false,
 					items_per_page: body.items_per_page || 20,
+					show_header: body.show_header === true,
+					header_links: body.header_links || [],
+					show_homepage_info: body.show_homepage_info === true,
+					homepage_info_title: body.homepage_info_title || 'Quick Links',
+					homepage_info_content: body.homepage_info_content || null,
+					homepage_info_links: body.homepage_info_links || [],
 					updated_by: session.user.id
 				})
 				.eq('id', existing.id)
@@ -73,6 +80,7 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 					library_name: body.library_name,
 					library_tagline: body.library_tagline || null,
 					logo_url: body.logo_url || null,
+					homepage_logo_url: body.homepage_logo_url || null,
 					favicon_url: body.favicon_url || null,
 					primary_color: body.primary_color || '#e73b42',
 					secondary_color: body.secondary_color || '#667eea',
@@ -94,6 +102,12 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 					show_covers: body.show_covers !== false,
 					show_facets: body.show_facets !== false,
 					items_per_page: body.items_per_page || 20,
+					show_header: body.show_header === true,
+					header_links: body.header_links || [],
+					show_homepage_info: body.show_homepage_info === true,
+					homepage_info_title: body.homepage_info_title || 'Quick Links',
+					homepage_info_content: body.homepage_info_content || null,
+					homepage_info_links: body.homepage_info_links || [],
 					is_active: true,
 					updated_by: session.user.id
 				})
