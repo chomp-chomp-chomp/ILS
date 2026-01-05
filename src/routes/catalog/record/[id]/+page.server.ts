@@ -6,6 +6,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
     .from('marc_records')
     .select('*')
     .eq('id', params.id)
+    .eq('status', 'active')  // Only show active records
+    .eq('visibility', 'public')  // Only show public records in OPAC
     .single();
 
   if (recordError || !record) {
@@ -33,7 +35,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
     .select('*')
     .eq('marc_record_id', params.id);
 
-  // Fetch related records
+  // Fetch related records (only show active, public records)
   const { data: relatedRecords } = await supabase
     .from('related_records')
     .select(`
@@ -46,17 +48,24 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
         title_statement,
         main_entry_personal_name,
         publication_info,
-        material_type
+        material_type,
+        status,
+        visibility
       )
     `)
     .eq('source_record_id', params.id)
     .order('display_order')
     .order('created_at');
 
+  // Filter related records to only show active and public
+  const filteredRelatedRecords = relatedRecords?.filter(
+    (rel: any) => rel.target_record?.status === 'active' && rel.target_record?.visibility === 'public'
+  ) || [];
+
   return {
     record,
     holdings,
-    relatedRecords: relatedRecords || [],
+    relatedRecords: filteredRelatedRecords,
     attachments: attachments || [],
   };
 };

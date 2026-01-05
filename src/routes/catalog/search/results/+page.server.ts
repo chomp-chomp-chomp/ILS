@@ -150,7 +150,10 @@ async function performSearch(
 			)
 		`,
 			{ count: 'exact' }
-		);
+		)
+		// IMPORTANT: Only show active, public records in the OPAC
+		.eq('status', 'active')
+		.eq('visibility', 'public');
 
 	// Apply search filters
 	const filters: string[] = [];
