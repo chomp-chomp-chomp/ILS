@@ -199,16 +199,24 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 					// Try Open Library
 					const olResponse = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`);
 					if (olResponse.ok && olResponse.headers.get('content-type')?.startsWith('image/')) {
-						imageBuffer = Buffer.from(await olResponse.arrayBuffer());
-						source = 'openlibrary';
+						const arrayBuffer = await olResponse.arrayBuffer();
+						// Reject images smaller than 1KB (likely placeholders)
+						if (arrayBuffer.byteLength > 1024) {
+							imageBuffer = Buffer.from(arrayBuffer);
+							source = 'openlibrary';
+						}
 					}
 
 					// If Open Library failed, try Google Books
 					if (!imageBuffer) {
 						const gbResponse = await fetch(`https://books.google.com/books/content?id=${isbn}&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api`);
 						if (gbResponse.ok && gbResponse.headers.get('content-type')?.startsWith('image/')) {
-							imageBuffer = Buffer.from(await gbResponse.arrayBuffer());
-							source = 'google';
+							const arrayBuffer = await gbResponse.arrayBuffer();
+							// Reject images smaller than 1KB (likely placeholders)
+							if (arrayBuffer.byteLength > 1024) {
+								imageBuffer = Buffer.from(arrayBuffer);
+								source = 'google';
+							}
 						}
 					}
 
@@ -284,18 +292,18 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			}
 		}
 
-		// Count remaining records (excluding ones with ImageKit covers)
-		// Re-fetch the processed IDs to include the ones we just processed
-		const { data: updatedCovers } = await supabase
-			.from('covers')
-			.select('marc_record_id')
-			.eq('is_active', true)
-			.not('imagekit_file_id', 'is', null);
-
-		const updatedProcessedIds = updatedCovers?.map(c => c.marc_record_id) || [];
-
+		// Count remaining records
 		let remaining = 0;
 		if (operation === 'migrate') {
+			// For migrate: exclude all records with ImageKit covers
+			const { data: updatedCovers } = await supabase
+				.from('covers')
+				.select('marc_record_id')
+				.eq('is_active', true)
+				.not('imagekit_file_id', 'is', null);
+
+			const updatedProcessedIds = updatedCovers?.map(c => c.marc_record_id) || [];
+
 			let countQuery = supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
@@ -308,17 +316,28 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			const { count } = await countQuery;
 			remaining = count || 0;
 		} else if (operation === 'refetch') {
+			// For refetch: only exclude manually uploaded covers (source='upload')
+			const { data: uploadedCovers } = await supabase
+				.from('covers')
+				.select('marc_record_id')
+				.eq('is_active', true)
+				.eq('source', 'upload')
+				.not('imagekit_file_id', 'is', null);
+
+			const uploadedIds = uploadedCovers?.map(c => c.marc_record_id) || [];
+
 			let countQuery = supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('isbn', 'is', null);
 
-			if (updatedProcessedIds.length > 0) {
-				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.join(',')})`);
+			if (uploadedIds.length > 0) {
+				countQuery = countQuery.not('id', 'in', `(${uploadedIds.join(',')})`);
 			}
 
 			const { count } = await countQuery;
 			remaining = count || 0;
+			debug.push(`Remaining count: Total with ISBN - Uploaded covers = ${count || 0}`);
 		}
 
 		return json({
