@@ -15,6 +15,8 @@
 	const branding = $derived(
 		(data as any).branding || {
 			library_name: 'Chomp Chomp Library Catalog',
+			logo_url: null,
+			homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
 			primary_color: '#e73b42',
 			secondary_color: '#667eea',
 			accent_color: '#2c3e50',
