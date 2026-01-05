@@ -28,6 +28,8 @@
 let materialType = $state(record.material_type || 'book');
 let customCoverUrl = $state<string | null>(record.cover_image_url || null);
 let authorityMessage = $state('');
+let visibility = $state(record.visibility || 'public');
+let status = $state(record.status || 'active');
 
 	let saving = $state(false);
 	let message = $state('');
@@ -92,6 +94,8 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 			const updatedRecord = {
 				isbn,
 				material_type: materialType,
+				visibility,
+				status,
 				title_statement: {
 					a: title,
 					b: subtitle
@@ -186,21 +190,54 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 		}
 	}
 
-	async function deleteRecord() {
-		if (!confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+	async function archiveRecord() {
+		if (!confirm('Archive this record? It will be hidden from the public catalog but can be restored later.')) {
 			return;
 		}
 
 		saving = true;
 		try {
-			const { error: deleteError} = await supabase
-				.from('marc_records')
-				.delete()
-				.eq('id', record.id);
+			const { data: sessionData } = await supabase.auth.getSession();
+			const userId = sessionData?.session?.user?.id;
+
+			const { error: archiveError } = await supabase.rpc('archive_marc_record', {
+				record_id: record.id,
+				user_id: userId
+			});
+
+			if (archiveError) throw archiveError;
+
+			message = 'Record archived successfully';
+			setTimeout(() => {
+				goto('/admin/cataloging/archives');
+			}, 1500);
+		} catch (error) {
+			message = `Error archiving: ${error.message}`;
+			saving = false;
+		}
+	}
+
+	async function deleteRecord() {
+		if (!confirm('Move this record to trash? It will be permanently deleted after 30 days.')) {
+			return;
+		}
+
+		saving = true;
+		try {
+			const { data: sessionData } = await supabase.auth.getSession();
+			const userId = sessionData?.session?.user?.id;
+
+			const { error: deleteError } = await supabase.rpc('soft_delete_marc_record', {
+				record_id: record.id,
+				user_id: userId
+			});
 
 			if (deleteError) throw deleteError;
 
-			goto('/admin/cataloging');
+			message = 'Record moved to trash';
+			setTimeout(() => {
+				goto('/admin/cataloging/trash');
+			}, 1500);
 		} catch (error) {
 			message = `Error deleting: ${error.message}`;
 			saving = false;
@@ -477,8 +514,11 @@ function statusClass(status: string) {
 			<button class="btn-secondary" onclick={duplicateRecord} disabled={saving}>
 				📋 Duplicate Record
 			</button>
+			<button class="btn-archive" onclick={archiveRecord} disabled={saving}>
+				📦 Archive Record
+			</button>
 			<button class="btn-delete" onclick={deleteRecord} disabled={saving}>
-				Delete Record
+				🗑️ Move to Trash
 			</button>
 		</div>
 	</div>
@@ -509,6 +549,44 @@ function statusClass(status: string) {
 						<option value="cdrom">CD-ROM</option>
 						<option value="serial">Serial</option>
 					</select>
+				</div>
+			</div>
+
+			<div class="form-row">
+				<div class="form-group">
+					<label for="status">Status</label>
+					<select id="status" bind:value={status}>
+						<option value="active">Active (Live in catalog)</option>
+						<option value="archived">Archived (Hidden from public)</option>
+						<option value="deleted">Deleted (In trash)</option>
+					</select>
+					<small class="help-text">
+						{#if status === 'active'}
+							Record is live and searchable in the public catalog
+						{:else if status === 'archived'}
+							Record is hidden from public but accessible in Archives
+						{:else if status === 'deleted'}
+							Record is in trash and will be permanently deleted after 30 days
+						{/if}
+					</small>
+				</div>
+
+				<div class="form-group">
+					<label for="visibility">Visibility</label>
+					<select id="visibility" bind:value={visibility}>
+						<option value="public">Public (OPAC + Staff)</option>
+						<option value="staff_only">Staff Only (Admin access only)</option>
+						<option value="hidden">Hidden (Completely hidden)</option>
+					</select>
+					<small class="help-text">
+						{#if visibility === 'public'}
+							Visible to everyone when status is active
+						{:else if visibility === 'staff_only'}
+							Only visible to logged-in staff, hidden from public OPAC
+						{:else if visibility === 'hidden'}
+							Completely hidden from all views (use for testing)
+						{/if}
+					</small>
 				</div>
 			</div>
 		</section>
@@ -1111,6 +1189,20 @@ textarea:focus {
 	}
 
 	.btn-delete:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-archive {
+		background: #ff9800;
+		color: white;
+	}
+
+	.btn-archive:hover:not(:disabled) {
+		background: #f57c00;
+	}
+
+	.btn-archive:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}

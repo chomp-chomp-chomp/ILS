@@ -14,7 +14,7 @@
 	// Get branding configuration with defaults
 	const branding = $derived(
 		(data as any).branding || {
-			library_name: 'Library Catalog System',
+			library_name: 'Chomp Chomp Library Catalog',
 			primary_color: '#e73b42',
 			secondary_color: '#667eea',
 			accent_color: '#2c3e50',

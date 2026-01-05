@@ -9,7 +9,7 @@ CREATE TABLE branding_configuration (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Library identity
-  library_name VARCHAR(255) DEFAULT 'Library Catalog',
+  library_name VARCHAR(255) DEFAULT 'Chomp Chomp Library Catalog',
   library_tagline VARCHAR(255),
 
   -- Logo
@@ -131,7 +131,7 @@ INSERT INTO branding_configuration (
   accent_color,
   is_active
 ) VALUES (
-  'Library Catalog',
+  'Chomp Chomp Library Catalog',
   'Explore our collection',
   '#e73b42',
   '#667eea',
