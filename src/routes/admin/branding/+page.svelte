@@ -80,14 +80,25 @@
 					<h2>Logos & Icons</h2>
 
 					<div class="form-group">
-						<label for="logo_url">Logo URL</label>
+						<label for="logo_url">Navigation Logo URL (optional)</label>
 						<input
 							id="logo_url"
 							type="url"
 							bind:value={branding.logo_url}
 							placeholder="https://example.com/logo.png"
 						/>
-						<small>URL to your library's logo image</small>
+						<small>Logo for site navigation/header (not currently displayed)</small>
+					</div>
+
+					<div class="form-group">
+						<label for="homepage_logo_url">Homepage Hero Logo URL</label>
+						<input
+							id="homepage_logo_url"
+							type="url"
+							bind:value={branding.homepage_logo_url}
+							placeholder="https://example.com/homepage-logo.png"
+						/>
+						<small>Large logo displayed on homepage (currently shown)</small>
 					</div>
 
 					<div class="form-group">
