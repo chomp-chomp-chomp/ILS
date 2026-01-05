@@ -45,7 +45,11 @@
 
 	// Get facet values for a specific facet key
 	function getFacetValues(facetKey: string) {
-		return facets[facetKey] || [];
+		const values = facets[facetKey];
+		if (!values || !Array.isArray(values)) {
+			return [];
+		}
+		return values;
 	}
 </script>
 
