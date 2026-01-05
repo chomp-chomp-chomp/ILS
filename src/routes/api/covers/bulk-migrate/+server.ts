@@ -95,6 +95,19 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			if (error) throw error;
 			records = data || [];
+		} else if (operation === 'fetch-missing') {
+			// Get records with ISBNs but no cover at all (not even in marc_records.cover_image_url)
+			const { data, error } = await supabase
+				.from('marc_records')
+				.select('id, isbn, title_statement')
+				.not('isbn', 'is', null)
+				.is('cover_image_url', null)
+				.limit(batchSize);
+
+			debug.push(`Fetch-missing: Query returned ${data?.length || 0} records with ISBNs but no covers, error: ${error?.message || 'none'}`);
+
+			if (error) throw error;
+			records = data || [];
 		} else if (operation === 'refetch') {
 			// First check total count of records with ISBNs
 			const { count: totalWithISBN } = await supabase
@@ -190,7 +203,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 						.update({ cover_image_url: coverUrl })
 						.eq('id', record.id);
 
-				} else if (operation === 'refetch' && record.isbn) {
+				} else if ((operation === 'refetch' || operation === 'fetch-missing') && record.isbn) {
 					// Try Open Library first, then Google Books as fallback
 					const isbn = record.isbn.replace(/[-\s]/g, '');
 					let imageBuffer: Buffer | null = null;
@@ -338,6 +351,16 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			const { count } = await countQuery;
 			remaining = count || 0;
 			debug.push(`Remaining count: Total with ISBN - Uploaded covers = ${count || 0}`);
+		} else if (operation === 'fetch-missing') {
+			// For fetch-missing: count records with ISBNs but no cover_image_url
+			const { count } = await supabase
+				.from('marc_records')
+				.select('id', { count: 'exact', head: true })
+				.not('isbn', 'is', null)
+				.is('cover_image_url', null);
+
+			remaining = count || 0;
+			debug.push(`Fetch-missing remaining: ${count || 0} records with ISBN but no cover`);
 		}
 
 		return json({
