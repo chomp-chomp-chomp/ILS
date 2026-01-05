@@ -46,18 +46,37 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		// First, get IDs of records that already have ImageKit covers
 		const { data: existingCovers, error: coversError } = await supabase
 			.from('covers')
-			.select('marc_record_id, imagekit_file_id')
+			.select('marc_record_id, imagekit_file_id, source')
 			.eq('is_active', true)
 			.not('imagekit_file_id', 'is', null);
 
 		debug.push(`Covers table query - Error: ${coversError?.message || 'none'}, Records found: ${existingCovers?.length || 0}`);
 
-		// If covers table doesn't have imagekit_file_id column or query fails, just process all
-		const processedIds = (coversError ? [] : existingCovers?.map(c => c.marc_record_id)) || [];
+		// Show breakdown by source
+		if (existingCovers && existingCovers.length > 0) {
+			const sourceCounts = existingCovers.reduce((acc: any, cover: any) => {
+				acc[cover.source] = (acc[cover.source] || 0) + 1;
+				return acc;
+			}, {});
+			debug.push(`Sources breakdown: ${JSON.stringify(sourceCounts)}`);
+		}
 
-		debug.push(`Cover migration - Found ${processedIds.length} records already with ImageKit covers`);
-		if (processedIds.length > 0 && processedIds.length <= 5) {
-			debug.push(`First few processed IDs: ${processedIds.slice(0, 5).join(', ')}`);
+		// For refetch, only skip manually uploaded covers (source='upload')
+		// For migrate, skip all records with ImageKit IDs
+		let processedIds: string[] = [];
+
+		if (coversError) {
+			processedIds = [];
+		} else if (operation === 'refetch') {
+			// Only exclude manually uploaded covers from re-fetch
+			processedIds = existingCovers?.filter((c: any) => c.source === 'upload').map((c: any) => c.marc_record_id) || [];
+			debug.push(`Re-fetch will skip ${processedIds.length} manually uploaded covers`);
+			const canRefetch = existingCovers?.filter((c: any) => c.source !== 'upload').length || 0;
+			debug.push(`${canRefetch} covers from external sources (Open Library, etc.) will be eligible for re-fetch`);
+		} else {
+			// For migrate, skip all with ImageKit IDs
+			processedIds = existingCovers?.map((c: any) => c.marc_record_id) || [];
+			debug.push(`Migration will skip ${processedIds.length} records already with ImageKit covers`);
 		}
 
 		if (operation === 'migrate') {
@@ -84,7 +103,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('isbn', 'is', null);
 
 			debug.push(`Re-fetch: Total records with ISBN = ${totalWithISBN}`);
-			debug.push(`Re-fetch: processedIds count = ${processedIds.length}`);
+			debug.push(`Re-fetch: Excluding ${processedIds.length} manually uploaded covers from re-fetch`);
 
 			// Get records with ISBNs but no ImageKit cover yet
 			let query = supabase
@@ -92,9 +111,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.select('id, isbn, title_statement, cover_image_url')
 				.not('isbn', 'is', null);
 
-			// Exclude already processed records
+			// Exclude manually uploaded covers
 			if (processedIds.length > 0) {
-				debug.push(`Re-fetch: Excluding ${processedIds.length} already processed records`);
 				query = query.not('id', 'in', `(${processedIds.join(',')})`);
 			}
 
