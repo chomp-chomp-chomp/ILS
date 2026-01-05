@@ -28,6 +28,18 @@
 	let refetchLogs = $state<string[]>([]);
 	let refetchBatchSize = $state(10);
 
+	// Fetch missing state
+	let fetchMissingTotal = $state(0);
+	let fetchMissingProcessed = $state(0);
+	let fetchMissingSucceeded = $state(0);
+	let fetchMissingFailed = $state(0);
+	let fetchMissingRemaining = $state(0);
+	let isFetchingMissing = $state(false);
+	let fetchMissingPaused = $state(false);
+	let fetchMissingMessage = $state('');
+	let fetchMissingLogs = $state<string[]>([]);
+	let fetchMissingBatchSize = $state(10);
+
 	// Local upload state
 	let selectedFiles: FileList | null = $state(null);
 	let isUploading = $state(false);
@@ -59,6 +71,16 @@
 
 			refetchRemaining = refetchCount || 0;
 			refetchTotal = refetchCount || 0;
+
+			// Count records with ISBNs but no covers (fetch missing)
+			const { count: fetchMissingCount } = await data.supabase
+				.from('marc_records')
+				.select('id', { count: 'exact', head: true })
+				.not('isbn', 'is', null)
+				.is('cover_image_url', null);
+
+			fetchMissingRemaining = fetchMissingCount || 0;
+			fetchMissingTotal = fetchMissingCount || 0;
 		} catch (error: any) {
 			console.error('Error loading stats:', error);
 		}
@@ -70,6 +92,10 @@
 
 	function addRefetchLog(message: string) {
 		refetchLogs = [message, ...refetchLogs].slice(0, 100);
+	}
+
+	function addFetchMissingLog(message: string) {
+		fetchMissingLogs = [message, ...fetchMissingLogs].slice(0, 100);
 	}
 
 	function addUploadLog(message: string) {
@@ -232,6 +258,82 @@
 	function pauseRefetch() {
 		refetchPaused = true;
 		refetchMessage = 'Pausing re-fetch...';
+	}
+
+	async function startFetchMissing() {
+		isFetchingMissing = true;
+		fetchMissingPaused = false;
+		fetchMissingProcessed = 0;
+		fetchMissingSucceeded = 0;
+		fetchMissingFailed = 0;
+		fetchMissingLogs = [];
+		fetchMissingMessage = 'Fetching missing covers from Open Library...';
+
+		addFetchMissingLog(`Starting fetch-missing with batch size: ${fetchMissingBatchSize}`);
+
+		while (fetchMissingRemaining > 0 && !fetchMissingPaused) {
+			try {
+				const response = await fetch('/api/covers/bulk-migrate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ batchSize: fetchMissingBatchSize, operation: 'fetch-missing' })
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					throw new Error(result.error || 'Fetch-missing failed');
+				}
+
+				fetchMissingProcessed += result.processed;
+				fetchMissingSucceeded += result.succeeded;
+				fetchMissingFailed += result.failed;
+				fetchMissingRemaining = result.remaining;
+
+				// Log debug info from server
+				if (result.debug && result.debug.length > 0) {
+					addFetchMissingLog('🔍 Debug info:');
+					result.debug.forEach((msg: string) => {
+						addFetchMissingLog(`  ${msg}`);
+					});
+				}
+
+				addFetchMissingLog(
+					`Batch complete: ${result.succeeded} succeeded, ${result.failed} failed, ${result.remaining} remaining`
+				);
+
+				// Log individual results
+				result.results?.forEach((r: any) => {
+					if (r.success) {
+						addFetchMissingLog(`✓ Fetched: ${r.title}`);
+					} else {
+						addFetchMissingLog(`✗ Failed: ${r.title} - ${r.error}`);
+					}
+				});
+
+				// Small delay between batches
+				if (fetchMissingRemaining > 0) {
+					await new Promise(resolve => setTimeout(resolve, 500));
+				}
+			} catch (error: any) {
+				fetchMissingMessage = `Error: ${error.message}`;
+				addFetchMissingLog(`❌ Error: ${error.message}`);
+				break;
+			}
+		}
+
+		isFetchingMissing = false;
+		fetchMissingMessage = fetchMissingPaused
+			? 'Fetch-missing paused'
+			: '🎉 Fetch-missing complete!';
+
+		addFetchMissingLog('🎉 Fetch-missing complete!');
+		await loadStats();
+	}
+
+	function pauseFetchMissing() {
+		fetchMissingPaused = true;
+		fetchMissingMessage = 'Pausing fetch-missing...';
 	}
 
 	function handleFileSelect(event: Event) {
@@ -464,6 +566,83 @@
 					<h3>Re-fetch Log</h3>
 					<div class="log-content">
 						{#each refetchLogs as log}
+							<div class="log-entry">{log}</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</section>
+
+		<!-- Fetch Missing Covers -->
+		<section class="operation-card">
+			<div class="card-header">
+				<h2>🔍 Fetch Missing Covers</h2>
+				<p>Fetch covers ONLY for records that don't have any cover yet (from Open Library with Google Books fallback)</p>
+			</div>
+
+			<div class="stats">
+				<div class="stat">
+					<span class="stat-label">Records Missing Covers</span>
+					<span class="stat-value">{fetchMissingTotal.toLocaleString()}</span>
+				</div>
+				<div class="stat">
+					<span class="stat-label">Processed</span>
+					<span class="stat-value">{fetchMissingProcessed.toLocaleString()}</span>
+				</div>
+				<div class="stat success">
+					<span class="stat-label">Succeeded</span>
+					<span class="stat-value">{fetchMissingSucceeded.toLocaleString()}</span>
+				</div>
+				<div class="stat error">
+					<span class="stat-label">Failed</span>
+					<span class="stat-value">{fetchMissingFailed.toLocaleString()}</span>
+				</div>
+				<div class="stat">
+					<span class="stat-label">Remaining</span>
+					<span class="stat-value">{fetchMissingRemaining.toLocaleString()}</span>
+				</div>
+			</div>
+
+			<div class="controls">
+				<div class="batch-size">
+					<label for="fetch-missing-batch">
+						Batch Size:
+						<input
+							id="fetch-missing-batch"
+							type="number"
+							bind:value={fetchMissingBatchSize}
+							min="1"
+							max="50"
+							disabled={isFetchingMissing}
+						/>
+					</label>
+				</div>
+
+				<div class="buttons">
+					{#if !isFetchingMissing}
+						<button
+							class="btn-primary"
+							onclick={startFetchMissing}
+							disabled={fetchMissingRemaining === 0}
+						>
+							Start Fetch Missing
+						</button>
+					{:else}
+						<button class="btn-secondary" onclick={pauseFetchMissing}>Pause</button>
+					{/if}
+					<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
+				</div>
+			</div>
+
+			{#if fetchMissingMessage}
+				<div class="message">{fetchMissingMessage}</div>
+			{/if}
+
+			{#if fetchMissingLogs.length > 0}
+				<div class="logs">
+					<h3>Fetch Missing Log</h3>
+					<div class="log-content">
+						{#each fetchMissingLogs as log}
 							<div class="log-entry">{log}</div>
 						{/each}
 					</div>
