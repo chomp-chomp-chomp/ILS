@@ -55,8 +55,18 @@
 	// Show custom header on all non-admin pages if enabled
 	let showCustomHeader = $derived(branding.show_header === true && !$page.url.pathname.startsWith('/admin'));
 
-	// Show footer on all non-admin pages if enabled
-	let showFooter = $derived(branding.show_powered_by === true && !$page.url.pathname.startsWith('/admin'));
+	// Show footer on all non-admin pages if there's footer content or show_powered_by is enabled
+	let showFooter = $derived(
+		!$page.url.pathname.startsWith('/admin') &&
+		(branding.show_powered_by === true ||
+		 branding.footer_text ||
+		 branding.contact_email ||
+		 branding.contact_phone ||
+		 branding.contact_address ||
+		 branding.facebook_url ||
+		 branding.twitter_url ||
+		 branding.instagram_url)
+	);
 
 	onMount(() => {
 		const { data: authData } = data.supabase.auth.onAuthStateChange(() => {
