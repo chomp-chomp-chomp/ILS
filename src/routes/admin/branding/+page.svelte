@@ -7,6 +7,12 @@
 	let message = $state('');
 	let saving = $state(false);
 
+	// State for new link forms
+	let newHeaderLinkTitle = $state('');
+	let newHeaderLinkUrl = $state('');
+	let newInfoLinkTitle = $state('');
+	let newInfoLinkUrl = $state('');
+
 	async function saveBranding() {
 		saving = true;
 		message = '';
@@ -31,6 +37,40 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	function addHeaderLink() {
+		if (newHeaderLinkTitle && newHeaderLinkUrl) {
+			const maxOrder = branding.header_links?.reduce((max: number, link: any) => Math.max(max, link.order || 0), 0) || 0;
+			branding.header_links = [...(branding.header_links || []), {
+				title: newHeaderLinkTitle,
+				url: newHeaderLinkUrl,
+				order: maxOrder + 1
+			}];
+			newHeaderLinkTitle = '';
+			newHeaderLinkUrl = '';
+		}
+	}
+
+	function removeHeaderLink(index: number) {
+		branding.header_links = branding.header_links.filter((_: any, i: number) => i !== index);
+	}
+
+	function addInfoLink() {
+		if (newInfoLinkTitle && newInfoLinkUrl) {
+			const maxOrder = branding.homepage_info_links?.reduce((max: number, link: any) => Math.max(max, link.order || 0), 0) || 0;
+			branding.homepage_info_links = [...(branding.homepage_info_links || []), {
+				title: newInfoLinkTitle,
+				url: newInfoLinkUrl,
+				order: maxOrder + 1
+			}];
+			newInfoLinkTitle = '';
+			newInfoLinkUrl = '';
+		}
+	}
+
+	function removeInfoLink(index: number) {
+		branding.homepage_info_links = branding.homepage_info_links.filter((_: any, i: number) => i !== index);
 	}
 </script>
 
@@ -387,9 +427,7 @@
 												<button
 													type="button"
 													class="btn-icon"
-													onclick={() => {
-														branding.header_links = branding.header_links.filter((_, i) => i !== index);
-													}}
+													onclick={() => removeHeaderLink(index)}
 													title="Remove link"
 												>
 													🗑️
@@ -404,26 +442,17 @@
 								<input
 									type="text"
 									placeholder="Link title"
-									id="new_header_link_title"
+									bind:value={newHeaderLinkTitle}
 								/>
 								<input
 									type="url"
 									placeholder="URL (e.g., /page or https://...)"
-									id="new_header_link_url"
+									bind:value={newHeaderLinkUrl}
 								/>
 								<button
 									type="button"
 									class="btn-small"
-									onclick={() => {
-										const title = document.getElementById('new_header_link_title').value;
-										const url = document.getElementById('new_header_link_url').value;
-										if (title && url) {
-											const maxOrder = branding.header_links.reduce((max, link) => Math.max(max, link.order || 0), 0);
-											branding.header_links = [...branding.header_links, { title, url, order: maxOrder + 1 }];
-											document.getElementById('new_header_link_title').value = '';
-											document.getElementById('new_header_link_url').value = '';
-										}
-									}}
+									onclick={addHeaderLink}
 								>
 									Add Link
 								</button>
@@ -483,9 +512,7 @@
 												<button
 													type="button"
 													class="btn-icon"
-													onclick={() => {
-														branding.homepage_info_links = branding.homepage_info_links.filter((_, i) => i !== index);
-													}}
+													onclick={() => removeInfoLink(index)}
 													title="Remove link"
 												>
 													🗑️
@@ -500,26 +527,17 @@
 								<input
 									type="text"
 									placeholder="Link title"
-									id="new_info_link_title"
+									bind:value={newInfoLinkTitle}
 								/>
 								<input
 									type="url"
 									placeholder="URL"
-									id="new_info_link_url"
+									bind:value={newInfoLinkUrl}
 								/>
 								<button
 									type="button"
 									class="btn-small"
-									onclick={() => {
-										const title = document.getElementById('new_info_link_title').value;
-										const url = document.getElementById('new_info_link_url').value;
-										if (title && url) {
-											const maxOrder = branding.homepage_info_links.reduce((max, link) => Math.max(max, link.order || 0), 0);
-											branding.homepage_info_links = [...branding.homepage_info_links, { title, url, order: maxOrder + 1 }];
-											document.getElementById('new_info_link_title').value = '';
-											document.getElementById('new_info_link_url').value = '';
-										}
-									}}
+									onclick={addInfoLink}
 								>
 									Add Link
 								</button>
