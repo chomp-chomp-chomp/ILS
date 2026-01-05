@@ -106,6 +106,14 @@
 				migrateFailed += result.failed;
 				migrateRemaining = result.remaining;
 
+				// Log debug info from server
+				if (result.debug && result.debug.length > 0) {
+					addMigrateLog('🔍 Debug info:');
+					result.debug.forEach((msg: string) => {
+						addMigrateLog(`  ${msg}`);
+					});
+				}
+
 				addMigrateLog(
 					`Batch complete: ${result.succeeded} succeeded, ${result.failed} failed, ${result.remaining} remaining`
 				);
@@ -171,6 +179,14 @@
 				refetchSucceeded += result.succeeded;
 				refetchFailed += result.failed;
 				refetchRemaining = result.remaining;
+
+				// Log debug info from server
+				if (result.debug && result.debug.length > 0) {
+					addRefetchLog('🔍 Debug info:');
+					result.debug.forEach((msg: string) => {
+						addRefetchLog(`  ${msg}`);
+					});
+				}
 
 				addRefetchLog(
 					`Batch complete: ${result.succeeded} succeeded, ${result.failed} failed, ${result.remaining} remaining`
