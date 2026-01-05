@@ -62,6 +62,9 @@ WHERE status IS NULL OR visibility IS NULL;
 -- Drop existing public read policy
 DROP POLICY IF EXISTS "Public read access" ON marc_records;
 
+-- Drop policy if it already exists (in case migration is re-run)
+DROP POLICY IF EXISTS "Public read access for active visible records" ON marc_records;
+
 -- Create new public read policy that respects visibility and status
 CREATE POLICY "Public read access for active visible records"
   ON marc_records FOR SELECT
@@ -70,6 +73,9 @@ CREATE POLICY "Public read access for active visible records"
     status = 'active' AND
     visibility = 'public'
   );
+
+-- Drop policy if it already exists
+DROP POLICY IF EXISTS "Staff read access to all records" ON marc_records;
 
 -- Create staff read policy for all records (including archived/staff-only)
 CREATE POLICY "Staff read access to all records"
