@@ -9,11 +9,12 @@ CREATE TABLE branding_configuration (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Library identity
-  library_name VARCHAR(255) DEFAULT 'Library Catalog',
+  library_name VARCHAR(255) DEFAULT 'Chomp Chomp Library Catalog',
   library_tagline VARCHAR(255),
 
-  -- Logo
-  logo_url TEXT,
+  -- Logos
+  logo_url TEXT,  -- Navigation/header logo
+  homepage_logo_url TEXT,  -- Homepage hero logo (separate from nav logo)
   favicon_url TEXT,
 
   -- Colors (hex format)
@@ -126,13 +127,15 @@ CREATE TRIGGER branding_single_active
 INSERT INTO branding_configuration (
   library_name,
   library_tagline,
+  homepage_logo_url,
   primary_color,
   secondary_color,
   accent_color,
   is_active
 ) VALUES (
-  'Library Catalog',
+  'Chomp Chomp Library Catalog',
   'Explore our collection',
+  'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
   '#e73b42',
   '#667eea',
   '#2c3e50',
@@ -141,6 +144,8 @@ INSERT INTO branding_configuration (
 
 COMMENT ON TABLE branding_configuration IS 'Customizable branding and appearance settings for the library catalog';
 COMMENT ON COLUMN branding_configuration.library_name IS 'Name of the library displayed throughout the site';
+COMMENT ON COLUMN branding_configuration.logo_url IS 'Logo URL for navigation/header';
+COMMENT ON COLUMN branding_configuration.homepage_logo_url IS 'Homepage hero logo URL (separate from navigation logo)';
 COMMENT ON COLUMN branding_configuration.primary_color IS 'Main brand color (hex format)';
 COMMENT ON COLUMN branding_configuration.custom_css IS 'Custom CSS to override default styles';
 COMMENT ON COLUMN branding_configuration.is_active IS 'Whether this is the active branding configuration';

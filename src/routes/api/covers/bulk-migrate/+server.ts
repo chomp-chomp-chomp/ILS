@@ -43,13 +43,21 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		let records: any[] = [];
 
 		// First, get IDs of records that already have ImageKit covers
-		const { data: existingCovers } = await supabase
+		const { data: existingCovers, error: coversError } = await supabase
 			.from('covers')
-			.select('marc_record_id')
+			.select('marc_record_id, imagekit_file_id')
 			.eq('is_active', true)
 			.not('imagekit_file_id', 'is', null);
 
-		const processedIds = existingCovers?.map(c => c.marc_record_id) || [];
+		console.log(`Covers table query - Error:`, coversError, `Records found:`, existingCovers?.length || 0);
+
+		// If covers table doesn't have imagekit_file_id column or query fails, just process all
+		const processedIds = (coversError ? [] : existingCovers?.map(c => c.marc_record_id)) || [];
+
+		console.log(`Cover migration - Found ${processedIds.length} records already with ImageKit covers`);
+		if (processedIds.length > 0 && processedIds.length <= 5) {
+			console.log(`First few processed IDs:`, processedIds.slice(0, 5));
+		}
 
 		if (operation === 'migrate') {
 			// Get records with cover_image_url but no ImageKit cover in covers table
@@ -60,7 +68,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude already processed records
 			if (processedIds.length > 0) {
-				query = query.not('id', 'in', `(${processedIds.map(id => `'${id}'`).join(',')})`);
+				query = query.not('id', 'in', `(${processedIds.join(',')})`);
 			}
 
 			const { data, error } = await query.limit(batchSize);
@@ -68,6 +76,15 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			if (error) throw error;
 			records = data || [];
 		} else if (operation === 'refetch') {
+			// First check total count of records with ISBNs
+			const { count: totalWithISBN } = await supabase
+				.from('marc_records')
+				.select('id', { count: 'exact', head: true })
+				.not('isbn', 'is', null);
+
+			console.log(`Re-fetch: Total records with ISBN = ${totalWithISBN}`);
+			console.log(`Re-fetch: processedIds count = ${processedIds.length}`);
+
 			// Get records with ISBNs but no ImageKit cover yet
 			let query = supabase
 				.from('marc_records')
@@ -76,10 +93,13 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude already processed records
 			if (processedIds.length > 0) {
-				query = query.not('id', 'in', `(${processedIds.map(id => `'${id}'`).join(',')})`);
+				console.log(`Re-fetch: Excluding ${processedIds.length} already processed records`);
+				query = query.not('id', 'in', `(${processedIds.join(',')})`);
 			}
 
 			const { data, error } = await query.limit(batchSize);
+
+			console.log(`Re-fetch: Query returned ${data?.length || 0} records, error:`, error);
 
 			if (error) throw error;
 			records = data || [];
@@ -263,7 +283,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('cover_image_url', 'is', null);
 
 			if (updatedProcessedIds.length > 0) {
-				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.map(id => `'${id}'`).join(',')})`);
+				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.join(',')})`);
 			}
 
 			const { count } = await countQuery;
@@ -275,7 +295,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('isbn', 'is', null);
 
 			if (updatedProcessedIds.length > 0) {
-				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.map(id => `'${id}'`).join(',')})`);
+				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.join(',')})`);
 			}
 
 			const { count } = await countQuery;

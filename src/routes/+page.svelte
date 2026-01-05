@@ -5,6 +5,19 @@
 	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
+	// Get branding configuration with fallback
+	const branding = $derived(
+		data.branding || {
+			homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
+			library_name: 'Chomp Chomp Library Catalog',
+			library_tagline: 'Search our collection',
+			show_homepage_info: false,
+			homepage_info_title: '',
+			homepage_info_content: '',
+			homepage_info_links: []
+		}
+	);
+
 	function handleSearch() {
 		if (query.trim()) {
 			goto(`/catalog/search?q=${encodeURIComponent(query)}`);
@@ -21,12 +34,14 @@
 		</div>
 
 		<div class="hero-content">
-			<img
-				src="https://ik.imagekit.io/chompchomp/Chomp_Chomp_logos_5ty_DOfKY.jpeg?updatedAt=1766925051206"
-				alt="Library Logo"
-				class="main-logo"
-			/>
-			<p class="tagline">Search our collection</p>
+			{#if branding.homepage_logo_url}
+				<img
+					src={branding.homepage_logo_url}
+					alt={branding.library_name}
+					class="main-logo"
+				/>
+			{/if}
+			<p class="tagline">{branding.library_tagline || 'Search our collection'}</p>
 
 			<div class="search-box">
 				<input
@@ -44,14 +59,34 @@
 				<a href="/catalog/browse">Browse Collection</a>
 			</div>
 
-			<section class="catalog-info">
-				<h2>What's in this catalog?</h2>
-				<p>
-					This catalog contains bibliographic records for books, serials, audiovisual materials, and electronic resources.
-					Use the search box above to find items by title, author, subject headings, or ISBN.
-					Advanced search options allow for more precise queries using multiple criteria.
-				</p>
-			</section>
+			<!-- Homepage Info Section (if enabled in branding) -->
+			{#if branding.show_homepage_info}
+				<section class="homepage-info">
+					<h2>{branding.homepage_info_title || 'Quick Links'}</h2>
+					{#if branding.homepage_info_content}
+						<div class="info-content">
+							{@html branding.homepage_info_content}
+						</div>
+					{/if}
+					{#if branding.homepage_info_links && branding.homepage_info_links.length > 0}
+						<div class="info-links">
+							{#each branding.homepage_info_links.sort((a, b) => a.order - b.order) as link}
+								<a href={link.url} class="info-link">{link.title}</a>
+							{/each}
+						</div>
+					{/if}
+				</section>
+			{:else}
+				<!-- Default catalog info (shown when homepage info is disabled) -->
+				<section class="catalog-info">
+					<h2>What's in this catalog?</h2>
+					<p>
+						This catalog contains bibliographic records for books, serials, audiovisual materials, and electronic resources.
+						Use the search box above to find items by title, author, subject headings, or ISBN.
+						Advanced search options allow for more precise queries using multiple criteria.
+					</p>
+				</section>
+			{/if}
 		</div>
 	</header>
 </div>
@@ -59,7 +94,7 @@
 <style>
 	.catalog-home {
 		min-height: 100vh;
-		background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+		background: #f5f5f5;
 		padding: 0;
 	}
 
@@ -226,6 +261,61 @@
 		font-size: 0.95rem;
 		line-height: 1.6;
 		margin: 0;
+	}
+
+	/* Homepage Info Section Styles */
+	.homepage-info {
+		max-width: 700px;
+		width: 100%;
+		margin: 3rem auto 0;
+		padding: 2rem;
+		background: rgba(255, 255, 255, 0.85);
+		border-radius: var(--radius-md);
+		border: 1px solid rgba(231, 59, 66, 0.15);
+	}
+
+	.homepage-info h2 {
+		font-size: 1.25rem;
+		color: #e73b42;
+		margin: 0 0 1rem 0;
+		font-weight: 600;
+	}
+
+	.info-content {
+		color: rgba(0, 0, 0, 0.7);
+		font-size: 0.95rem;
+		line-height: 1.6;
+		margin-bottom: 1.5rem;
+	}
+
+	.info-content p {
+		margin: 0.5rem 0;
+	}
+
+	.info-links {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 0.75rem;
+	}
+
+	.info-link {
+		display: block;
+		padding: 0.75rem 1rem;
+		background: white;
+		color: #e73b42;
+		text-decoration: none;
+		border-radius: 6px;
+		border: 1px solid rgba(231, 59, 66, 0.3);
+		font-weight: 500;
+		transition: all 0.2s;
+		text-align: center;
+	}
+
+	.info-link:hover {
+		background: #e73b42;
+		color: white;
+		border-color: #e73b42;
+		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.3);
 	}
 
 	@media (max-width: 768px) {

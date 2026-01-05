@@ -44,6 +44,7 @@
 			const { data: recordsData, error: fetchError } = await data.supabase
 				.from('marc_records')
 				.select('*')
+				.eq('status', 'active')  // Only show active records, not archived or deleted
 				.order('created_at', { ascending: false });
 
 			if (fetchError) throw fetchError;
@@ -296,10 +297,15 @@
 		<div class="actions">
 			<a href="/admin/cataloging/new" class="btn-primary">Create New Record</a>
 			<a href="/admin/cataloging/isbn-lookup" class="btn-secondary">ISBN Lookup</a>
+			<a href="/admin/cataloging/archives" class="btn-secondary">📦 Archives</a>
+			<a href="/admin/cataloging/trash" class="btn-secondary">🗑️ Trash</a>
 			<a href="/admin/cataloging/templates" class="btn-secondary">Templates</a>
 			<a href="/admin/cataloging/marc-import" class="btn-secondary">MARC Import</a>
 			<a href="/admin/cataloging/marc-export" class="btn-secondary">MARC Export</a>
+			<a href="/admin/cataloging/export-csv" class="btn-secondary">📊 Export to CSV</a>
+			<a href="/admin/cataloging/import-csv" class="btn-secondary">📤 Import from CSV</a>
 			<a href="/admin/cataloging/covers/bulk" class="btn-secondary">📷 Manage Covers</a>
+			<a href="/admin/cataloging/holdings/bulk" class="btn-secondary">📦 Bulk Create Holdings</a>
 			{#if duplicates.size > 0}
 				<a href="/admin/cataloging/duplicates" class="btn-duplicates">
 					Manage Duplicates ({duplicates.size})
