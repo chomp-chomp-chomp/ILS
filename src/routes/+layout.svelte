@@ -15,8 +15,10 @@
 	const branding = $derived(
 		(data as any).branding || {
 			library_name: 'Chomp Chomp Library Catalog',
+			library_tagline: '',
 			logo_url: null,
 			homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
+			favicon_url: null,
 			primary_color: '#e73b42',
 			secondary_color: '#667eea',
 			accent_color: '#2c3e50',
@@ -24,11 +26,25 @@
 			text_color: '#333333',
 			font_family: 'system-ui, -apple-system, sans-serif',
 			heading_font: null,
-			favicon_url: null,
 			custom_css: null,
 			custom_head_html: null,
+			footer_text: 'Powered by Open Library System',
+			show_powered_by: false,
+			contact_email: null,
+			contact_phone: null,
+			contact_address: null,
+			facebook_url: null,
+			twitter_url: null,
+			instagram_url: null,
+			show_covers: true,
+			show_facets: true,
+			items_per_page: 20,
 			show_header: false,
-			header_links: []
+			header_links: [],
+			show_homepage_info: false,
+			homepage_info_title: 'Quick Links',
+			homepage_info_content: '',
+			homepage_info_links: []
 		}
 	);
 
