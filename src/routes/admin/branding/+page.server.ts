@@ -12,9 +12,10 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	if (error || !branding) {
 		return {
 			branding: {
-				library_name: 'Library Catalog',
-				library_tagline: null,
+				library_name: 'Chomp Chomp Library Catalog',
+				library_tagline: 'Search our collection',
 				logo_url: null,
+				homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
 				favicon_url: null,
 				primary_color: '#e73b42',
 				secondary_color: '#667eea',
