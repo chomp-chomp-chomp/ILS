@@ -22,8 +22,8 @@
 
 		<div class="hero-content">
 			<img
-				src="https://ik.imagekit.io/chompchomp/Chomp_Chomp_logos_5ty_DOfKY.jpeg?updatedAt=1766925051206"
-				alt="Library Logo"
+				src="https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library"
+				alt="Chomp Chomp Library Catalog"
 				class="main-logo"
 			/>
 			<p class="tagline">Search our collection</p>
