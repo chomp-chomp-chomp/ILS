@@ -10,93 +10,70 @@
 -- Expected execution time: 30-60 seconds (depending on catalog size)
 -- ============================================================================
 
-\echo 'Starting migration application...'
-\echo ''
-
 -- ============================================================================
 -- MIGRATION 1: FACETED SEARCH CONFIGURATION
 -- ============================================================================
 
-\echo 'Migration 1: Creating facet configuration tables...'
-
 -- Create facet_configuration table (if it doesn't exist)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'facet_configuration') THEN
+CREATE TABLE IF NOT EXISTS facet_configuration (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  facet_key VARCHAR(50) NOT NULL UNIQUE,
+  facet_label VARCHAR(100) NOT NULL,
+  facet_description TEXT,
+  source_type VARCHAR(50) NOT NULL,
+  source_field VARCHAR(100) NOT NULL,
+  source_subfield VARCHAR(10),
+  display_type VARCHAR(50) DEFAULT 'checkbox_list',
+  display_order INTEGER DEFAULT 0,
+  is_enabled BOOLEAN DEFAULT true,
+  is_collapsed_by_default BOOLEAN DEFAULT false,
+  show_count BOOLEAN DEFAULT true,
+  max_items INTEGER DEFAULT 10,
+  show_more_threshold INTEGER DEFAULT 5,
+  aggregation_method VARCHAR(50) DEFAULT 'distinct_values',
+  bucket_size INTEGER,
+  custom_ranges JSONB,
+  sort_by VARCHAR(50) DEFAULT 'count_desc',
+  custom_sort_order TEXT[],
+  value_formatter VARCHAR(50),
+  value_format_mapping JSONB,
+  filter_param_name VARCHAR(50),
+  multi_select BOOLEAN DEFAULT true,
+  apply_to_search_field VARCHAR(100),
+  cache_enabled BOOLEAN DEFAULT true,
+  cache_ttl INTEGER DEFAULT 3600,
+  show_only_for_search_types VARCHAR(50)[],
+  min_results_to_show INTEGER DEFAULT 1,
+  public_visible BOOLEAN DEFAULT true,
+  staff_only BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  updated_by UUID REFERENCES auth.users(id)
+);
 
-    CREATE TABLE facet_configuration (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      facet_key VARCHAR(50) NOT NULL UNIQUE,
-      facet_label VARCHAR(100) NOT NULL,
-      facet_description TEXT,
-      source_type VARCHAR(50) NOT NULL,
-      source_field VARCHAR(100) NOT NULL,
-      source_subfield VARCHAR(10),
-      display_type VARCHAR(50) DEFAULT 'checkbox_list',
-      display_order INTEGER DEFAULT 0,
-      is_enabled BOOLEAN DEFAULT true,
-      is_collapsed_by_default BOOLEAN DEFAULT false,
-      show_count BOOLEAN DEFAULT true,
-      max_items INTEGER DEFAULT 10,
-      show_more_threshold INTEGER DEFAULT 5,
-      aggregation_method VARCHAR(50) DEFAULT 'distinct_values',
-      bucket_size INTEGER,
-      custom_ranges JSONB,
-      sort_by VARCHAR(50) DEFAULT 'count_desc',
-      custom_sort_order TEXT[],
-      value_formatter VARCHAR(50),
-      value_format_mapping JSONB,
-      filter_param_name VARCHAR(50),
-      multi_select BOOLEAN DEFAULT true,
-      apply_to_search_field VARCHAR(100),
-      cache_enabled BOOLEAN DEFAULT true,
-      cache_ttl INTEGER DEFAULT 3600,
-      show_only_for_search_types VARCHAR(50)[],
-      min_results_to_show INTEGER DEFAULT 1,
-      public_visible BOOLEAN DEFAULT true,
-      staff_only BOOLEAN DEFAULT false,
-      is_active BOOLEAN DEFAULT true,
-      updated_by UUID REFERENCES auth.users(id)
-    );
-
-    CREATE INDEX idx_facet_config_key ON facet_configuration(facet_key);
-    CREATE INDEX idx_facet_config_enabled ON facet_configuration(is_enabled, is_active);
-    CREATE INDEX idx_facet_config_order ON facet_configuration(display_order) WHERE is_enabled = true AND is_active = true;
-
-    RAISE NOTICE 'Created facet_configuration table';
-  ELSE
-    RAISE NOTICE 'facet_configuration table already exists';
-  END IF;
-END $$;
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_facet_config_key ON facet_configuration(facet_key);
+CREATE INDEX IF NOT EXISTS idx_facet_config_enabled ON facet_configuration(is_enabled, is_active);
+CREATE INDEX IF NOT EXISTS idx_facet_config_order ON facet_configuration(display_order) WHERE is_enabled = true AND is_active = true;
 
 -- Create facet_values_cache table (if it doesn't exist)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'facet_values_cache') THEN
+CREATE TABLE IF NOT EXISTS facet_values_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  facet_key VARCHAR(50) NOT NULL REFERENCES facet_configuration(facet_key) ON DELETE CASCADE,
+  value TEXT NOT NULL,
+  label TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  filter_context JSONB,
+  cached_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  UNIQUE(facet_key, value, filter_context)
+);
 
-    CREATE TABLE facet_values_cache (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      facet_key VARCHAR(50) NOT NULL REFERENCES facet_configuration(facet_key) ON DELETE CASCADE,
-      value TEXT NOT NULL,
-      label TEXT NOT NULL,
-      count INTEGER NOT NULL DEFAULT 0,
-      filter_context JSONB,
-      cached_at TIMESTAMPTZ DEFAULT NOW(),
-      expires_at TIMESTAMPTZ,
-      UNIQUE(facet_key, value, filter_context)
-    );
-
-    CREATE INDEX idx_facet_cache_key ON facet_values_cache(facet_key);
-    CREATE INDEX idx_facet_cache_expires ON facet_values_cache(expires_at);
-    CREATE INDEX idx_facet_cache_context ON facet_values_cache USING gin(filter_context);
-
-    RAISE NOTICE 'Created facet_values_cache table';
-  ELSE
-    RAISE NOTICE 'facet_values_cache table already exists';
-  END IF;
-END $$;
+-- Create cache indexes
+CREATE INDEX IF NOT EXISTS idx_facet_cache_key ON facet_values_cache(facet_key);
+CREATE INDEX IF NOT EXISTS idx_facet_cache_expires ON facet_values_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_facet_cache_context ON facet_values_cache USING gin(filter_context);
 
 -- Enable RLS
 ALTER TABLE facet_configuration ENABLE ROW LEVEL SECURITY;
@@ -129,8 +106,6 @@ CREATE POLICY "Authenticated users can manage cache"
   USING (true)
   WITH CHECK (true);
 
-\echo 'Migration 1: Inserting default facet configurations...'
-
 -- Insert default facets (with conflict handling)
 INSERT INTO facet_configuration (
   facet_key, facet_label, facet_description, source_type, source_field,
@@ -139,21 +114,21 @@ INSERT INTO facet_configuration (
 ) VALUES
   ('material_type', 'Material Type', 'Filter by type of material', 'database_column', 'material_type',
    'checkbox_list', 1, 'distinct_values', 'count_desc', 'material_type',
-   '{"book":"Books","ebook":"E-Books","serial":"Serials/Journals","audiobook":"Audiobooks","dvd":"DVDs","cdrom":"CD-ROMs","electronic":"Electronic Resources","manuscript":"Manuscripts","map":"Maps","music":"Music","visual-material":"Visual Materials"}',
+   '{"book":"Books","ebook":"E-Books","serial":"Serials/Journals","audiobook":"Audiobooks","dvd":"DVDs","cdrom":"CD-ROMs","electronic":"Electronic Resources","manuscript":"Manuscripts","map":"Maps","music":"Music","visual-material":"Visual Materials"}'::jsonb,
    'material_types', 'material_type', 15, true),
 
   ('language', 'Language', 'Filter by language', 'database_column', 'language_code',
    'checkbox_list', 2, 'distinct_values', 'count_desc', 'language_code',
-   '{"eng":"English","spa":"Spanish","fre":"French","ger":"German","ita":"Italian","rus":"Russian","chi":"Chinese","jpn":"Japanese","ara":"Arabic","por":"Portuguese"}',
+   '{"eng":"English","spa":"Spanish","fre":"French","ger":"German","ita":"Italian","rus":"Russian","chi":"Chinese","jpn":"Japanese","ara":"Arabic","por":"Portuguese"}'::jsonb,
    'languages', 'language_code', 10, true),
 
   ('publication_decade', 'Publication Decade', 'Filter by decade', 'marc_field', 'publication_info',
-   'checkbox_list', 3, 'decade_buckets', 10, 'label_desc', NULL,
+   'checkbox_list', 3, 'decade_buckets', 'label_desc', NULL, NULL,
    'publication_decades', 'publication_info->c', 10, true),
 
   ('availability', 'Availability', 'Filter by availability', 'items_field', 'status',
    'checkbox_list', 4, 'distinct_values', 'custom', NULL,
-   '{"available":"Available","checked_out":"Checked Out","unavailable":"Unavailable"}',
+   '{"available":"Available","checked_out":"Checked Out","unavailable":"Unavailable"}'::jsonb,
    'availability', 'items.status', 5, true),
 
   ('location', 'Location', 'Filter by location', 'items_field', 'location',
@@ -164,19 +139,12 @@ ON CONFLICT (facet_key) DO UPDATE SET
   is_enabled = EXCLUDED.is_enabled,
   updated_at = NOW();
 
-\echo 'Migration 1: Facet configuration completed'
-\echo ''
-
 -- ============================================================================
 -- MIGRATION 2: DIACRITIC-INSENSITIVE SEARCH
 -- ============================================================================
 
-\echo 'Migration 2: Enabling diacritic-insensitive search...'
-
 -- Enable unaccent extension
 CREATE EXTENSION IF NOT EXISTS unaccent;
-
-\echo 'Migration 2: Creating diacritic removal functions...'
 
 -- Create diacritic removal function
 CREATE OR REPLACE FUNCTION remove_diacritics(text)
@@ -199,8 +167,6 @@ BEGIN
   RETURN remove_diacritics(query);
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
-
-\echo 'Migration 2: Updating search vector function...'
 
 -- Update search vector function to use diacritic removal
 CREATE OR REPLACE FUNCTION update_marc_search_vector()
@@ -254,13 +220,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-\echo 'Migration 2: Rebuilding search vectors for all records...'
-\echo 'This may take a moment...'
-
 -- Rebuild all search vectors with diacritic-insensitive indexing
+-- This may take a moment for large catalogs
 UPDATE marc_records SET updated_at = NOW();
-
-\echo 'Migration 2: Adding function comments...'
 
 -- Add helpful comments
 COMMENT ON FUNCTION update_marc_search_vector() IS
@@ -272,28 +234,16 @@ COMMENT ON FUNCTION remove_diacritics(text) IS
 COMMENT ON FUNCTION normalize_search_query(text) IS
   'Normalizes search queries by removing diacritics. Use this on user input before searching.';
 
-\echo ''
-\echo '============================================================================'
-\echo 'MIGRATION COMPLETE!'
-\echo '============================================================================'
-\echo ''
-\echo 'Summary of changes:'
-\echo '  ✓ Created facet_configuration table with 5 default facets'
-\echo '  ✓ Created facet_values_cache table for performance'
-\echo '  ✓ Enabled unaccent extension for diacritic removal'
-\echo '  ✓ Created remove_diacritics() and normalize_search_query() functions'
-\echo '  ✓ Updated search_vector function to remove diacritics before indexing'
-\echo '  ✓ Rebuilt search vectors for all existing records'
-\echo ''
-\echo 'Next steps:'
-\echo '  1. Test facets: Visit /catalog/search/results?q=test and check sidebar'
-\echo '  2. Test Unicode search: Search for "Zizek" and verify it finds "Žižek"'
-\echo '  3. Check footer: Visit any public page and scroll to bottom'
-\echo ''
-\echo 'See MIGRATION_INSTRUCTIONS.md for detailed verification steps.'
-\echo '============================================================================'
-
+-- ============================================================================
+-- VERIFICATION QUERY
+-- ============================================================================
 -- Show facet configuration status
+SELECT
+  '✓ Migration complete!' AS status,
+  COUNT(*) AS total_facets_created
+FROM facet_configuration
+WHERE is_enabled = true;
+
 SELECT
   facet_key,
   facet_label,
