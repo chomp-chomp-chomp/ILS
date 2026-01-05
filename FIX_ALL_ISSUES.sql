@@ -33,7 +33,35 @@ SET
 WHERE is_active = true;
 
 -- ============================================================================
--- PART 2: FACETED SEARCH CONFIGURATION
+-- PART 2: ADD MISSING MARC_RECORDS COLUMNS
+-- ============================================================================
+
+-- Add language_code column (used by language facet)
+ALTER TABLE marc_records
+  ADD COLUMN IF NOT EXISTS language_code VARCHAR(10);
+
+-- Add status column (used for filtering active/inactive records)
+ALTER TABLE marc_records
+  ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+
+-- Add visibility column (used for public/staff-only records)
+ALTER TABLE marc_records
+  ADD COLUMN IF NOT EXISTS visibility VARCHAR(50) DEFAULT 'public';
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_marc_records_language ON marc_records(language_code);
+CREATE INDEX IF NOT EXISTS idx_marc_records_status ON marc_records(status);
+CREATE INDEX IF NOT EXISTS idx_marc_records_visibility ON marc_records(visibility);
+
+-- Set default values for existing records
+UPDATE marc_records
+SET
+  status = COALESCE(status, 'active'),
+  visibility = COALESCE(visibility, 'public')
+WHERE status IS NULL OR visibility IS NULL;
+
+-- ============================================================================
+-- PART 3: FACETED SEARCH CONFIGURATION
 -- ============================================================================
 
 -- Create facet_configuration table (if it doesn't exist)
@@ -162,7 +190,7 @@ ON CONFLICT (facet_key) DO UPDATE SET
   updated_at = NOW();
 
 -- ============================================================================
--- PART 3: DIACRITIC-INSENSITIVE SEARCH
+-- PART 4: DIACRITIC-INSENSITIVE SEARCH
 -- ============================================================================
 
 -- Enable unaccent extension
@@ -287,9 +315,23 @@ ORDER BY display_order;
 
 -- Check for catalog data (to see if facets will have values)
 SELECT
-  'Catalog data check:' AS status,
+  'Catalog data check:' AS info,
   COUNT(*) as total_records,
   COUNT(DISTINCT material_type) as distinct_material_types,
-  COUNT(DISTINCT language_code) as distinct_languages
+  COUNT(DISTINCT language_code) as distinct_languages,
+  COUNT(*) FILTER (WHERE material_type IS NOT NULL) as has_material_type,
+  COUNT(*) FILTER (WHERE language_code IS NOT NULL) as has_language_code
 FROM marc_records
 WHERE status = 'active' AND visibility = 'public';
+
+-- Show sample of what material types exist
+SELECT
+  'Material types in catalog:' AS info,
+  material_type,
+  COUNT(*) as count
+FROM marc_records
+WHERE status = 'active' AND visibility = 'public'
+  AND material_type IS NOT NULL
+GROUP BY material_type
+ORDER BY count DESC
+LIMIT 10;
