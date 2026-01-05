@@ -36,7 +36,13 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 				instagram_url: null,
 				show_covers: true,
 				show_facets: true,
-				items_per_page: 20
+				items_per_page: 20,
+				show_header: false,
+				header_links: [],
+				show_homepage_info: false,
+				homepage_info_title: 'Quick Links',
+				homepage_info_content: '',
+				homepage_info_links: []
 			}
 		};
 	}

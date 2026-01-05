@@ -357,6 +357,177 @@
 					</div>
 				</section>
 
+				<!-- Header Navigation -->
+				<section class="settings-section">
+					<h2>Header Navigation</h2>
+					<p class="section-description">Configure a site-wide header with custom navigation links</p>
+
+					<div class="form-group checkbox">
+						<label>
+							<input type="checkbox" bind:checked={branding.show_header} />
+							Show header navigation on all pages
+						</label>
+					</div>
+
+					{#if branding.show_header}
+						<div class="links-manager">
+							<h3>Header Links</h3>
+							{#if !branding.header_links || branding.header_links.length === 0}
+								<p class="empty-state">No header links yet. Add your first link below.</p>
+							{:else}
+								<div class="links-list">
+									{#each branding.header_links.sort((a, b) => a.order - b.order) as link, index}
+										<div class="link-item">
+											<span class="link-order">{link.order}</span>
+											<div class="link-details">
+												<strong>{link.title}</strong>
+												<small>{link.url}</small>
+											</div>
+											<div class="link-actions">
+												<button
+													type="button"
+													class="btn-icon"
+													onclick={() => {
+														branding.header_links = branding.header_links.filter((_, i) => i !== index);
+													}}
+													title="Remove link"
+												>
+													🗑️
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+
+							<div class="add-link-form">
+								<input
+									type="text"
+									placeholder="Link title"
+									id="new_header_link_title"
+								/>
+								<input
+									type="url"
+									placeholder="URL (e.g., /page or https://...)"
+									id="new_header_link_url"
+								/>
+								<button
+									type="button"
+									class="btn-small"
+									onclick={() => {
+										const title = document.getElementById('new_header_link_title').value;
+										const url = document.getElementById('new_header_link_url').value;
+										if (title && url) {
+											const maxOrder = branding.header_links.reduce((max, link) => Math.max(max, link.order || 0), 0);
+											branding.header_links = [...branding.header_links, { title, url, order: maxOrder + 1 }];
+											document.getElementById('new_header_link_title').value = '';
+											document.getElementById('new_header_link_url').value = '';
+										}
+									}}
+								>
+									Add Link
+								</button>
+							</div>
+						</div>
+					{/if}
+				</section>
+
+				<!-- Homepage Info Section -->
+				<section class="settings-section">
+					<h2>Homepage Info Section</h2>
+					<p class="section-description">Add a customizable info section below the search box on the homepage</p>
+
+					<div class="form-group checkbox">
+						<label>
+							<input type="checkbox" bind:checked={branding.show_homepage_info} />
+							Show info section on homepage
+						</label>
+					</div>
+
+					{#if branding.show_homepage_info}
+						<div class="form-group">
+							<label for="homepage_info_title">Section Title</label>
+							<input
+								id="homepage_info_title"
+								type="text"
+								bind:value={branding.homepage_info_title}
+								placeholder="Quick Links"
+							/>
+						</div>
+
+						<div class="form-group">
+							<label for="homepage_info_content">Content (HTML supported)</label>
+							<textarea
+								id="homepage_info_content"
+								bind:value={branding.homepage_info_content}
+								placeholder="<p>Welcome message or instructions...</p>"
+								rows="4"
+							></textarea>
+							<small>You can use HTML tags for formatting</small>
+						</div>
+
+						<div class="links-manager">
+							<h3>Quick Links</h3>
+							{#if !branding.homepage_info_links || branding.homepage_info_links.length === 0}
+								<p class="empty-state">No links yet. Add helpful links for your users.</p>
+							{:else}
+								<div class="links-list">
+									{#each branding.homepage_info_links.sort((a, b) => a.order - b.order) as link, index}
+										<div class="link-item">
+											<span class="link-order">{link.order}</span>
+											<div class="link-details">
+												<strong>{link.title}</strong>
+												<small>{link.url}</small>
+											</div>
+											<div class="link-actions">
+												<button
+													type="button"
+													class="btn-icon"
+													onclick={() => {
+														branding.homepage_info_links = branding.homepage_info_links.filter((_, i) => i !== index);
+													}}
+													title="Remove link"
+												>
+													🗑️
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+
+							<div class="add-link-form">
+								<input
+									type="text"
+									placeholder="Link title"
+									id="new_info_link_title"
+								/>
+								<input
+									type="url"
+									placeholder="URL"
+									id="new_info_link_url"
+								/>
+								<button
+									type="button"
+									class="btn-small"
+									onclick={() => {
+										const title = document.getElementById('new_info_link_title').value;
+										const url = document.getElementById('new_info_link_url').value;
+										if (title && url) {
+											const maxOrder = branding.homepage_info_links.reduce((max, link) => Math.max(max, link.order || 0), 0);
+											branding.homepage_info_links = [...branding.homepage_info_links, { title, url, order: maxOrder + 1 }];
+											document.getElementById('new_info_link_title').value = '';
+											document.getElementById('new_info_link_url').value = '';
+										}
+									}}
+								>
+									Add Link
+								</button>
+							</div>
+						</div>
+					{/if}
+				</section>
+
 				<!-- Actions -->
 				<div class="form-actions">
 					<button type="submit" class="btn-primary" disabled={saving}>
@@ -688,5 +859,136 @@
 		.preview-panel {
 			position: static;
 		}
+	}
+
+	/* Links Manager Styles */
+	.links-manager {
+		margin-top: 1.5rem;
+		padding: 1.5rem;
+		background: #f9f9f9;
+		border-radius: 8px;
+		border: 1px solid #e0e0e0;
+	}
+
+	.links-manager h3 {
+		margin: 0 0 1rem 0;
+		font-size: 1rem;
+		color: #333;
+	}
+
+	.links-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.link-item {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.75rem;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+	}
+
+	.link-order {
+		display: inline-block;
+		width: 24px;
+		height: 24px;
+		background: #e73b42;
+		color: white;
+		border-radius: 50%;
+		text-align: center;
+		line-height: 24px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+
+	.link-details {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.link-details strong {
+		display: block;
+		font-size: 0.9rem;
+		margin-bottom: 0.25rem;
+		color: #333;
+	}
+
+	.link-details small {
+		display: block;
+		font-size: 0.8rem;
+		color: #666;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.link-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.btn-icon {
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0.25rem;
+		font-size: 1.2rem;
+		transition: transform 0.2s;
+	}
+
+	.btn-icon:hover {
+		transform: scale(1.2);
+	}
+
+	.add-link-form {
+		display: grid;
+		grid-template-columns: 1fr 1fr auto;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.add-link-form input {
+		padding: 0.5rem;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		font-size: 0.9rem;
+	}
+
+	.btn-small {
+		padding: 0.5rem 1rem;
+		background: #e73b42;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.9rem;
+		font-weight: 500;
+		transition: background 0.2s;
+	}
+
+	.btn-small:hover {
+		background: #d32f35;
+	}
+
+	.empty-state {
+		color: #999;
+		font-style: italic;
+		padding: 1rem;
+		text-align: center;
+		background: white;
+		border: 2px dashed #ddd;
+		border-radius: 6px;
+	}
+
+	.section-description {
+		color: #666;
+		font-size: 0.9rem;
+		margin: -0.5rem 0 1rem 0;
 	}
 </style>
