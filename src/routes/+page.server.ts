@@ -11,8 +11,16 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		.eq('is_published', true)
 		.single();
 
+	// Fetch branding configuration for homepage logo
+	const { data: branding } = await supabase
+		.from('branding_configuration')
+		.select('homepage_logo_url, library_name, library_tagline')
+		.eq('is_active', true)
+		.single();
+
 	return {
 		session,
-		homepage: homepage || null
+		homepage: homepage || null,
+		branding: branding || null
 	};
 };

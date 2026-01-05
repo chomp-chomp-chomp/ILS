@@ -5,6 +5,15 @@
 	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
+	// Get branding configuration with fallback
+	const branding = $derived(
+		data.branding || {
+			homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
+			library_name: 'Chomp Chomp Library Catalog',
+			library_tagline: 'Search our collection'
+		}
+	);
+
 	function handleSearch() {
 		if (query.trim()) {
 			goto(`/catalog/search?q=${encodeURIComponent(query)}`);
@@ -21,12 +30,14 @@
 		</div>
 
 		<div class="hero-content">
-			<img
-				src="https://ik.imagekit.io/chompchomp/Chomp_Chomp_logos_5ty_DOfKY.jpeg?updatedAt=1766925051206"
-				alt="Library Logo"
-				class="main-logo"
-			/>
-			<p class="tagline">Search our collection</p>
+			{#if branding.homepage_logo_url}
+				<img
+					src={branding.homepage_logo_url}
+					alt={branding.library_name}
+					class="main-logo"
+				/>
+			{/if}
+			<p class="tagline">{branding.library_tagline || 'Search our collection'}</p>
 
 			<div class="search-box">
 				<input
@@ -59,7 +70,7 @@
 <style>
 	.catalog-home {
 		min-height: 100vh;
-		background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+		background: #f5f5f5;
 		padding: 0;
 	}
 
