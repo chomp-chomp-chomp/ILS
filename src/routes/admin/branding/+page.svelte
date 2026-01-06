@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 
 	let { data }: { data: PageData } = $props();
 
 	let branding = $state({ ...data.branding });
 	let message = $state('');
 	let saving = $state(false);
+	let validationErrors = $state<string[]>([]);
 
 	// State for new link forms
 	let newHeaderLinkTitle = $state('');
@@ -13,20 +15,86 @@
 	let newInfoLinkTitle = $state('');
 	let newInfoLinkUrl = $state('');
 
+	// Validation function for hex color format
+	function isValidHexColor(color: string): boolean {
+		if (!color) return true; // Allow empty
+		return /^#[0-9A-Fa-f]{6}$/.test(color);
+	}
+
+	// Validate branding data before saving
+	function validateBranding(): string[] {
+		const errors: string[] = [];
+
+		// Validate footer text (if show_powered_by is true, footer_text should not be empty)
+		if (branding.show_powered_by && (!branding.footer_text || branding.footer_text.trim() === '')) {
+			errors.push('Footer text is required when "Show Powered By" is enabled');
+		}
+
+		// Validate color fields
+		const colorFields = [
+			{ key: 'primary_color', label: 'Primary Color' },
+			{ key: 'secondary_color', label: 'Secondary Color' },
+			{ key: 'accent_color', label: 'Accent Color' },
+			{ key: 'background_color', label: 'Background Color' },
+			{ key: 'text_color', label: 'Text Color' }
+		];
+
+		for (const field of colorFields) {
+			const color = branding[field.key];
+			if (color && !isValidHexColor(color)) {
+				errors.push(`${field.label} must be in hex format (#rrggbb)`);
+			}
+		}
+
+		// Validate items per page
+		if (branding.items_per_page < 5 || branding.items_per_page > 100) {
+			errors.push('Items per page must be between 5 and 100');
+		}
+
+		return errors;
+	}
+
 	async function saveBranding() {
 		saving = true;
 		message = '';
+		validationErrors = [];
+
+		// Client-side validation
+		const errors = validateBranding();
+		if (errors.length > 0) {
+			validationErrors = errors;
+			message = 'Please fix validation errors before saving';
+			saving = false;
+			return;
+		}
 
 		try {
+			// Get the current session and access token
+			const { data: sessionData } = await supabase.auth.getSession();
+			const accessToken = sessionData?.session?.access_token;
+
+			if (!accessToken) {
+				throw new Error('Not authenticated. Please log in again.');
+			}
+
+			// Make request with Authorization header
 			const response = await fetch('/api/branding', {
 				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${accessToken}`
+				},
 				body: JSON.stringify(branding)
 			});
 
 			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.message || 'Failed to save branding');
+				const errorData = await response.json();
+				// Handle validation errors array
+				if (errorData.errors && Array.isArray(errorData.errors)) {
+					validationErrors = errorData.errors;
+					throw new Error(errorData.message || 'Validation failed');
+				}
+				throw new Error(errorData.message || 'Failed to save branding');
 			}
 
 			message = 'Branding settings saved successfully!';
@@ -41,8 +109,11 @@
 
 	function addHeaderLink() {
 		if (newHeaderLinkTitle && newHeaderLinkUrl) {
-			const maxOrder = branding.header_links?.reduce((max: number, link: any) => Math.max(max, link.order || 0), 0) || 0;
-			branding.header_links = [...(branding.header_links || []), {
+			const links = branding.header_links || [];
+			const maxOrder = Array.isArray(links) 
+				? links.reduce((max: number, link: any) => Math.max(max, link.order || 0), 0)
+				: 0;
+			branding.header_links = [...links, {
 				title: newHeaderLinkTitle,
 				url: newHeaderLinkUrl,
 				order: maxOrder + 1
@@ -53,13 +124,19 @@
 	}
 
 	function removeHeaderLink(index: number) {
-		branding.header_links = branding.header_links.filter((_: any, i: number) => i !== index);
+		const links = branding.header_links || [];
+		branding.header_links = Array.isArray(links) 
+			? links.filter((_: any, i: number) => i !== index)
+			: [];
 	}
 
 	function addInfoLink() {
 		if (newInfoLinkTitle && newInfoLinkUrl) {
-			const maxOrder = branding.homepage_info_links?.reduce((max: number, link: any) => Math.max(max, link.order || 0), 0) || 0;
-			branding.homepage_info_links = [...(branding.homepage_info_links || []), {
+			const links = branding.homepage_info_links || [];
+			const maxOrder = Array.isArray(links)
+				? links.reduce((max: number, link: any) => Math.max(max, link.order || 0), 0)
+				: 0;
+			branding.homepage_info_links = [...links, {
 				title: newInfoLinkTitle,
 				url: newInfoLinkUrl,
 				order: maxOrder + 1
@@ -70,7 +147,10 @@
 	}
 
 	function removeInfoLink(index: number) {
-		branding.homepage_info_links = branding.homepage_info_links.filter((_: any, i: number) => i !== index);
+		const links = branding.homepage_info_links || [];
+		branding.homepage_info_links = Array.isArray(links)
+			? links.filter((_: any, i: number) => i !== index)
+			: [];
 	}
 </script>
 
@@ -83,6 +163,17 @@
 	{#if message}
 		<div class="message" class:success={message.includes('success')} class:error={!message.includes('success')}>
 			{message}
+		</div>
+	{/if}
+
+	{#if validationErrors.length > 0}
+		<div class="message error">
+			<strong>Validation Errors:</strong>
+			<ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+				{#each validationErrors as error}
+					<li>{error}</li>
+				{/each}
+			</ul>
 		</div>
 	{/if}
 
