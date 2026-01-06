@@ -55,9 +55,18 @@
 	// Show custom header on all non-admin pages if enabled
 	let showCustomHeader = $derived(branding.show_header === true && !$page.url.pathname.startsWith('/admin'));
 
-	// Hide footer until branding admin is fully working
-	// TODO: Re-enable once branding database columns are confirmed working
-	let showFooter = $derived(false);
+	// Show footer on non-admin pages if there's any footer content
+	let showFooter = $derived(
+		!$page.url.pathname.startsWith('/admin') &&
+		(branding.show_powered_by === true ||
+		 branding.footer_text ||
+		 branding.contact_email ||
+		 branding.contact_phone ||
+		 branding.contact_address ||
+		 branding.facebook_url ||
+		 branding.twitter_url ||
+		 branding.instagram_url)
+	);
 
 	onMount(() => {
 		const { data: authData } = data.supabase.auth.onAuthStateChange(() => {
