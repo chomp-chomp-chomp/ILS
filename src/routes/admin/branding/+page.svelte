@@ -416,7 +416,7 @@
 								<p class="empty-state">No header links yet. Add your first link below.</p>
 							{:else}
 								<div class="links-list">
-									{#each branding.header_links.sort((a, b) => a.order - b.order) as link, index}
+									{#each [...branding.header_links].sort((a, b) => a.order - b.order) as link, index}
 										<div class="link-item">
 											<span class="link-order">{link.order}</span>
 											<div class="link-details">
@@ -501,7 +501,7 @@
 								<p class="empty-state">No links yet. Add helpful links for your users.</p>
 							{:else}
 								<div class="links-list">
-									{#each branding.homepage_info_links.sort((a, b) => a.order - b.order) as link, index}
+									{#each [...branding.homepage_info_links].sort((a, b) => a.order - b.order) as link, index}
 										<div class="link-item">
 											<span class="link-order">{link.order}</span>
 											<div class="link-details">
