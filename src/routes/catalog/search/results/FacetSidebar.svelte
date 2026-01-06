@@ -67,13 +67,18 @@
 					<div class="facet-list">
 						{#if config.display_type === 'checkbox_list'}
 							{#each facetValues as facet}
-								{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
+								{@const displayLabel = (() => {
+									const raw = facet.label ?? facet.value ?? 'Unknown';
+									const text = String(raw).trim();
+									return text || 'Unknown';
+								})()}
 								<label class="facet-item">
 									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 									<input
 										type="checkbox"
 										checked={isSelected(config.filter_param_name, facet.value)}
-										onchange={() => toggleFacet(config.filter_param_name, facet.value)}
+										onchange={() => toggleFacet(config.filter_param_name, facet.value ?? displayLabel)}
+										aria-label={displayLabel}
 									/>
 									<span class="facet-label">{displayLabel}</span>
 									{#if config.show_count}
@@ -84,7 +89,11 @@
 						{:else if config.display_type === 'date_range'}
 							<!-- Date range slider or buttons -->
 							{#each facetValues as facet}
-								{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
+								{@const displayLabel = (() => {
+									const raw = facet.label ?? facet.value ?? 'Unknown';
+									const text = String(raw).trim();
+									return text || 'Unknown';
+								})()}
 								<button
 									class="facet-year-button"
 									onclick={() => {
@@ -112,11 +121,15 @@
 							<!-- Tag cloud view -->
 							<div class="tag-cloud">
 								{#each facetValues as facet}
-									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
+									{@const displayLabel = (() => {
+										const raw = facet.label ?? facet.value ?? 'Unknown';
+										const text = String(raw).trim();
+										return text || 'Unknown';
+									})()}
 									<button
 										class="tag-item"
 										class:selected={isSelected(config.filter_param_name, facet.value)}
-										onclick={() => toggleFacet(config.filter_param_name, facet.value)}
+										onclick={() => toggleFacet(config.filter_param_name, facet.value ?? displayLabel)}
 									>
 										{displayLabel}
 										{#if config.show_count}
