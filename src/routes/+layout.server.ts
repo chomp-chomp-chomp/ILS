@@ -1,7 +1,12 @@
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabase }, cookies }) => {
+export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabase }, cookies, setHeaders }) => {
   const { session } = await safeGetSession();
+
+  // Disable caching for branding data - always fetch fresh
+  setHeaders({
+    'cache-control': 'no-cache, no-store, must-revalidate'
+  });
 
   // Fetch active branding configuration with error handling
   const { data: branding, error: brandingError } = await supabase
