@@ -73,7 +73,13 @@
 					<div class="facet-list">
 						{#if config.display_type === 'checkbox_list'}
 							{#each facetValues as facet}
+								{@const displayLabel = (() => {
+									const raw = facet.label ?? facet.value ?? 'Unknown';
+									const text = String(raw).trim();
+									return text || 'Unknown';
+								})()}
 								<label class="facet-item">
+									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 									<input
 										type="checkbox"
 										checked={isSelected(config.filter_param_name, facet.value)}
@@ -90,6 +96,11 @@
 						{:else if config.display_type === 'date_range'}
 							<!-- Date range slider or buttons -->
 							{#each facetValues as facet}
+								{@const displayLabel = (() => {
+									const raw = facet.label ?? facet.value ?? 'Unknown';
+									const text = String(raw).trim();
+									return text || 'Unknown';
+								})()}
 								<button
 									class="facet-year-button"
 									onclick={() => {
@@ -117,6 +128,11 @@
 							<!-- Tag cloud view -->
 							<div class="tag-cloud">
 								{#each facetValues as facet}
+									{@const displayLabel = (() => {
+										const raw = facet.label ?? facet.value ?? 'Unknown';
+										const text = String(raw).trim();
+										return text || 'Unknown';
+									})()}
 									<button
 										class="tag-item"
 										class:selected={isSelected(config.filter_param_name, facet.value)}
