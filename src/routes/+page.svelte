@@ -70,7 +70,7 @@
 					{/if}
 					{#if branding.homepage_info_links && branding.homepage_info_links.length > 0}
 						<div class="info-links">
-							{#each branding.homepage_info_links.sort((a, b) => a.order - b.order) as link}
+							{#each [...branding.homepage_info_links].sort((a, b) => a.order - b.order) as link}
 								<a href={link.url} class="info-link">{link.title}</a>
 							{/each}
 						</div>
