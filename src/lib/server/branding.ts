@@ -32,7 +32,9 @@ export async function loadActiveBranding(
 		.from('branding_configuration')
 		.select('*')
 		.eq('is_active', true)
-		.single();
+		.order('updated_at', { ascending: false })
+		.limit(1)
+		.maybeSingle();
 
 	if (error) {
 		console.error('Error loading branding configuration:', error);
