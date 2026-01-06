@@ -32,9 +32,6 @@ export async function loadActiveBranding(
 		.from('branding_configuration')
 		.select('*')
 		.eq('is_active', true)
-		.order('updated_at', { ascending: false })
-		.limit(1)
-		.maybeSingle();
 		.single();
 
 	if (error) {
