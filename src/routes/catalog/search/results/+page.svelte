@@ -26,8 +26,7 @@
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let showCovers = $state(true);
-	// Honor branding toggle for facets; default to true unless explicitly disabled
-	const facetsEnabled = $derived(($page.data as any)?.branding?.show_facets !== false);
+	let showFacets = $derived((data as any)?.branding?.show_facets !== false);
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -451,7 +450,7 @@
 	<header class="search-header" role="banner">
 		<div class="header-top">
 			<h1 id="results-heading">Search Results</h1>
-			{#if facetsEnabled}
+			{#if showFacets}
 				<button
 					class="mobile-filter-toggle"
 					onclick={toggleMobileFilters}
@@ -650,7 +649,7 @@
 	<!-- Main Content Area -->
 	<div class="content-wrapper">
 		<!-- Sidebar with Facets -->
-		{#if facetsEnabled}
+		{#if showFacets}
 			<aside class="sidebar" class:mobile-open={mobileFiltersOpen}>
 				<div class="sidebar-header">
 					<h2>Refine Results</h2>
@@ -920,7 +919,7 @@
 </div>
 
 <!-- Mobile filter overlay -->
-{#if facetsEnabled && mobileFiltersOpen}
+{#if showFacets && mobileFiltersOpen}
 	<div class="mobile-overlay" onclick={toggleMobileFilters}></div>
 {/if}
 
