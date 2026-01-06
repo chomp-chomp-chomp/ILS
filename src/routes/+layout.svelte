@@ -69,8 +69,14 @@
 	// Show custom header on all non-admin pages if enabled
 	let showCustomHeader = $derived(branding.show_header === true && !$page.url.pathname.startsWith('/admin'));
 
-// Temporarily hide footer on all pages (branding footer rendering is paused)
-let showFooter = $derived(false);
+	// Temporary kill-switch while the admin branding toggle is unreliable
+	const FOOTER_TEMPORARILY_DISABLED = true;
+	let showFooter = $derived(
+		branding.show_powered_by === true &&
+			!!branding.footer_text &&
+			!$page.url.pathname.startsWith('/admin') &&
+			!FOOTER_TEMPORARILY_DISABLED
+	);
 
 	onMount(() => {
 		const { data: authData } = data.supabase.auth.onAuthStateChange(() => {
