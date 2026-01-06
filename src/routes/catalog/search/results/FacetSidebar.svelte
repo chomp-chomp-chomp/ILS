@@ -68,12 +68,13 @@
 						{#if config.display_type === 'checkbox_list'}
 							{#each facetValues as facet}
 								<label class="facet-item">
+									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 									<input
 										type="checkbox"
 										checked={isSelected(config.filter_param_name, facet.value)}
 										onchange={() => toggleFacet(config.filter_param_name, facet.value)}
 									/>
-									<span class="facet-label">{facet.label}</span>
+									<span class="facet-label">{displayLabel}</span>
 									{#if config.show_count}
 										<span class="facet-count">{facet.count.toLocaleString()}</span>
 									{/if}
@@ -82,6 +83,7 @@
 						{:else if config.display_type === 'date_range'}
 							<!-- Date range slider or buttons -->
 							{#each facetValues as facet}
+								{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 								<button
 									class="facet-year-button"
 									onclick={() => {
@@ -99,7 +101,7 @@
 										}
 									}}
 								>
-									<span class="facet-label">{facet.label}</span>
+									<span class="facet-label">{displayLabel}</span>
 									{#if config.show_count}
 										<span class="facet-count">{facet.count.toLocaleString()}</span>
 									{/if}
@@ -109,12 +111,13 @@
 							<!-- Tag cloud view -->
 							<div class="tag-cloud">
 								{#each facetValues as facet}
+									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 									<button
 										class="tag-item"
 										class:selected={isSelected(config.filter_param_name, facet.value)}
 										onclick={() => toggleFacet(config.filter_param_name, facet.value)}
 									>
-										{facet.label}
+										{displayLabel}
 										{#if config.show_count}
 											<span class="tag-count">({facet.count})</span>
 										{/if}
