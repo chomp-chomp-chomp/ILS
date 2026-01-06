@@ -79,7 +79,6 @@
 									return text || 'Unknown';
 								})()}
 								<label class="facet-item">
-									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 									<input
 										type="checkbox"
 										checked={isSelected(config.filter_param_name, facet.value)}
