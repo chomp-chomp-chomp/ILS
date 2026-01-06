@@ -67,13 +67,19 @@
 					<div class="facet-list">
 						{#if config.display_type === 'checkbox_list'}
 							{#each facetValues as facet}
+								{@const displayLabel = (() => {
+									const raw = facet.label ?? facet.value ?? 'Unknown';
+									const text = String(raw).trim();
+									return text || 'Unknown';
+								})()}
 								<label class="facet-item">
 									<input
 										type="checkbox"
 										checked={isSelected(config.filter_param_name, facet.value)}
-										onchange={() => toggleFacet(config.filter_param_name, facet.value)}
+										onchange={() => toggleFacet(config.filter_param_name, facet.value ?? displayLabel)}
+										aria-label={displayLabel}
 									/>
-									<span class="facet-label">{facet.label}</span>
+									<span class="facet-label">{displayLabel}</span>
 									{#if config.show_count}
 										<span class="facet-count">{facet.count.toLocaleString()}</span>
 									{/if}
@@ -82,6 +88,11 @@
 						{:else if config.display_type === 'date_range'}
 							<!-- Date range slider or buttons -->
 							{#each facetValues as facet}
+								{@const displayLabel = (() => {
+									const raw = facet.label ?? facet.value ?? 'Unknown';
+									const text = String(raw).trim();
+									return text || 'Unknown';
+								})()}
 								<button
 									class="facet-year-button"
 									onclick={() => {
@@ -99,7 +110,7 @@
 										}
 									}}
 								>
-									<span class="facet-label">{facet.label}</span>
+									<span class="facet-label">{displayLabel}</span>
 									{#if config.show_count}
 										<span class="facet-count">{facet.count.toLocaleString()}</span>
 									{/if}
@@ -109,12 +120,17 @@
 							<!-- Tag cloud view -->
 							<div class="tag-cloud">
 								{#each facetValues as facet}
+									{@const displayLabel = (() => {
+										const raw = facet.label ?? facet.value ?? 'Unknown';
+										const text = String(raw).trim();
+										return text || 'Unknown';
+									})()}
 									<button
 										class="tag-item"
 										class:selected={isSelected(config.filter_param_name, facet.value)}
-										onclick={() => toggleFacet(config.filter_param_name, facet.value)}
+										onclick={() => toggleFacet(config.filter_param_name, facet.value ?? displayLabel)}
 									>
-										{facet.label}
+										{displayLabel}
 										{#if config.show_count}
 											<span class="tag-count">({facet.count})</span>
 										{/if}
