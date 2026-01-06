@@ -26,7 +26,10 @@
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let showCovers = $state(true);
-	let showFacets = $derived((data as any)?.branding?.show_facets !== false);
+	const FACETS_TEMPORARILY_DISABLED = true;
+	let showFacets = $derived(
+		!FACETS_TEMPORARILY_DISABLED && (data as any)?.branding?.show_facets !== false
+	);
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -647,7 +650,7 @@
 	{/if}
 
 	<!-- Main Content Area -->
-	<div class="content-wrapper">
+	<div class="content-wrapper" class:no-facets={!showFacets}>
 		<!-- Sidebar with Facets -->
 		{#if showFacets}
 			<aside class="sidebar" class:mobile-open={mobileFiltersOpen}>
@@ -1150,20 +1153,6 @@
 		min-height: 100vh;
 	}
 
-	/* Temporary CSS kill-switch: hide facets UI entirely */
-	.sidebar {
-		display: none !important;
-	}
-
-	.content-wrapper {
-		display: grid;
-		grid-template-columns: 1fr !important;
-	}
-
-	.mobile-filter-toggle {
-		display: none !important;
-	}
-
 	.search-header {
 		margin-bottom: 2rem;
 	}
@@ -1588,6 +1577,10 @@
 		display: grid;
 		grid-template-columns: 280px 1fr;
 		gap: 2rem;
+	}
+
+	.content-wrapper.no-facets {
+		grid-template-columns: 1fr;
 	}
 
 	.sidebar {
