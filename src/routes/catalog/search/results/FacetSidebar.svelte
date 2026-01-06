@@ -67,6 +67,7 @@
 					<div class="facet-list">
 						{#if config.display_type === 'checkbox_list'}
 							{#each facetValues as facet}
+								{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 								<label class="facet-item">
 									{@const displayLabel = facet.label?.trim() || facet.value?.trim() || 'Unknown'}
 									<input

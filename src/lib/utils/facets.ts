@@ -285,15 +285,14 @@ function formatFacetValues(counts: Map<string, number>, config: FacetConfig): Fa
 	let facets: Facet[] = Array.from(counts.entries())
 		.map(([value, count]) => {
 			const stringValue = String(value ?? '').trim();
+			if (!stringValue) return null;
 
 			const formattedLabel = formatValue(stringValue, config);
-			const safeLabel = formattedLabel?.trim()?.length
-				? formattedLabel
-				: stringValue || 'Unknown';
+			const safeLabel = formattedLabel?.trim()?.length ? formattedLabel : stringValue;
 
 			return {
-				value: stringValue || 'Unknown',
-				label: safeLabel,
+				value: stringValue,
+				label: safeLabel || 'Unknown',
 				count
 			};
 		})
