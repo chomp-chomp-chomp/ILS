@@ -51,6 +51,12 @@
 		}
 		return values;
 	}
+
+	function getFacetLabel(facet: Facet) {
+		const raw = facet?.label ?? facet?.value ?? 'Unknown';
+		const text = String(raw ?? '').trim();
+		return text || 'Unknown';
+	}
 </script>
 
 <div class="facet-sidebar">
@@ -71,9 +77,11 @@
 									<input
 										type="checkbox"
 										checked={isSelected(config.filter_param_name, facet.value)}
-										onchange={() => toggleFacet(config.filter_param_name, facet.value)}
+										onchange={() =>
+											toggleFacet(config.filter_param_name, facet.value ?? getFacetLabel(facet))}
+										aria-label={getFacetLabel(facet)}
 									/>
-									<span class="facet-label">{facet.label}</span>
+									<span class="facet-label">{getFacetLabel(facet)}</span>
 									{#if config.show_count}
 										<span class="facet-count">{facet.count.toLocaleString()}</span>
 									{/if}
@@ -99,7 +107,7 @@
 										}
 									}}
 								>
-									<span class="facet-label">{facet.label}</span>
+									<span class="facet-label">{getFacetLabel(facet)}</span>
 									{#if config.show_count}
 										<span class="facet-count">{facet.count.toLocaleString()}</span>
 									{/if}
@@ -112,9 +120,10 @@
 									<button
 										class="tag-item"
 										class:selected={isSelected(config.filter_param_name, facet.value)}
-										onclick={() => toggleFacet(config.filter_param_name, facet.value)}
+										onclick={() =>
+											toggleFacet(config.filter_param_name, facet.value ?? getFacetLabel(facet))}
 									>
-										{facet.label}
+										{getFacetLabel(facet)}
 										{#if config.show_count}
 											<span class="tag-count">({facet.count})</span>
 										{/if}
