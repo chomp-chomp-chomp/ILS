@@ -26,8 +26,11 @@
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let showCovers = $state(true);
-	// Temporary kill-switch to hide facets until the blank-label issue is resolved in production
-	const facetsEnabled = false;
+	// Temporary kill-switch while the admin branding toggle is unreliable
+	const FACETS_TEMPORARILY_DISABLED = true;
+	const facetsEnabled = $derived(
+		(($page.data as any)?.branding?.show_facets ?? true) && !FACETS_TEMPORARILY_DISABLED
+	);
 	let exportFields = $state({
 		title: true,
 		author: true,
