@@ -1,13 +1,9 @@
+import { loadActiveBranding } from '$lib/server/branding';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals: { supabase } }) => {
-  // Fetch branding configuration
-  const { data: branding, error } = await supabase
-    .from('branding_configuration')
-    .select('*')
-    .eq('is_active', true)
-    .single();
+  const { branding, error } = await loadActiveBranding(supabase);
 
   return json({
     success: !error,
