@@ -1,18 +1,86 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
+// Validation function for hex color format
+function isValidHexColor(color: string | null | undefined): boolean {
+	if (!color) return true; // Allow null/undefined
+	return /^#[0-9A-Fa-f]{6}$/.test(color);
+}
+
+// Validate branding data
+function validateBrandingData(body: any): string[] {
+	const errors: string[] = [];
+
+	// Validate required field
+	if (!body.library_name || body.library_name.trim() === '') {
+		errors.push('Library name is required');
+	}
+
+	// Validate footer text (if show_powered_by is true, footer_text should not be empty)
+	if (body.show_powered_by && (!body.footer_text || body.footer_text.trim() === '')) {
+		errors.push('Footer text is required when "show_powered_by" is enabled');
+	}
+
+	// Validate color fields
+	const colorFields = [
+		{ key: 'primary_color', label: 'Primary Color' },
+		{ key: 'secondary_color', label: 'Secondary Color' },
+		{ key: 'accent_color', label: 'Accent Color' },
+		{ key: 'background_color', label: 'Background Color' },
+		{ key: 'text_color', label: 'Text Color' }
+	];
+
+	for (const field of colorFields) {
+		const color = body[field.key];
+		if (color && !isValidHexColor(color)) {
+			errors.push(`${field.label} must be in hex format (#rrggbb)`);
+		}
+	}
+
+	// Validate items per page
+	if (body.items_per_page !== undefined && body.items_per_page !== null) {
+		const itemsPerPage = Number(body.items_per_page);
+		if (isNaN(itemsPerPage) || itemsPerPage < 5 || itemsPerPage > 100) {
+			errors.push('Items per page must be between 5 and 100');
+		}
+	}
+
+	// Validate URLs if provided
+	const urlFields = ['logo_url', 'homepage_logo_url', 'favicon_url', 'facebook_url', 'twitter_url', 'instagram_url'];
+	for (const field of urlFields) {
+		const url = body[field];
+		if (url && typeof url === 'string' && url.trim() !== '') {
+			try {
+				new URL(url);
+			} catch {
+				errors.push(`${field.replace('_', ' ')} must be a valid URL`);
+			}
+		}
+	}
+
+	return errors;
+}
+
 export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGetSession } }) => {
 	try {
 		const { session } = await safeGetSession();
 		if (!session) {
-			throw error(401, 'Unauthorized');
+			throw error(401, 'Unauthorized - Authentication required');
 		}
 
 		const body = await request.json();
 
-		// Validate required fields
-		if (!body.library_name) {
-			throw error(400, 'Library name is required');
+		// Validate the branding data
+		const validationErrors = validateBrandingData(body);
+		if (validationErrors.length > 0) {
+			return json(
+				{ 
+					success: false,
+					message: 'Validation failed', 
+					errors: validationErrors 
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Check if an active configuration exists
