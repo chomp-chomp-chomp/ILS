@@ -107,7 +107,7 @@
 					<img src={branding.logo_url} alt={branding.library_name} class="header-logo" />
 				{/if}
 				<div class="header-links">
-					{#each (branding.header_links || []).sort((a, b) => a.order - b.order) as link}
+					{#each [...(branding.header_links || [])].sort((a, b) => a.order - b.order) as link}
 						<a href={link.url} class="header-link">{link.title}</a>
 					{/each}
 				</div>
