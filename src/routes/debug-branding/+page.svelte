@@ -27,28 +27,28 @@
     </div>
 
     <h2 style="margin-top: 30px; color: #333;">Footer Settings</h2>
-    <table style="width: 100%; background: white; border-collapse: collapse; margin: 10px 0;">
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 10px; font-weight: bold; width: 200px;">footer_text:</td>
-        <td style="padding: 10px; background: #f9f9f9;">"{data.branding.footer_text}"</td>
-      </tr>
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 10px; font-weight: bold;">show_powered_by:</td>
-        <td style="padding: 10px; background: #f9f9f9;">{data.branding.show_powered_by}</td>
-      </tr>
-    </table>
+    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+      <div style="padding: 10px; border-bottom: 1px solid #ddd;">
+        <strong>footer_text:</strong><br>
+        <span style="color: #666;">"{data.branding.footer_text}"</span>
+      </div>
+      <div style="padding: 10px;">
+        <strong>show_powered_by:</strong><br>
+        <span style="color: #666;">{data.branding.show_powered_by}</span>
+      </div>
+    </div>
 
     <h2 style="margin-top: 30px; color: #333;">Header Settings</h2>
-    <table style="width: 100%; background: white; border-collapse: collapse; margin: 10px 0;">
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 10px; font-weight: bold; width: 200px;">show_header:</td>
-        <td style="padding: 10px; background: #f9f9f9;">{data.branding.show_header}</td>
-      </tr>
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 10px; font-weight: bold;">header_links count:</td>
-        <td style="padding: 10px; background: #f9f9f9;">{data.branding.header_links?.length || 0}</td>
-      </tr>
-    </table>
+    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+      <div style="padding: 10px; border-bottom: 1px solid #ddd;">
+        <strong>show_header:</strong><br>
+        <span style="color: #666;">{data.branding.show_header}</span>
+      </div>
+      <div style="padding: 10px;">
+        <strong>header_links count:</strong><br>
+        <span style="color: #666;">{data.branding.header_links?.length || 0}</span>
+      </div>
+    </div>
 
     {#if data.branding.header_links && data.branding.header_links.length > 0}
       <h3 style="margin-top: 20px; color: #666;">Header Links:</h3>
