@@ -52,6 +52,20 @@
 		...((data as any).branding || {})
 	});
 
+	// Debug logging - remove after fix
+	$effect(() => {
+		console.log('🔍 DEBUG - Branding data loaded:', {
+			hasData: !!(data as any).branding,
+			footerText: (data as any).branding?.footer_text,
+			showPoweredBy: (data as any).branding?.show_powered_by,
+			showHeader: (data as any).branding?.show_header,
+			headerLinksCount: (data as any).branding?.header_links?.length,
+			merged_footerText: branding.footer_text,
+			merged_showPoweredBy: branding.show_powered_by,
+			merged_showHeader: branding.show_header
+		});
+	});
+
 	// Show custom header on all non-admin pages if enabled
 	let showCustomHeader = $derived(branding.show_header === true && !$page.url.pathname.startsWith('/admin'));
 
