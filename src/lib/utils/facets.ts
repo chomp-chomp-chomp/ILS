@@ -282,11 +282,22 @@ function applyAggregation(value: any, config: FacetConfig): string | null {
  * Format facet values with labels and sorting
  */
 function formatFacetValues(counts: Map<string, number>, config: FacetConfig): Facet[] {
-	let facets: Facet[] = Array.from(counts.entries()).map(([value, count]) => ({
-		value,
-		label: formatValue(value, config),
-		count
-	}));
+	let facets: Facet[] = Array.from(counts.entries())
+		.map(([value, count]) => {
+			const stringValue = String(value ?? '').trim();
+
+			const formattedLabel = formatValue(stringValue, config);
+			const safeLabel = formattedLabel?.trim()?.length
+				? formattedLabel
+				: stringValue || 'Unknown';
+
+			return {
+				value: stringValue || 'Unknown',
+				label: safeLabel,
+				count
+			};
+		})
+		.filter((facet): facet is Facet => facet !== null);
 
 	// Apply sorting
 	facets = sortFacets(facets, config);
