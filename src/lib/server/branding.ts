@@ -35,6 +35,7 @@ export async function loadActiveBranding(
 		.order('updated_at', { ascending: false })
 		.limit(1)
 		.maybeSingle();
+		.single();
 
 	if (error) {
 		console.error('Error loading branding configuration:', error);
