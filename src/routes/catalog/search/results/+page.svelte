@@ -26,6 +26,7 @@
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let showCovers = $state(true);
+	let showFacets = $derived((data as any)?.branding?.show_facets !== false);
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -449,23 +450,25 @@
 	<header class="search-header" role="banner">
 		<div class="header-top">
 			<h1 id="results-heading">Search Results</h1>
-			<button
-				class="mobile-filter-toggle"
-				onclick={toggleMobileFilters}
-				aria-label="Toggle filters"
-				aria-expanded={mobileFiltersOpen}
-				aria-controls="filter-sidebar"
-			>
-				<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-					<path
-						d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-					/>
-				</svg>
-				Filters
-				{#if hasActiveFilters}
-					<span class="filter-badge" aria-label="{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)} active filters">{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)}</span>
-				{/if}
-			</button>
+			{#if showFacets}
+				<button
+					class="mobile-filter-toggle"
+					onclick={toggleMobileFilters}
+					aria-label="Toggle filters"
+					aria-expanded={mobileFiltersOpen}
+					aria-controls="filter-sidebar"
+				>
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+						<path
+							d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+						/>
+					</svg>
+					Filters
+					{#if hasActiveFilters}
+						<span class="filter-badge" aria-label="{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)} active filters">{(data.query.material_types?.length || 0) + (data.query.languages?.length || 0) + (data.query.availability?.length || 0) + (data.query.locations?.length || 0)}</span>
+					{/if}
+				</button>
+			{/if}
 		</div>
 
 		<div class="query-display">
@@ -646,18 +649,20 @@
 	<!-- Main Content Area -->
 	<div class="content-wrapper">
 		<!-- Sidebar with Facets -->
-		<aside class="sidebar" class:mobile-open={mobileFiltersOpen}>
-			<div class="sidebar-header">
-				<h2>Refine Results</h2>
-				<button class="mobile-close" onclick={toggleMobileFilters}>×</button>
-			</div>
-			<FacetSidebar
-				facets={data.facets}
-				facetConfigs={data.facetConfigs}
-				currentFilters={data.query}
-				onFilterChange={updateUrl}
-			/>
-		</aside>
+		{#if showFacets}
+			<aside class="sidebar" class:mobile-open={mobileFiltersOpen}>
+				<div class="sidebar-header">
+					<h2>Refine Results</h2>
+					<button class="mobile-close" onclick={toggleMobileFilters}>×</button>
+				</div>
+				<FacetSidebar
+					facets={data.facets}
+					facetConfigs={data.facetConfigs}
+					currentFilters={data.query}
+					onFilterChange={updateUrl}
+				/>
+			</aside>
+		{/if}
 
 		<!-- Results Area -->
 		<main class="results-area">
@@ -914,7 +919,7 @@
 </div>
 
 <!-- Mobile filter overlay -->
-{#if mobileFiltersOpen}
+{#if showFacets && mobileFiltersOpen}
 	<div class="mobile-overlay" onclick={toggleMobileFilters}></div>
 {/if}
 
