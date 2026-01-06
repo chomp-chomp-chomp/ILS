@@ -26,11 +26,8 @@
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let showCovers = $state(true);
-	// Temporary kill-switch while the admin branding toggle is unreliable
-	const FACETS_TEMPORARILY_DISABLED = true;
-	const facetsEnabled = $derived(
-		(($page.data as any)?.branding?.show_facets ?? true) && !FACETS_TEMPORARILY_DISABLED
-	);
+	// Honor branding toggle for facets; default to true unless explicitly disabled
+	const facetsEnabled = $derived(($page.data as any)?.branding?.show_facets !== false);
 	let exportFields = $state({
 		title: true,
 		author: true,
@@ -652,7 +649,7 @@
 
 	<!-- Main Content Area -->
 	<div class="content-wrapper">
-		<!-- Sidebar with Facets (temporarily disabled) -->
+		<!-- Sidebar with Facets -->
 		{#if facetsEnabled}
 			<aside class="sidebar" class:mobile-open={mobileFiltersOpen}>
 				<div class="sidebar-header">
