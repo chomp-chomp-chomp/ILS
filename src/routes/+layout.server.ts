@@ -9,12 +9,11 @@ export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabas
     'cache-control': 'no-cache, no-store, must-revalidate'
   });
 
-  // loadActiveBranding now always returns merged branding with defaults
   const { branding } = await loadActiveBranding(supabase);
 
   return {
     session,
     cookies: cookies.getAll(),
-    branding
+    branding: branding || null
   };
 };

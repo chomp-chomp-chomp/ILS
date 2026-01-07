@@ -440,6 +440,13 @@
 						</label>
 					</div>
 
+					<div class="form-group checkbox">
+						<label>
+							<input type="checkbox" bind:checked={branding.show_facets} />
+							Show faceted search filters
+						</label>
+					</div>
+
 					<div class="form-group">
 						<label for="items_per_page">Items per page</label>
 						<input
@@ -449,7 +456,6 @@
 							min="5"
 							max="100"
 						/>
-						<small>Note: Faceted search filters are configured in <a href="/admin/search-config" style="color: var(--primary-color);">Search Configuration</a></small>
 					</div>
 				</section>
 

@@ -11,13 +11,65 @@
 	// Determine if we should show the default navigation
 	let showNav = $derived($page.url.pathname !== '/' && !$page.url.pathname.startsWith('/admin'));
 
-	// Branding is now always merged with defaults in server load
-	const branding = $derived((data as any).branding);
+	// Get branding configuration with defaults
+	const defaultBranding = {
+		library_name: 'Chomp Chomp Library Catalog',
+		library_tagline: '',
+		logo_url: null,
+		homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
+		favicon_url: null,
+		primary_color: '#e73b42',
+		secondary_color: '#667eea',
+		accent_color: '#2c3e50',
+		background_color: '#ffffff',
+		text_color: '#333333',
+		font_family: 'system-ui, -apple-system, sans-serif',
+		heading_font: null,
+		custom_css: null,
+		custom_head_html: null,
+		footer_text: 'Powered by Open Library System',
+		show_powered_by: false,
+		contact_email: null,
+		contact_phone: null,
+		contact_address: null,
+		facebook_url: null,
+		twitter_url: null,
+		instagram_url: null,
+		show_covers: true,
+		show_facets: true,
+		items_per_page: 20,
+		show_header: false,
+		header_links: [],
+		show_homepage_info: false,
+		homepage_info_title: 'Quick Links',
+		homepage_info_content: '',
+		homepage_info_links: []
+	};
+
+	// Merge loaded data with defaults
+	const branding = $derived({
+		...defaultBranding,
+		...((data as any).branding || {})
+	});
+
+	// Debug logging - remove after fix
+	$effect(() => {
+		console.log('🔍 DEBUG - Branding data loaded:', {
+			hasData: !!(data as any).branding,
+			footerText: (data as any).branding?.footer_text,
+			showPoweredBy: (data as any).branding?.show_powered_by,
+			showHeader: (data as any).branding?.show_header,
+			headerLinksCount: (data as any).branding?.header_links?.length,
+			merged_footerText: branding.footer_text,
+			merged_showPoweredBy: branding.show_powered_by,
+			merged_showHeader: branding.show_header
+		});
+	});
 
 	// Show custom header on all non-admin pages if enabled
 	let showCustomHeader = $derived(branding.show_header === true && !$page.url.pathname.startsWith('/admin'));
 
-	// Show footer on non-admin pages if enabled - relies solely on branding configuration
+	// Show footer on non-admin pages if enabled
 	let showFooter = $derived(
 		branding.show_powered_by === true &&
 			!!branding.footer_text &&
