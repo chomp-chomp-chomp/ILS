@@ -687,7 +687,7 @@
 								<input
 									type="text"
 									value={config.page_themes?.[pageThemeType]?.text || ''}
-									oninput=(e) =>
+									oninput={(e) =>
 										updatePageTheme(pageThemeType, 'text', e.currentTarget.value)}
 									placeholder="Leave blank for base theme"
 								/>

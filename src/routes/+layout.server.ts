@@ -6,7 +6,7 @@ export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabas
   const { session } = await safeGetSession();
 
   // Load site configuration (new single source of truth)
-  let siteConfig = defaultSiteConfig;
+  let siteConfig: any = defaultSiteConfig;
   
   try {
     const result = await loadActiveSiteConfig(supabase);
@@ -20,7 +20,7 @@ export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabas
 
   // Load branding configuration with extreme defensive coding
   // Keep for backward compatibility temporarily
-  let branding = defaultBranding;
+  let branding: any = defaultBranding;
   
   try {
     const result = await loadActiveBranding(supabase);
