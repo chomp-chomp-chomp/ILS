@@ -65,14 +65,19 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 	try {
 		const { session } = await safeGetSession();
 		if (!session) {
+			console.error('[Branding API] Unauthorized access attempt');
 			throw error(401, 'Unauthorized - Authentication required');
 		}
 
+		console.log('[Branding API] User authenticated:', session.user.id);
+
 		const body = await request.json();
+		console.log('[Branding API] Received update payload:', JSON.stringify(body, null, 2));
 
 		// Validate the branding data
 		const validationErrors = validateBrandingData(body);
 		if (validationErrors.length > 0) {
+			console.error('[Branding API] Validation failed:', validationErrors);
 			return json(
 				{ 
 					success: false,
@@ -84,113 +89,138 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 		}
 
 		// Check if an active configuration exists
-		const { data: existing } = await supabase
+		console.log('[Branding API] Checking for existing active configuration...');
+		const { data: existing, error: existingError } = await supabase
 			.from('branding_configuration')
 			.select('id')
 			.eq('is_active', true)
 			.single();
 
+		if (existingError && existingError.code !== 'PGRST116') {
+			// PGRST116 is "not found" error, which is ok
+			console.error('[Branding API] Error checking existing config:', existingError);
+		}
+
+		console.log('[Branding API] Existing configuration:', existing ? `Found (ID: ${existing.id})` : 'Not found');
+
 		let result;
 
 		if (existing) {
 			// Update existing configuration
+			console.log('[Branding API] Updating existing configuration ID:', existing.id);
+			
+			const updatePayload = {
+				library_name: body.library_name,
+				library_tagline: body.library_tagline || null,
+				logo_url: body.logo_url || null,
+				homepage_logo_url: body.homepage_logo_url || null,
+				favicon_url: body.favicon_url || null,
+				primary_color: body.primary_color || '#e73b42',
+				secondary_color: body.secondary_color || '#667eea',
+				accent_color: body.accent_color || '#2c3e50',
+				background_color: body.background_color || '#ffffff',
+				text_color: body.text_color || '#333333',
+				font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
+				heading_font: body.heading_font || null,
+				custom_css: body.custom_css || null,
+				custom_head_html: body.custom_head_html || null,
+				footer_text: body.footer_text ?? 'Powered by Open Library System',
+				show_powered_by: body.show_powered_by === true,
+				contact_email: body.contact_email || null,
+				contact_phone: body.contact_phone || null,
+				contact_address: body.contact_address || null,
+				facebook_url: body.facebook_url || null,
+				twitter_url: body.twitter_url || null,
+				instagram_url: body.instagram_url || null,
+				show_covers: body.show_covers !== false,
+				items_per_page: body.items_per_page || 20,
+				show_header: body.show_header === true,
+				header_links: body.header_links || [],
+				show_homepage_info: body.show_homepage_info === true,
+				homepage_info_title: body.homepage_info_title || 'Quick Links',
+				homepage_info_content: body.homepage_info_content || null,
+				homepage_info_links: body.homepage_info_links || [],
+				updated_by: session.user.id
+			};
+
+			console.log('[Branding API] Update payload keys:', Object.keys(updatePayload));
+			console.log('[Branding API] show_powered_by value:', updatePayload.show_powered_by);
+			console.log('[Branding API] footer_text value:', updatePayload.footer_text);
+
 			const { data, error: updateError } = await supabase
 				.from('branding_configuration')
-				.update({
-					library_name: body.library_name,
-					library_tagline: body.library_tagline || null,
-					logo_url: body.logo_url || null,
-					homepage_logo_url: body.homepage_logo_url || null,
-					favicon_url: body.favicon_url || null,
-					primary_color: body.primary_color || '#e73b42',
-					secondary_color: body.secondary_color || '#667eea',
-					accent_color: body.accent_color || '#2c3e50',
-					background_color: body.background_color || '#ffffff',
-					text_color: body.text_color || '#333333',
-					font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
-					heading_font: body.heading_font || null,
-					custom_css: body.custom_css || null,
-					custom_head_html: body.custom_head_html || null,
-					footer_text: body.footer_text ?? 'Powered by Open Library System',
-					show_powered_by: body.show_powered_by === true,
-					contact_email: body.contact_email || null,
-					contact_phone: body.contact_phone || null,
-					contact_address: body.contact_address || null,
-					facebook_url: body.facebook_url || null,
-					twitter_url: body.twitter_url || null,
-					instagram_url: body.instagram_url || null,
-					show_covers: body.show_covers !== false,
-					items_per_page: body.items_per_page || 20,
-					show_header: body.show_header === true,
-					header_links: body.header_links || [],
-					show_homepage_info: body.show_homepage_info === true,
-					homepage_info_title: body.homepage_info_title || 'Quick Links',
-					homepage_info_content: body.homepage_info_content || null,
-					homepage_info_links: body.homepage_info_links || [],
-					updated_by: session.user.id
-				})
+				.update(updatePayload)
 				.eq('id', existing.id)
 				.select()
 				.single();
 
 			if (updateError) {
-				console.error('Error updating branding:', updateError);
-				throw error(500, 'Failed to update branding');
+				console.error('[Branding API] Error updating branding:', JSON.stringify(updateError, null, 2));
+				throw error(500, `Failed to update branding: ${updateError.message}`);
 			}
 
+			console.log('[Branding API] Update successful. Returned data:', JSON.stringify(data, null, 2));
 			result = data;
 		} else {
 			// Create new configuration
+			console.log('[Branding API] No existing config found, creating new...');
+			
+			const insertPayload = {
+				library_name: body.library_name,
+				library_tagline: body.library_tagline || null,
+				logo_url: body.logo_url || null,
+				homepage_logo_url: body.homepage_logo_url || null,
+				favicon_url: body.favicon_url || null,
+				primary_color: body.primary_color || '#e73b42',
+				secondary_color: body.secondary_color || '#667eea',
+				accent_color: body.accent_color || '#2c3e50',
+				background_color: body.background_color || '#ffffff',
+				text_color: body.text_color || '#333333',
+				font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
+				heading_font: body.heading_font || null,
+				custom_css: body.custom_css || null,
+				custom_head_html: body.custom_head_html || null,
+				footer_text: body.footer_text ?? 'Powered by Open Library System',
+				show_powered_by: body.show_powered_by === true,
+				contact_email: body.contact_email || null,
+				contact_phone: body.contact_phone || null,
+				contact_address: body.contact_address || null,
+				facebook_url: body.facebook_url || null,
+				twitter_url: body.twitter_url || null,
+				instagram_url: body.instagram_url || null,
+				show_covers: body.show_covers !== false,
+				items_per_page: body.items_per_page || 20,
+				show_header: body.show_header === true,
+				header_links: body.header_links || [],
+				show_homepage_info: body.show_homepage_info === true,
+				homepage_info_title: body.homepage_info_title || 'Quick Links',
+				homepage_info_content: body.homepage_info_content || null,
+				homepage_info_links: body.homepage_info_links || [],
+				is_active: true,
+				updated_by: session.user.id
+			};
+
+			console.log('[Branding API] Insert payload keys:', Object.keys(insertPayload));
+
 			const { data, error: insertError } = await supabase
 				.from('branding_configuration')
-				.insert({
-					library_name: body.library_name,
-					library_tagline: body.library_tagline || null,
-					logo_url: body.logo_url || null,
-					homepage_logo_url: body.homepage_logo_url || null,
-					favicon_url: body.favicon_url || null,
-					primary_color: body.primary_color || '#e73b42',
-					secondary_color: body.secondary_color || '#667eea',
-					accent_color: body.accent_color || '#2c3e50',
-					background_color: body.background_color || '#ffffff',
-					text_color: body.text_color || '#333333',
-					font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
-					heading_font: body.heading_font || null,
-					custom_css: body.custom_css || null,
-					custom_head_html: body.custom_head_html || null,
-					footer_text: body.footer_text ?? 'Powered by Open Library System',
-					show_powered_by: body.show_powered_by === true,
-					contact_email: body.contact_email || null,
-					contact_phone: body.contact_phone || null,
-					contact_address: body.contact_address || null,
-					facebook_url: body.facebook_url || null,
-					twitter_url: body.twitter_url || null,
-					instagram_url: body.instagram_url || null,
-					show_covers: body.show_covers !== false,
-					items_per_page: body.items_per_page || 20,
-					show_header: body.show_header === true,
-					header_links: body.header_links || [],
-					show_homepage_info: body.show_homepage_info === true,
-					homepage_info_title: body.homepage_info_title || 'Quick Links',
-					homepage_info_content: body.homepage_info_content || null,
-					homepage_info_links: body.homepage_info_links || [],
-					is_active: true,
-					updated_by: session.user.id
-				})
+				.insert(insertPayload)
 				.select()
 				.single();
 
 			if (insertError) {
-				console.error('Error creating branding:', insertError);
-				throw error(500, 'Failed to create branding');
+				console.error('[Branding API] Error creating branding:', JSON.stringify(insertError, null, 2));
+				throw error(500, `Failed to create branding: ${insertError.message}`);
 			}
 
+			console.log('[Branding API] Insert successful. Returned data:', JSON.stringify(data, null, 2));
 			result = data;
 		}
 
+		console.log('[Branding API] Operation completed successfully');
 		return json({ success: true, branding: result });
 	} catch (err) {
-		console.error('Branding API error:', err);
+		console.error('[Branding API] Caught exception:', err);
 		if (err instanceof Error && 'status' in err) {
 			throw err;
 		}

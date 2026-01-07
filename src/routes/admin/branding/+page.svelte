@@ -59,14 +59,20 @@
 		message = '';
 		validationErrors = [];
 
+		console.log('[Branding UI] Starting save operation...');
+		console.log('[Branding UI] Current branding state:', JSON.stringify(branding, null, 2));
+
 		// Client-side validation
 		const errors = validateBranding();
 		if (errors.length > 0) {
 			validationErrors = errors;
 			message = 'Please fix validation errors before saving';
 			saving = false;
+			console.error('[Branding UI] Validation errors:', errors);
 			return;
 		}
+
+		console.log('[Branding UI] Validation passed');
 
 		try {
 			// Get the current session and access token
@@ -76,6 +82,8 @@
 			if (!accessToken) {
 				throw new Error('Not authenticated. Please log in again.');
 			}
+
+			console.log('[Branding UI] Authenticated, making API request...');
 
 			// Make request with Authorization header
 			const response = await fetch('/api/branding', {
@@ -87,8 +95,11 @@
 				body: JSON.stringify(branding)
 			});
 
+			console.log('[Branding UI] API response status:', response.status);
+
 			if (!response.ok) {
 				const errorData = await response.json();
+				console.error('[Branding UI] API error response:', errorData);
 				// Handle validation errors array
 				if (errorData.errors && Array.isArray(errorData.errors)) {
 					validationErrors = errorData.errors;
@@ -97,11 +108,14 @@
 				throw new Error(errorData.message || 'Failed to save branding');
 			}
 
+			const responseData = await response.json();
+			console.log('[Branding UI] API success response:', responseData);
+
 			message = 'Branding settings saved successfully!';
 			setTimeout(() => (message = ''), 3000);
 		} catch (error) {
 			message = error instanceof Error ? error.message : 'Error saving branding';
-			console.error('Save error:', error);
+			console.error('[Branding UI] Save error:', error);
 		} finally {
 			saving = false;
 		}
