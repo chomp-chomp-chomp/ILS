@@ -1,16 +1,51 @@
 import { env } from '$env/dynamic/private';
-import { PUBLIC_SUPABASE_URL } from '$env/static/public';
+import { env as publicEnv } from '$env/dynamic/public';
 import { createClient, type SupabaseClient, type PostgrestError } from '@supabase/supabase-js';
+
+// Centralized branding defaults - single source of truth for both admin and public rendering
+export const defaultBranding = {
+	library_name: 'Chomp Chomp Library Catalog',
+	library_tagline: '',
+	logo_url: null,
+	homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
+	favicon_url: null,
+	primary_color: '#e73b42',
+	secondary_color: '#667eea',
+	accent_color: '#2c3e50',
+	background_color: '#ffffff',
+	text_color: '#333333',
+	font_family: 'system-ui, -apple-system, sans-serif',
+	heading_font: null,
+	custom_css: null,
+	custom_head_html: null,
+	footer_text: 'Powered by Open Library System',
+	show_powered_by: false,
+	contact_email: null,
+	contact_phone: null,
+	contact_address: null,
+	facebook_url: null,
+	twitter_url: null,
+	instagram_url: null,
+	show_covers: true,
+	items_per_page: 20,
+	show_header: false,
+	header_links: [],
+	show_homepage_info: false,
+	homepage_info_title: 'Quick Links',
+	homepage_info_content: '',
+	homepage_info_links: []
+} as const;
 
 let serviceClient: SupabaseClient | null = null;
 
 function getBrandingClient(fallback: SupabaseClient) {
 	// Prefer the service role key when available so branding can be read without anon permissions
 	const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+	const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL;
 
-	if (serviceRoleKey) {
+	if (serviceRoleKey && supabaseUrl) {
 		if (!serviceClient) {
-			serviceClient = createClient(PUBLIC_SUPABASE_URL, serviceRoleKey, {
+			serviceClient = createClient(supabaseUrl, serviceRoleKey, {
 				auth: {
 					autoRefreshToken: false,
 					persistSession: false
@@ -25,7 +60,7 @@ function getBrandingClient(fallback: SupabaseClient) {
 
 export async function loadActiveBranding(
 	supabase: SupabaseClient
-): Promise<{ branding: Record<string, any> | null; error: PostgrestError | null }> {
+): Promise<{ branding: Record<string, any>; error: PostgrestError | null }> {
 	const client = getBrandingClient(supabase);
 
 	const { data, error } = await client
@@ -40,8 +75,12 @@ export async function loadActiveBranding(
 		console.error('Error loading branding configuration:', error);
 	}
 
+	// Always return merged branding with defaults
 	return {
-		branding: data || null,
+		branding: {
+			...defaultBranding,
+			...(data || {})
+		},
 		error
 	};
 }

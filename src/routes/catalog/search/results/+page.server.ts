@@ -60,8 +60,11 @@ export interface SearchResult {
 	spellSuggestion?: SpellSuggestion;
 }
 
-export const load: PageServerLoad = async ({ url, locals }) => {
+export const load: PageServerLoad = async ({ url, locals, parent }) => {
 	const supabase = locals.supabase as SupabaseClient;
+	
+	// Get parent layout data (includes branding)
+	const parentData = await parent();
 
 	// Parse query parameters
 	const params: SearchParams = {
@@ -85,8 +88,25 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	};
 
 	try {
-		// Load facet configurations
-		const facetConfigs = await loadFacetConfigs(supabase);
+		// Load facet configurations and search configuration
+		const [facetConfigs, searchConfigResult] = await Promise.all([
+			loadFacetConfigs(supabase),
+			supabase
+				.from('search_configuration')
+				.select('*')
+				.eq('is_active', true)
+				.single()
+		]);
+
+		// Get search config with fallback to default
+		const searchConfig = searchConfigResult.data || {
+			enable_facets: true,
+			facet_material_types: true,
+			facet_languages: true,
+			facet_publication_years: true,
+			facet_locations: true,
+			facet_availability: true
+		};
 
 		// Perform search with dynamic facets
 		const [results, facets] = await Promise.all([
@@ -109,8 +129,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			...results,
 			facets,
 			facetConfigs,
+			searchConfig,
 			query: params,
-			spellSuggestion
+			spellSuggestion,
+			branding: parentData.branding
 		};
 	} catch (error) {
 		console.error('Search error:', error);
@@ -122,6 +144,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			page: params.page || 1,
 			per_page: params.per_page || 20,
 			query: params,
+			branding: parentData.branding,
 			error: error instanceof Error ? error.message : 'Search failed'
 		};
 	}
