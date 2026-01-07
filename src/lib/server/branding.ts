@@ -63,26 +63,40 @@ function getBrandingClient(fallback: SupabaseClient) {
 export async function loadActiveBranding(
 	supabase: SupabaseClient
 ): Promise<{ branding: Record<string, any>; error: PostgrestError | null }> {
-	const client = getBrandingClient(supabase);
+	try {
+		const client = getBrandingClient(supabase);
 
-	const { data, error } = await client
-		.from('branding_configuration')
-		.select('*')
-		.eq('is_active', true)
-		.order('updated_at', { ascending: false })
-		.limit(1)
-		.maybeSingle();
+		const { data, error } = await client
+			.from('branding_configuration')
+			.select('*')
+			.eq('is_active', true)
+			.order('updated_at', { ascending: false })
+			.limit(1)
+			.maybeSingle();
 
-	if (error) {
-		console.error('Error loading branding configuration:', error);
+		if (error) {
+			console.error('Error loading branding configuration:', error);
+			// Return defaults on error
+			return {
+				branding: defaultBranding,
+				error
+			};
+		}
+
+		// Always return merged defaults + database data (never null)
+		return {
+			branding: {
+				...defaultBranding,
+				...(data || {})
+			},
+			error: null
+		};
+	} catch (err) {
+		console.error('Exception in loadActiveBranding:', err);
+		// Return defaults on exception
+		return {
+			branding: defaultBranding,
+			error: null
+		};
 	}
-
-	// Always return merged defaults + database data (never null)
-	return {
-		branding: {
-			...defaultBranding,
-			...(data || {})
-		},
-		error
-	};
 }
