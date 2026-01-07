@@ -88,25 +88,8 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 	};
 
 	try {
-		// Load facet configurations and search configuration
-		const [facetConfigs, searchConfigResult] = await Promise.all([
-			loadFacetConfigs(supabase),
-			supabase
-				.from('search_configuration')
-				.select('*')
-				.eq('is_active', true)
-				.single()
-		]);
-
-		// Get search config with fallback to default
-		const searchConfig = searchConfigResult.data || {
-			enable_facets: true,
-			facet_material_types: true,
-			facet_languages: true,
-			facet_publication_years: true,
-			facet_locations: true,
-			facet_availability: true
-		};
+		// Load facet configurations
+		const facetConfigs = await loadFacetConfigs(supabase);
 
 		// Perform search with dynamic facets
 		const [results, facets] = await Promise.all([
@@ -129,7 +112,6 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 			...results,
 			facets,
 			facetConfigs,
-			searchConfig,
 			query: params,
 			spellSuggestion,
 			branding: parentData.branding

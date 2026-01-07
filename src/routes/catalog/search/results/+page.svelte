@@ -26,8 +26,7 @@
 	let selectedRecords = $state<string[]>([]);
 	let emailingRecords = $state(false);
 	let showCovers = $state(true);
-	// Use search configuration for facet visibility (not branding)
-	let showFacets = $derived((data as any)?.searchConfig?.enable_facets !== false);
+	let showFacets = $derived((data as any)?.branding?.show_facets !== false);
 	let exportFields = $state({
 		title: true,
 		author: true,
