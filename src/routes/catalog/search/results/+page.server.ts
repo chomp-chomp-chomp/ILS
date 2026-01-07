@@ -60,8 +60,11 @@ export interface SearchResult {
 	spellSuggestion?: SpellSuggestion;
 }
 
-export const load: PageServerLoad = async ({ url, locals }) => {
+export const load: PageServerLoad = async ({ url, locals, parent }) => {
 	const supabase = locals.supabase as SupabaseClient;
+	
+	// Get parent layout data (includes branding)
+	const parentData = await parent();
 
 	// Parse query parameters
 	const params: SearchParams = {
@@ -110,7 +113,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			facets,
 			facetConfigs,
 			query: params,
-			spellSuggestion
+			spellSuggestion,
+			branding: parentData.branding
 		};
 	} catch (error) {
 		console.error('Search error:', error);
@@ -122,6 +126,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			page: params.page || 1,
 			per_page: params.per_page || 20,
 			query: params,
+			branding: parentData.branding,
 			error: error instanceof Error ? error.message : 'Search failed'
 		};
 	}

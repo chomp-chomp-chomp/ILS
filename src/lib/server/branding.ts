@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { PUBLIC_SUPABASE_URL } from '$env/static/public';
+import { env as publicEnv } from '$env/dynamic/public';
 import { createClient, type SupabaseClient, type PostgrestError } from '@supabase/supabase-js';
 
 let serviceClient: SupabaseClient | null = null;
@@ -7,10 +7,11 @@ let serviceClient: SupabaseClient | null = null;
 function getBrandingClient(fallback: SupabaseClient) {
 	// Prefer the service role key when available so branding can be read without anon permissions
 	const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+	const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL;
 
-	if (serviceRoleKey) {
+	if (serviceRoleKey && supabaseUrl) {
 		if (!serviceClient) {
-			serviceClient = createClient(PUBLIC_SUPABASE_URL, serviceRoleKey, {
+			serviceClient = createClient(supabaseUrl, serviceRoleKey, {
 				auth: {
 					autoRefreshToken: false,
 					persistSession: false
