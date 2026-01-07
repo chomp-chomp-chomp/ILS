@@ -1,19 +1,26 @@
-import { loadActiveBranding } from '$lib/server/branding';
+import { loadActiveBranding, defaultBranding } from '$lib/server/branding';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabase }, cookies, setHeaders }) => {
+export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabase }, cookies }) => {
   const { session } = await safeGetSession();
 
-  // Disable caching for branding data - always fetch fresh
-  setHeaders({
-    'cache-control': 'no-cache, no-store, must-revalidate'
-  });
-
-  const { branding } = await loadActiveBranding(supabase);
+  // Load branding configuration with extreme defensive coding
+  // Always ensure branding is defined, even if everything fails
+  let branding = defaultBranding;
+  
+  try {
+    const result = await loadActiveBranding(supabase);
+    if (result && result.branding) {
+      branding = result.branding;
+    }
+  } catch (error) {
+    console.error('Failed to load branding in layout:', error);
+    // branding already set to defaultBranding above
+  }
 
   return {
     session,
     cookies: cookies.getAll(),
-    branding: branding || null
+    branding
   };
 };

@@ -440,11 +440,10 @@
 						</label>
 					</div>
 
-					<div class="form-group checkbox">
-						<label>
-							<input type="checkbox" bind:checked={branding.show_facets} />
-							Show faceted search filters
-						</label>
+					<!-- Note: Faceted search visibility is now controlled in /admin/search-config -->
+					<div class="info-note">
+						<strong>Note:</strong> Faceted search filters are now configured in 
+						<a href="/admin/search-config">Search Configuration</a>.
 					</div>
 
 					<div class="form-group">
@@ -1099,5 +1098,25 @@
 		color: #666;
 		font-size: 0.9rem;
 		margin: -0.5rem 0 1rem 0;
+	}
+
+	.info-note {
+		background: #e8f4f8;
+		border-left: 4px solid #2196F3;
+		padding: 0.75rem 1rem;
+		margin: 1rem 0;
+		border-radius: 4px;
+		font-size: 0.9rem;
+		color: #333;
+	}
+
+	.info-note a {
+		color: #2196F3;
+		text-decoration: underline;
+		font-weight: 500;
+	}
+
+	.info-note a:hover {
+		color: #1976D2;
 	}
 </style>
