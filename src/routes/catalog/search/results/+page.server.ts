@@ -87,6 +87,9 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 		sort: (url.searchParams.get('sort') as any) || 'relevance'
 	};
 
+	// Load search configuration safely (non-fatal if missing)
+	const searchConfig = await loadSearchConfig(supabase);
+
 	try {
 		// Load facet configurations
 		const facetConfigs = await loadFacetConfigs(supabase);
@@ -114,7 +117,8 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 			facetConfigs,
 			query: params,
 			spellSuggestion,
-			branding: parentData.branding
+			branding: parentData.branding,
+			searchConfig
 		};
 	} catch (error) {
 		console.error('Search error:', error);
@@ -127,6 +131,7 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 			per_page: params.per_page || 20,
 			query: params,
 			branding: parentData.branding,
+			searchConfig,
 			error: error instanceof Error ? error.message : 'Search failed'
 		};
 	}
@@ -671,5 +676,39 @@ async function getSpellSuggestion(
 	} catch (error) {
 		console.error('Spell suggestion exception:', error);
 		return null;
+	}
+}
+
+// Load search configuration safely (non-fatal if table/row missing)
+async function loadSearchConfig(
+	supabase: SupabaseClient
+): Promise<Record<string, any>> {
+	try {
+		const { data, error } = await supabase
+			.from('search_configuration')
+			.select('*')
+			.eq('is_active', true)
+			.maybeSingle();
+
+		if (error) {
+			console.warn('Search configuration not found, using defaults:', error);
+		}
+
+		// Return data or defaults if not found
+		return data || {
+			enable_facets: true,
+			enable_spell_correction: true,
+			enable_advanced_search: true,
+			results_per_page: 20
+		};
+	} catch (error) {
+		console.error('Error loading search configuration:', error);
+		// Return safe defaults
+		return {
+			enable_facets: true,
+			enable_spell_correction: true,
+			enable_advanced_search: true,
+			results_per_page: 20
+		};
 	}
 }

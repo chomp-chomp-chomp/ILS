@@ -5,18 +5,8 @@
 	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
-	// Get branding configuration with fallback
-	const branding = $derived(
-		data.branding || {
-			homepage_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
-			library_name: 'Chomp Chomp Library Catalog',
-			library_tagline: 'Search our collection',
-			show_homepage_info: false,
-			homepage_info_title: '',
-			homepage_info_content: '',
-			homepage_info_links: []
-		}
-	);
+	// Use branding directly from data (already merged with defaults on server)
+	const branding = $derived(data.branding);
 
 	function handleSearch() {
 		if (query.trim()) {
