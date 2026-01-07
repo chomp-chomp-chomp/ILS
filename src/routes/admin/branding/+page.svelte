@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { supabase } from '$lib/supabase';
+	import { invalidate, invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -119,8 +120,19 @@
 			// Log response without full branding object to avoid console clutter
 			console.log('[Branding UI] API success response - status:', responseData.success);
 
+			// Invalidate all cached data to ensure fresh branding is loaded
+			console.log('[Branding UI] Invalidating SvelteKit cache...');
+			await invalidateAll();
+			console.log('[Branding UI] Cache invalidated successfully');
+
 			message = 'Branding settings saved successfully!';
-			setTimeout(() => (message = ''), 3000);
+			
+			// Optional: Force a hard reload to ensure UI updates immediately
+			// This helps in cases where CSS variables or dynamic content needs refresh
+			console.log('[Branding UI] Triggering page reload for immediate visual update...');
+			setTimeout(() => {
+				location.reload();
+			}, 500);  // Small delay to show success message
 		} catch (error) {
 			message = error instanceof Error ? error.message : 'Error saving branding';
 			console.error('[Branding UI] Save error:', error);
