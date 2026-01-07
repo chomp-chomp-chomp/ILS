@@ -49,6 +49,16 @@ export interface SpellSuggestion {
 	confidence: number;
 }
 
+export interface SearchConfiguration {
+	enable_facets: boolean;
+	enable_spell_correction: boolean;
+	enable_advanced_search: boolean;
+	results_per_page: number;
+	enable_boolean_operators?: boolean;
+	default_sort?: string;
+	[key: string]: any; // Allow additional properties
+}
+
 export interface SearchResult {
 	results: any[];
 	facets: FacetGroup | DynamicFacetGroup;
@@ -682,7 +692,7 @@ async function getSpellSuggestion(
 // Load search configuration safely (non-fatal if table/row missing)
 async function loadSearchConfig(
 	supabase: SupabaseClient
-): Promise<Record<string, any>> {
+): Promise<SearchConfiguration> {
 	try {
 		const { data, error } = await supabase
 			.from('search_configuration')

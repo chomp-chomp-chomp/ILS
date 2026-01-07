@@ -29,6 +29,8 @@ export const defaultBranding = {
 	twitter_url: null,
 	instagram_url: null,
 	show_covers: true,
+	// Note: show_facets moved to search_configuration, kept here for backward compatibility
+	show_facets: true,
 	items_per_page: 20,
 	show_header: false,
 	header_links: [],
