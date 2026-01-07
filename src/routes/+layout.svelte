@@ -69,13 +69,11 @@
 	// Show custom header on all non-admin pages if enabled
 	let showCustomHeader = $derived(branding.show_header === true && !$page.url.pathname.startsWith('/admin'));
 
-	// Temporary kill-switch while the admin branding toggle is unreliable
-	const FOOTER_TEMPORARILY_DISABLED = true;
+	// Show footer on non-admin pages if enabled
 	let showFooter = $derived(
 		branding.show_powered_by === true &&
 			!!branding.footer_text &&
-			!$page.url.pathname.startsWith('/admin') &&
-			!FOOTER_TEMPORARILY_DISABLED
+			!$page.url.pathname.startsWith('/admin')
 	);
 
 	onMount(() => {
