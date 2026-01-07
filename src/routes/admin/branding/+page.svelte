@@ -60,7 +60,14 @@
 		validationErrors = [];
 
 		console.log('[Branding UI] Starting save operation...');
-		console.log('[Branding UI] Current branding state:', JSON.stringify(branding, null, 2));
+		
+		// Log sanitized state (exclude potentially sensitive custom HTML/CSS)
+		const sanitizedState = {
+			...branding,
+			custom_css: branding.custom_css ? '[REDACTED - ' + branding.custom_css.length + ' chars]' : null,
+			custom_head_html: branding.custom_head_html ? '[REDACTED - ' + branding.custom_head_html.length + ' chars]' : null
+		};
+		console.log('[Branding UI] Current branding state (sanitized):', JSON.stringify(sanitizedState, null, 2));
 
 		// Client-side validation
 		const errors = validateBranding();
@@ -109,7 +116,8 @@
 			}
 
 			const responseData = await response.json();
-			console.log('[Branding UI] API success response:', responseData);
+			// Log response without full branding object to avoid console clutter
+			console.log('[Branding UI] API success response - status:', responseData.success);
 
 			message = 'Branding settings saved successfully!';
 			setTimeout(() => (message = ''), 3000);

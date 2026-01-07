@@ -7,6 +7,43 @@ function isValidHexColor(color: string | null | undefined): boolean {
 	return /^#[0-9A-Fa-f]{6}$/.test(color);
 }
 
+// Helper function to build branding payload
+function buildBrandingPayload(body: any, userId: string): Record<string, any> {
+	return {
+		library_name: body.library_name,
+		library_tagline: body.library_tagline || null,
+		logo_url: body.logo_url || null,
+		homepage_logo_url: body.homepage_logo_url || null,
+		favicon_url: body.favicon_url || null,
+		primary_color: body.primary_color || '#e73b42',
+		secondary_color: body.secondary_color || '#667eea',
+		accent_color: body.accent_color || '#2c3e50',
+		background_color: body.background_color || '#ffffff',
+		text_color: body.text_color || '#333333',
+		font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
+		heading_font: body.heading_font || null,
+		custom_css: body.custom_css || null,
+		custom_head_html: body.custom_head_html || null,
+		footer_text: body.footer_text ?? 'Powered by Open Library System',
+		show_powered_by: body.show_powered_by === true,
+		contact_email: body.contact_email || null,
+		contact_phone: body.contact_phone || null,
+		contact_address: body.contact_address || null,
+		facebook_url: body.facebook_url || null,
+		twitter_url: body.twitter_url || null,
+		instagram_url: body.instagram_url || null,
+		show_covers: body.show_covers !== false,
+		items_per_page: body.items_per_page || 20,
+		show_header: body.show_header === true,
+		header_links: body.header_links || [],
+		show_homepage_info: body.show_homepage_info === true,
+		homepage_info_title: body.homepage_info_title || 'Quick Links',
+		homepage_info_content: body.homepage_info_content || null,
+		homepage_info_links: body.homepage_info_links || [],
+		updated_by: userId
+	};
+}
+
 // Validate branding data
 function validateBrandingData(body: any): string[] {
 	const errors: string[] = [];
@@ -72,7 +109,14 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 		console.log('[Branding API] User authenticated:', session.user.id);
 
 		const body = await request.json();
-		console.log('[Branding API] Received update payload:', JSON.stringify(body, null, 2));
+		
+		// Log sanitized payload (exclude potentially sensitive custom HTML/CSS)
+		const sanitizedBody = {
+			...body,
+			custom_css: body.custom_css ? '[REDACTED - ' + body.custom_css.length + ' chars]' : null,
+			custom_head_html: body.custom_head_html ? '[REDACTED - ' + body.custom_head_html.length + ' chars]' : null
+		};
+		console.log('[Branding API] Received update payload:', JSON.stringify(sanitizedBody, null, 2));
 
 		// Validate the branding data
 		const validationErrors = validateBrandingData(body);
@@ -109,39 +153,7 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 			// Update existing configuration
 			console.log('[Branding API] Updating existing configuration ID:', existing.id);
 			
-			const updatePayload = {
-				library_name: body.library_name,
-				library_tagline: body.library_tagline || null,
-				logo_url: body.logo_url || null,
-				homepage_logo_url: body.homepage_logo_url || null,
-				favicon_url: body.favicon_url || null,
-				primary_color: body.primary_color || '#e73b42',
-				secondary_color: body.secondary_color || '#667eea',
-				accent_color: body.accent_color || '#2c3e50',
-				background_color: body.background_color || '#ffffff',
-				text_color: body.text_color || '#333333',
-				font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
-				heading_font: body.heading_font || null,
-				custom_css: body.custom_css || null,
-				custom_head_html: body.custom_head_html || null,
-				footer_text: body.footer_text ?? 'Powered by Open Library System',
-				show_powered_by: body.show_powered_by === true,
-				contact_email: body.contact_email || null,
-				contact_phone: body.contact_phone || null,
-				contact_address: body.contact_address || null,
-				facebook_url: body.facebook_url || null,
-				twitter_url: body.twitter_url || null,
-				instagram_url: body.instagram_url || null,
-				show_covers: body.show_covers !== false,
-				items_per_page: body.items_per_page || 20,
-				show_header: body.show_header === true,
-				header_links: body.header_links || [],
-				show_homepage_info: body.show_homepage_info === true,
-				homepage_info_title: body.homepage_info_title || 'Quick Links',
-				homepage_info_content: body.homepage_info_content || null,
-				homepage_info_links: body.homepage_info_links || [],
-				updated_by: session.user.id
-			};
+			const updatePayload = buildBrandingPayload(body, session.user.id);
 
 			console.log('[Branding API] Update payload keys:', Object.keys(updatePayload));
 			console.log('[Branding API] show_powered_by value:', updatePayload.show_powered_by);
@@ -159,45 +171,15 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 				throw error(500, `Failed to update branding: ${updateError.message}`);
 			}
 
-			console.log('[Branding API] Update successful. Returned data:', JSON.stringify(data, null, 2));
+			console.log('[Branding API] Update successful. Record ID:', data.id);
 			result = data;
 		} else {
 			// Create new configuration
 			console.log('[Branding API] No existing config found, creating new...');
 			
 			const insertPayload = {
-				library_name: body.library_name,
-				library_tagline: body.library_tagline || null,
-				logo_url: body.logo_url || null,
-				homepage_logo_url: body.homepage_logo_url || null,
-				favicon_url: body.favicon_url || null,
-				primary_color: body.primary_color || '#e73b42',
-				secondary_color: body.secondary_color || '#667eea',
-				accent_color: body.accent_color || '#2c3e50',
-				background_color: body.background_color || '#ffffff',
-				text_color: body.text_color || '#333333',
-				font_family: body.font_family || 'system-ui, -apple-system, sans-serif',
-				heading_font: body.heading_font || null,
-				custom_css: body.custom_css || null,
-				custom_head_html: body.custom_head_html || null,
-				footer_text: body.footer_text ?? 'Powered by Open Library System',
-				show_powered_by: body.show_powered_by === true,
-				contact_email: body.contact_email || null,
-				contact_phone: body.contact_phone || null,
-				contact_address: body.contact_address || null,
-				facebook_url: body.facebook_url || null,
-				twitter_url: body.twitter_url || null,
-				instagram_url: body.instagram_url || null,
-				show_covers: body.show_covers !== false,
-				items_per_page: body.items_per_page || 20,
-				show_header: body.show_header === true,
-				header_links: body.header_links || [],
-				show_homepage_info: body.show_homepage_info === true,
-				homepage_info_title: body.homepage_info_title || 'Quick Links',
-				homepage_info_content: body.homepage_info_content || null,
-				homepage_info_links: body.homepage_info_links || [],
-				is_active: true,
-				updated_by: session.user.id
+				...buildBrandingPayload(body, session.user.id),
+				is_active: true
 			};
 
 			console.log('[Branding API] Insert payload keys:', Object.keys(insertPayload));
@@ -213,7 +195,7 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 				throw error(500, `Failed to create branding: ${insertError.message}`);
 			}
 
-			console.log('[Branding API] Insert successful. Returned data:', JSON.stringify(data, null, 2));
+			console.log('[Branding API] Insert successful. Record ID:', data.id);
 			result = data;
 		}
 
