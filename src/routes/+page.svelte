@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
+	import { defaultSiteConfig } from '$lib/types/site-config';
 
 	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
 	// Use branding directly from data (already merged with defaults on server)
 	const branding = $derived(data.branding);
+
+	// Get site config with defaults
+	const siteConfig = $derived((data as any).siteConfig || defaultSiteConfig);
 
 	function handleSearch() {
 		if (query.trim()) {
@@ -49,18 +53,20 @@
 				<a href="/catalog/browse">Browse Collection</a>
 			</div>
 
-			<!-- Homepage Info Section (if enabled in branding) -->
-			{#if branding.show_homepage_info}
+			<!-- Homepage Info Section from Site Config (if enabled) -->
+			{#if siteConfig.homepage_info_enabled}
 				<section class="homepage-info">
-					<h2>{branding.homepage_info_title || 'Quick Links'}</h2>
-					{#if branding.homepage_info_content}
+					{#if siteConfig.homepage_info_title}
+						<h2>{siteConfig.homepage_info_title}</h2>
+					{/if}
+					{#if siteConfig.homepage_info_content}
 						<div class="info-content">
-							{@html branding.homepage_info_content}
+							<p>{siteConfig.homepage_info_content}</p>
 						</div>
 					{/if}
-					{#if branding.homepage_info_links && branding.homepage_info_links.length > 0}
+					{#if siteConfig.homepage_info_links && siteConfig.homepage_info_links.length > 0}
 						<div class="info-links">
-							{#each [...branding.homepage_info_links].sort((a, b) => a.order - b.order) as link}
+							{#each [...siteConfig.homepage_info_links].sort((a, b) => a.order - b.order) as link}
 								<a href={link.url} class="info-link">{link.title}</a>
 							{/each}
 						</div>
