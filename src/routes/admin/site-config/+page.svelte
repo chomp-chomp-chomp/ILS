@@ -514,7 +514,7 @@
 							bind:value={editingLightTheme}
 							rows="12"
 							class="code-editor"
-							placeholder='{"primary": "#e73b42", ...}'
+							placeholder="Light theme JSON tokens"
 						></textarea>
 					</div>
 
@@ -525,7 +525,7 @@
 							bind:value={editingDarkTheme}
 							rows="12"
 							class="code-editor"
-							placeholder='{"primary": "#ff5a61", ...}'
+							placeholder="Dark theme JSON tokens"
 						></textarea>
 					</div>
 				</div>
