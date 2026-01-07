@@ -1,6 +1,6 @@
 -- Comprehensive Branding Configuration Diagnostic
 -- Run this in Supabase SQL Editor to diagnose branding persistence issues
--- Created: 2026-01-07
+-- Created: 2025-01-07
 
 -- ================================================================
 -- 1. CHECK IF BRANDING TABLE EXISTS AND ITS STRUCTURE

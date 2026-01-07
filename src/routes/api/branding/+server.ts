@@ -7,8 +7,42 @@ function isValidHexColor(color: string | null | undefined): boolean {
 	return /^#[0-9A-Fa-f]{6}$/.test(color);
 }
 
+// TypeScript interface for branding request body
+interface BrandingRequestBody {
+	library_name: string;
+	library_tagline?: string | null;
+	logo_url?: string | null;
+	homepage_logo_url?: string | null;
+	favicon_url?: string | null;
+	primary_color?: string;
+	secondary_color?: string;
+	accent_color?: string;
+	background_color?: string;
+	text_color?: string;
+	font_family?: string;
+	heading_font?: string | null;
+	custom_css?: string | null;
+	custom_head_html?: string | null;
+	footer_text?: string | null;
+	show_powered_by?: boolean;
+	contact_email?: string | null;
+	contact_phone?: string | null;
+	contact_address?: string | null;
+	facebook_url?: string | null;
+	twitter_url?: string | null;
+	instagram_url?: string | null;
+	show_covers?: boolean;
+	items_per_page?: number;
+	show_header?: boolean;
+	header_links?: Array<{ title: string; url: string; order: number }>;
+	show_homepage_info?: boolean;
+	homepage_info_title?: string;
+	homepage_info_content?: string | null;
+	homepage_info_links?: Array<{ title: string; url: string; order: number }>;
+}
+
 // Helper function to build branding payload
-function buildBrandingPayload(body: any, userId: string): Record<string, any> {
+function buildBrandingPayload(body: BrandingRequestBody, userId: string): Record<string, any> {
 	return {
 		library_name: body.library_name,
 		library_tagline: body.library_tagline || null,
@@ -45,7 +79,7 @@ function buildBrandingPayload(body: any, userId: string): Record<string, any> {
 }
 
 // Validate branding data
-function validateBrandingData(body: any): string[] {
+function validateBrandingData(body: BrandingRequestBody): string[] {
 	const errors: string[] = [];
 
 	// Validate required field
@@ -108,15 +142,21 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 
 		console.log('[Branding API] User authenticated:', session.user.id);
 
-		const body = await request.json();
+		const body = await request.json() as BrandingRequestBody;
 		
 		// Log sanitized payload (exclude potentially sensitive custom HTML/CSS)
 		const sanitizedBody = {
 			...body,
-			custom_css: body.custom_css ? '[REDACTED - ' + body.custom_css.length + ' chars]' : null,
-			custom_head_html: body.custom_head_html ? '[REDACTED - ' + body.custom_head_html.length + ' chars]' : null
+			custom_css: body.custom_css ? '[REDACTED]' : null,
+			custom_head_html: body.custom_head_html ? '[REDACTED]' : null
 		};
-		console.log('[Branding API] Received update payload:', JSON.stringify(sanitizedBody, null, 2));
+		
+		// Use conditional formatting based on environment
+		if (process.env.NODE_ENV === 'development') {
+			console.log('[Branding API] Received update payload:', JSON.stringify(sanitizedBody, null, 2));
+		} else {
+			console.log('[Branding API] Received update payload:', JSON.stringify(sanitizedBody));
+		}
 
 		// Validate the branding data
 		const validationErrors = validateBrandingData(body);

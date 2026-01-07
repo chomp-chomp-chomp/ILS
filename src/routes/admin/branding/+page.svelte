@@ -64,10 +64,10 @@
 		// Log sanitized state (exclude potentially sensitive custom HTML/CSS)
 		const sanitizedState = {
 			...branding,
-			custom_css: branding.custom_css ? '[REDACTED - ' + branding.custom_css.length + ' chars]' : null,
-			custom_head_html: branding.custom_head_html ? '[REDACTED - ' + branding.custom_head_html.length + ' chars]' : null
+			custom_css: branding.custom_css ? '[REDACTED]' : null,
+			custom_head_html: branding.custom_head_html ? '[REDACTED]' : null
 		};
-		console.log('[Branding UI] Current branding state (sanitized):', JSON.stringify(sanitizedState, null, 2));
+		console.log('[Branding UI] Current branding state (sanitized):', JSON.stringify(sanitizedState));
 
 		// Client-side validation
 		const errors = validateBranding();
