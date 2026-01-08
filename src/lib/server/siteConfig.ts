@@ -22,6 +22,21 @@ export const defaultSiteConfig = {
 	homepage_info_content: 'Welcome to our library catalog. Use the search box above to find items by title, author, subject, or ISBN.',
 	homepage_info_links: [],
 
+	// Homepage hero
+	homepage_hero_enabled: false,
+	homepage_hero_title: '',
+	homepage_hero_tagline: '',
+	homepage_hero_image_url: null,
+	homepage_hero_links: [],
+
+	// Site metadata assets
+	favicon_url: null,
+	apple_touch_icon_url: null,
+	android_chrome_192_url: null,
+	android_chrome_512_url: null,
+	og_image_url: null,
+	twitter_card_image_url: null,
+
 	// Theme
 	theme_mode: 'system', // 'system', 'light', 'dark'
 	theme_light: {

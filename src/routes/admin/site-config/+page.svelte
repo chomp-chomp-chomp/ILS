@@ -16,9 +16,11 @@
 	let newFooterLinkUrl = $state('');
 	let newHomepageLinkTitle = $state('');
 	let newHomepageLinkUrl = $state('');
+	let newHeroLinkTitle = $state('');
+	let newHeroLinkUrl = $state('');
 
 	// Active tab
-	let activeTab = $state<'header' | 'footer' | 'homepage' | 'theme'>('header');
+	let activeTab = $state<'header' | 'footer' | 'homepage' | 'hero' | 'metadata' | 'theme'>('header');
 
 	// Active theme editor
 	let themeType = $state<'light' | 'dark'>('light');
@@ -124,6 +126,36 @@
 
 	function removeHomepageLink(index: number) {
 		config.homepage_info_links = config.homepage_info_links.filter(
+			(_: any, i: number) => i !== index
+		);
+	}
+
+	// Hero link management
+	function addHeroLink() {
+		if (!newHeroLinkTitle || !newHeroLinkUrl) {
+			message = 'Please fill in both title and URL';
+			return;
+		}
+
+		const links = Array.isArray(config.homepage_hero_links) ? config.homepage_hero_links : [];
+		const maxOrder = links.length > 0 ? Math.max(...links.map((l: any) => l.order || 0)) : 0;
+
+		config.homepage_hero_links = [
+			...links,
+			{
+				title: newHeroLinkTitle,
+				url: newHeroLinkUrl,
+				order: maxOrder + 1
+			}
+		];
+
+		newHeroLinkTitle = '';
+		newHeroLinkUrl = '';
+		message = 'Link added (remember to save)';
+	}
+
+	function removeHeroLink(index: number) {
+		config.homepage_hero_links = config.homepage_hero_links.filter(
 			(_: any, i: number) => i !== index
 		);
 	}
@@ -237,6 +269,20 @@
 			onclick={() => (activeTab = 'homepage')}
 		>
 			Homepage Info
+		</button>
+		<button
+			class="tab"
+			class:active={activeTab === 'hero'}
+			onclick={() => (activeTab = 'hero')}
+		>
+			Homepage Hero
+		</button>
+		<button
+			class="tab"
+			class:active={activeTab === 'metadata'}
+			onclick={() => (activeTab = 'metadata')}
+		>
+			Metadata
 		</button>
 		<button
 			class="tab"
@@ -433,6 +479,162 @@
 						/>
 						<button onclick={addHomepageLink}>Add</button>
 					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Homepage Hero Configuration -->
+		{#if activeTab === 'hero'}
+			<div class="config-section">
+				<h2>Homepage Hero Configuration</h2>
+
+				<label class="toggle-label">
+					<input type="checkbox" bind:checked={config.homepage_hero_enabled} />
+					<span>Enable Homepage Hero Section</span>
+				</label>
+
+				<div class="form-group">
+					<label for="homepage_hero_title">Hero Title</label>
+					<input
+						id="homepage_hero_title"
+						type="text"
+						bind:value={config.homepage_hero_title}
+						placeholder="Welcome to Our Library"
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="homepage_hero_tagline">Hero Tagline</label>
+					<input
+						id="homepage_hero_tagline"
+						type="text"
+						bind:value={config.homepage_hero_tagline}
+						placeholder="Discover, Learn, Grow"
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="homepage_hero_image_url">Hero Background Image URL</label>
+					<input
+						id="homepage_hero_image_url"
+						type="text"
+						bind:value={config.homepage_hero_image_url}
+						placeholder="https://example.com/hero-image.jpg"
+					/>
+					<p class="help-text">URL to the hero section background image</p>
+				</div>
+
+				<h3>Hero Links</h3>
+				<div class="link-list">
+					{#each config.homepage_hero_links || [] as link, index}
+						<div class="link-item">
+							<div class="link-info">
+								<strong>{link.title}</strong>
+								<span class="link-url">{link.url}</span>
+							</div>
+							<div class="link-actions">
+								<button class="btn-danger" onclick={() => removeHeroLink(index)}>
+									Remove
+								</button>
+							</div>
+						</div>
+					{/each}
+				</div>
+
+				<div class="add-link-form">
+					<h4>Add Hero Link</h4>
+					<div class="form-row">
+						<input
+							type="text"
+							bind:value={newHeroLinkTitle}
+							placeholder="Link title"
+						/>
+						<input
+							type="text"
+							bind:value={newHeroLinkUrl}
+							placeholder="https://..."
+						/>
+						<button onclick={addHeroLink}>Add</button>
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Site Metadata Configuration -->
+		{#if activeTab === 'metadata'}
+			<div class="config-section">
+				<h2>Site Metadata &amp; Assets</h2>
+				<p class="help-text">
+					Configure favicon, Open Graph images, and other metadata assets. These URLs override branding settings if provided.
+				</p>
+
+				<h3>Favicons</h3>
+				<div class="form-group">
+					<label for="favicon_url">Favicon URL</label>
+					<input
+						id="favicon_url"
+						type="text"
+						bind:value={config.favicon_url}
+						placeholder="https://example.com/favicon.ico"
+					/>
+					<p class="help-text">Main favicon (fallback to branding if empty)</p>
+				</div>
+
+				<div class="form-group">
+					<label for="apple_touch_icon_url">Apple Touch Icon URL</label>
+					<input
+						id="apple_touch_icon_url"
+						type="text"
+						bind:value={config.apple_touch_icon_url}
+						placeholder="https://example.com/apple-touch-icon.png"
+					/>
+					<p class="help-text">180x180 PNG for iOS home screen</p>
+				</div>
+
+				<h3>Android Chrome Icons</h3>
+				<div class="form-group">
+					<label for="android_chrome_192_url">Android Chrome 192x192 URL</label>
+					<input
+						id="android_chrome_192_url"
+						type="text"
+						bind:value={config.android_chrome_192_url}
+						placeholder="https://example.com/android-chrome-192x192.png"
+					/>
+					<p class="help-text">192x192 PNG for Android</p>
+				</div>
+
+				<div class="form-group">
+					<label for="android_chrome_512_url">Android Chrome 512x512 URL</label>
+					<input
+						id="android_chrome_512_url"
+						type="text"
+						bind:value={config.android_chrome_512_url}
+						placeholder="https://example.com/android-chrome-512x512.png"
+					/>
+					<p class="help-text">512x512 PNG for Android</p>
+				</div>
+
+				<h3>Social Media</h3>
+				<div class="form-group">
+					<label for="og_image_url">Open Graph Image URL</label>
+					<input
+						id="og_image_url"
+						type="text"
+						bind:value={config.og_image_url}
+						placeholder="https://example.com/og-image.jpg"
+					/>
+					<p class="help-text">Used when sharing on Facebook, LinkedIn, etc. (recommended: 1200x630)</p>
+				</div>
+
+				<div class="form-group">
+					<label for="twitter_card_image_url">Twitter Card Image URL</label>
+					<input
+						id="twitter_card_image_url"
+						type="text"
+						bind:value={config.twitter_card_image_url}
+						placeholder="https://example.com/twitter-card.jpg"
+					/>
+					<p class="help-text">Used when sharing on Twitter/X (fallback to OG image if empty)</p>
 				</div>
 			</div>
 		{/if}

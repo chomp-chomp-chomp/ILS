@@ -34,7 +34,13 @@
 			text: '#e5e5e5',
 			font: 'system-ui, -apple-system, sans-serif'
 		},
-		page_themes: {}
+		page_themes: {},
+		favicon_url: null,
+		apple_touch_icon_url: null,
+		android_chrome_192_url: null,
+		android_chrome_512_url: null,
+		og_image_url: null,
+		twitter_card_image_url: null
 	});
 
 	// Keep branding for backward compatibility (title, favicon, etc.)
@@ -44,6 +50,15 @@
 		custom_head_html: null,
 		custom_css: null
 	});
+
+	// Compute effective favicon URL (siteConfig takes precedence)
+	const effectiveFaviconUrl = $derived(siteConfig.favicon_url || branding?.favicon_url || favicon);
+	
+	// Compute effective OG image (for social sharing)
+	const effectiveOgImage = $derived(siteConfig.og_image_url || null);
+	
+	// Compute effective Twitter image (fallback to OG image)
+	const effectiveTwitterImage = $derived(siteConfig.twitter_card_image_url || siteConfig.og_image_url || null);
 
 	// Determine if we should show the default navigation
 	let showNav = $derived($page.url.pathname !== '/' && !$page.url.pathname.startsWith('/admin'));
@@ -135,13 +150,46 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={branding?.favicon_url || favicon} />
+	<!-- Favicon -->
+	<link rel="icon" href={effectiveFaviconUrl} />
 	<title>{branding?.library_name || 'Chomp Chomp Library Catalog'}</title>
 
+	<!-- Apple Touch Icon -->
+	{#if siteConfig.apple_touch_icon_url}
+		<link rel="apple-touch-icon" href={siteConfig.apple_touch_icon_url} />
+	{/if}
+
+	<!-- Android Chrome Icons -->
+	{#if siteConfig.android_chrome_192_url}
+		<link rel="icon" type="image/png" sizes="192x192" href={siteConfig.android_chrome_192_url} />
+	{/if}
+	{#if siteConfig.android_chrome_512_url}
+		<link rel="icon" type="image/png" sizes="512x512" href={siteConfig.android_chrome_512_url} />
+	{/if}
+
+	<!-- Open Graph Tags -->
+	{#if effectiveOgImage}
+		<meta property="og:image" content={effectiveOgImage} />
+		<meta property="og:image:type" content="image/jpeg" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+	{/if}
+	<meta property="og:title" content={branding?.library_name || 'Chomp Chomp Library Catalog'} />
+	<meta property="og:type" content="website" />
+
+	<!-- Twitter Card Tags -->
+	<meta name="twitter:card" content="summary_large_image" />
+	{#if effectiveTwitterImage}
+		<meta name="twitter:image" content={effectiveTwitterImage} />
+	{/if}
+	<meta name="twitter:title" content={branding?.library_name || 'Chomp Chomp Library Catalog'} />
+
+	<!-- Custom Head HTML -->
 	{#if branding?.custom_head_html}
 		{@html branding.custom_head_html}
 	{/if}
 
+	<!-- Custom CSS -->
 	{#if branding?.custom_css}
 		<style>
 			{branding.custom_css}
