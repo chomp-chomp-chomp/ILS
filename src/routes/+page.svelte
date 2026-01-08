@@ -8,12 +8,17 @@
 	// Use branding for library name, tagline, logo (kept for backward compatibility)
 	const branding = $derived(data.branding);
 
-	// Use siteConfig for homepage info section
+	// Use siteConfig for homepage info section and hero
 	const siteConfig = $derived((data as any).siteConfig || {
 		homepage_info_enabled: false,
 		homepage_info_title: 'Quick Links',
 		homepage_info_content: '',
-		homepage_info_links: []
+		homepage_info_links: [],
+		homepage_hero_enabled: false,
+		homepage_hero_title: '',
+		homepage_hero_tagline: '',
+		homepage_hero_image_url: null,
+		homepage_hero_links: []
 	});
 
 	function handleSearch() {
@@ -24,9 +29,43 @@
 </script>
 
 <div class="catalog-home">
+	<!-- Homepage Hero Section (if enabled in siteConfig) -->
+	{#if siteConfig.homepage_hero_enabled}
+		<section 
+			class="homepage-hero" 
+			style={siteConfig.homepage_hero_image_url ? `background-image: url('${siteConfig.homepage_hero_image_url}');` : ''}
+		>
+			<div class="hero-overlay">
+				<div class="hero-content-wrapper">
+					{#if data.session}
+						<div class="admin-link-wrapper">
+							<a href="/admin" class="admin-link">Admin</a>
+						</div>
+					{/if}
+					
+					{#if siteConfig.homepage_hero_title}
+						<h1 class="hero-title">{siteConfig.homepage_hero_title}</h1>
+					{/if}
+					
+					{#if siteConfig.homepage_hero_tagline}
+						<p class="hero-tagline">{siteConfig.homepage_hero_tagline}</p>
+					{/if}
+
+					{#if siteConfig.homepage_hero_links && siteConfig.homepage_hero_links.length > 0}
+						<div class="hero-links">
+							{#each [...siteConfig.homepage_hero_links].sort((a, b) => a.order - b.order) as link}
+								<a href={link.url} class="hero-link-button">{link.title}</a>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
+		</section>
+	{/if}
+
 	<header class="hero">
 		<div class="header-top">
-			{#if data.session}
+			{#if data.session && !siteConfig.homepage_hero_enabled}
 				<a href="/admin" class="admin-link">Admin</a>
 			{/if}
 		</div>
@@ -316,6 +355,99 @@
 		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.3);
 	}
 
+	/* Homepage Hero Styles */
+	.homepage-hero {
+		position: relative;
+		min-height: 400px;
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+		background-color: #2c3e50;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.hero-overlay {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(135deg, rgba(231, 59, 66, 0.85), rgba(44, 62, 80, 0.85));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.hero-content-wrapper {
+		position: relative;
+		z-index: 1;
+		text-align: center;
+		color: white;
+		max-width: 900px;
+		padding: 3rem 2rem;
+	}
+
+	.admin-link-wrapper {
+		position: absolute;
+		top: 1rem;
+		right: 2rem;
+	}
+
+	.admin-link-wrapper .admin-link {
+		color: white;
+		background: rgba(255, 255, 255, 0.2);
+		border-color: rgba(255, 255, 255, 0.4);
+	}
+
+	.admin-link-wrapper .admin-link:hover {
+		background: white;
+		color: #e73b42;
+	}
+
+	.hero-title {
+		font-size: 3rem;
+		font-weight: 700;
+		margin: 0 0 1rem 0;
+		color: white;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+		line-height: 1.2;
+	}
+
+	.hero-tagline {
+		font-size: 1.5rem;
+		margin: 0 0 2rem 0;
+		color: rgba(255, 255, 255, 0.95);
+		font-weight: 300;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	}
+
+	.hero-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		justify-content: center;
+		margin-top: 2rem;
+	}
+
+	.hero-link-button {
+		display: inline-block;
+		padding: 1rem 2rem;
+		background: white;
+		color: #e73b42;
+		text-decoration: none;
+		border-radius: 8px;
+		font-weight: 600;
+		font-size: 1.1rem;
+		transition: all 0.3s;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+	}
+
+	.hero-link-button:hover {
+		background: #e73b42;
+		color: white;
+		transform: translateY(-2px);
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+	}
+
 	@media (max-width: 768px) {
 		.main-logo {
 			max-width: 250px;
@@ -327,6 +459,27 @@
 
 		.hero-content {
 			padding: 2rem 1rem;
+		}
+
+		.hero-title {
+			font-size: 2rem;
+		}
+
+		.hero-tagline {
+			font-size: 1.2rem;
+		}
+
+		.hero-content-wrapper {
+			padding: 2rem 1rem;
+		}
+
+		.admin-link-wrapper {
+			right: 1rem;
+		}
+
+		.hero-link-button {
+			padding: 0.75rem 1.5rem;
+			font-size: 1rem;
 		}
 	}
 </style>
