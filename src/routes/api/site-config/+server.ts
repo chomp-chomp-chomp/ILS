@@ -98,11 +98,16 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 			}
 
 			// Defensive: ensure only this row is active (trigger should handle this, but belt-and-suspenders)
-			await supabase
+			const { error: deactivateError } = await supabase
 				.from('site_configuration')
 				.update({ is_active: false })
 				.neq('id', data.id)
 				.eq('is_active', true);
+			
+			if (deactivateError) {
+				console.warn('Warning: Failed to deactivate other site configs (trigger should handle this):', deactivateError);
+				// Don't throw - the trigger should handle single active row, this is just defensive
+			}
 
 			return json({ config: data });
 		}
