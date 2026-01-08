@@ -175,24 +175,54 @@
 </script>
 
 <svelte:head>
-	<!-- Favicon -->
+	<!-- 
+		FAVICON AND METADATA CONFIGURATION:
+		
+		This section manages all favicon and metadata links for the site.
+		These links are rendered in the <head> section of every page.
+		
+		STATIC FAVICON LINKS:
+		The links below reference static files in the /static folder (served from root).
+		These provide fallback favicon support even if database configuration is unavailable.
+		
+		DYNAMIC CONFIGURATION:
+		The {#if} blocks below allow database configuration (siteConfig) to override
+		these static defaults when configured through the admin panel.
+		
+		TO UPDATE FAVICONS:
+		1. Replace files in /static folder: favicon.ico, favicon-16x16.png, etc.
+		2. OR configure URLs in admin panel (/admin/site-config)
+		3. OR update defaultSiteConfig in src/lib/server/siteConfig.ts
+	-->
+	
+	<!-- Primary Favicon (dynamic with fallback) -->
 	<link rel="icon" href={effectiveFaviconUrl} />
-	<title>{branding?.library_name || 'Chomp Chomp Library Catalog'}</title>
-
-	<!-- Apple Touch Icon -->
-	{#if siteConfig.apple_touch_icon_url}
+	
+	<!-- Static Favicon Sizes (hardcoded for reliability) -->
+	<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+	
+	<!-- Apple Touch Icon (static + dynamic) -->
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+	{#if siteConfig.apple_touch_icon_url && siteConfig.apple_touch_icon_url !== '/apple-touch-icon.png'}
 		<link rel="apple-touch-icon" href={siteConfig.apple_touch_icon_url} />
 	{/if}
 
-	<!-- Android Chrome Icons -->
-	{#if siteConfig.android_chrome_192_url}
+	<!-- Android Chrome Icons (static + dynamic) -->
+	<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+	<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+	{#if siteConfig.android_chrome_192_url && siteConfig.android_chrome_192_url !== '/android-chrome-192x192.png'}
 		<link rel="icon" type="image/png" sizes="192x192" href={siteConfig.android_chrome_192_url} />
 	{/if}
-	{#if siteConfig.android_chrome_512_url}
+	{#if siteConfig.android_chrome_512_url && siteConfig.android_chrome_512_url !== '/android-chrome-512x512.png'}
 		<link rel="icon" type="image/png" sizes="512x512" href={siteConfig.android_chrome_512_url} />
 	{/if}
 
-	<!-- Open Graph Tags -->
+	<!-- Page Title -->
+	<title>{branding?.library_name || 'Chomp Chomp Library Catalog'}</title>
+
+	<!-- Open Graph Tags (for social media sharing) -->
 	{#if effectiveOgImage}
 		<meta property="og:image" content={effectiveOgImage} />
 		<meta property="og:image:type" content="image/jpeg" />
@@ -202,19 +232,19 @@
 	<meta property="og:title" content={branding?.library_name || 'Chomp Chomp Library Catalog'} />
 	<meta property="og:type" content="website" />
 
-	<!-- Twitter Card Tags -->
+	<!-- Twitter Card Tags (for Twitter sharing) -->
 	<meta name="twitter:card" content="summary_large_image" />
 	{#if effectiveTwitterImage}
 		<meta name="twitter:image" content={effectiveTwitterImage} />
 	{/if}
 	<meta name="twitter:title" content={branding?.library_name || 'Chomp Chomp Library Catalog'} />
 
-	<!-- Custom Head HTML -->
+	<!-- Custom Head HTML (from admin configuration) -->
 	{#if branding?.custom_head_html}
 		{@html branding.custom_head_html}
 	{/if}
 
-	<!-- Custom CSS -->
+	<!-- Custom CSS (from admin configuration) -->
 	{#if branding?.custom_css}
 		<style>
 			{branding.custom_css}
@@ -370,7 +400,27 @@
 		background: rgba(255, 255, 255, 0.15);
 	}
 
-	/* Custom Header Styles */
+	/* Custom Header Styles 
+	 * 
+	 * CUSTOMIZING HEADER APPEARANCE:
+	 * The header navigation bar appears at the top when header_enabled is true.
+	 * 
+	 * To customize header:
+	 * 1. Enable/disable in admin panel: siteConfig.header_enabled
+	 * 2. Set logo: siteConfig.header_logo_url
+	 * 3. Configure links: siteConfig.header_links (array of {title, url, order})
+	 * 4. Modify colors via theme settings
+	 * 
+	 * Key CSS Classes:
+	 * - .custom-header: Main header container
+	 * - .header-container: Content wrapper with max-width
+	 * - .header-logo: Logo image
+	 * - .header-links: Container for navigation links
+	 * - .header-link: Individual navigation link
+	 * 
+	 * CSS Variables Used:
+	 * - --primary-color: Background color (from theme)
+	 */
 	.custom-header {
 		background: var(--primary-color);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.1);
@@ -412,7 +462,29 @@
 		background: rgba(255, 255, 255, 0.15);
 	}
 
-	/* Footer Styles */
+	/* Footer Styles 
+	 * 
+	 * CUSTOMIZING FOOTER APPEARANCE:
+	 * The footer uses CSS custom properties (variables) for theming.
+	 * These variables are set on the <main> element based on siteConfig.
+	 * 
+	 * To customize footer colors/fonts:
+	 * 1. Update theme settings in admin panel (/admin/site-config)
+	 * 2. OR modify defaultSiteConfig.theme_light/theme_dark in src/lib/server/siteConfig.ts
+	 * 3. OR add custom CSS in admin panel's "Custom CSS" field
+	 * 
+	 * Key CSS Classes:
+	 * - .site-footer: Main footer container
+	 * - .footer-container: Content wrapper with max-width
+	 * - .footer-content: Flex container for text and links
+	 * - .footer-text: Main footer text (controlled by siteConfig.footer_text)
+	 * - .footer-links: Container for footer link buttons
+	 * - .footer-link: Individual footer link
+	 * 
+	 * CSS Variables Used:
+	 * - --accent-color: Background color (from theme)
+	 * - --primary-color: Link hover color (from theme)
+	 */
 	.site-footer {
 		background: var(--accent-color);
 		color: rgba(255, 255, 255, 0.9);
