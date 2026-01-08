@@ -17,6 +17,7 @@
 			</div>
 			<ul class="nav-links">
 				<li><a href="/admin" onclick={() => mobileMenuOpen = false}>Dashboard</a></li>
+				<li><a href="/admin/maintenance" onclick={() => mobileMenuOpen = false}>System Maintenance</a></li>
 				<li class="section-header">Circulation</li>
 				<li><a href="/admin/circulation/checkout" onclick={() => mobileMenuOpen = false}>Checkout</a></li>
 				<li><a href="/admin/circulation/checkin" onclick={() => mobileMenuOpen = false}>Checkin</a></li>
