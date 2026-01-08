@@ -1,25 +1,53 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { defaultSiteConfig } from '$lib/server/siteConfig';
 
 // GET - Read active site configuration
 export const GET: RequestHandler = async ({ locals: { supabase, safeGetSession } }) => {
 	try {
 		// Public can read active config, authenticated can read all
+		// Use maybeSingle() to handle case where no active config exists
 		const { data, error: dbError } = await supabase
 			.from('site_configuration')
 			.select('*')
 			.eq('is_active', true)
-			.single();
+			.order('updated_at', { ascending: false })
+			.limit(1)
+			.maybeSingle();
 
 		if (dbError) {
+			// Handle "relation does not exist" or other database errors gracefully
 			console.error('Error loading site config:', dbError);
-			throw error(500, 'Failed to load site configuration');
+			
+			// Check if it's a "table doesn't exist" error (42P01 is PostgreSQL error code)
+			if (dbError.code === '42P01' || dbError.message?.includes('does not exist')) {
+				console.log('site_configuration table does not exist, returning defaults');
+				// Return defaults with 200 OK - table may not be created yet
+				return json({ config: defaultSiteConfig });
+			}
+			
+			// For other database errors, still return defaults with 200 (graceful degradation)
+			console.log('Database error, returning defaults:', dbError.code, dbError.message);
+			return json({ config: defaultSiteConfig });
 		}
 
-		return json({ config: data });
+		// If no active config found, return merged defaults
+		if (!data) {
+			console.log('No active site config found, returning defaults');
+			return json({ config: defaultSiteConfig });
+		}
+
+		// Merge database data with defaults (ensures all fields exist)
+		const mergedConfig = {
+			...defaultSiteConfig,
+			...data
+		};
+
+		return json({ config: mergedConfig });
 	} catch (err) {
 		console.error('Exception in GET /api/site-config:', err);
-		throw error(500, 'Internal server error');
+		// Return defaults even on exception (graceful degradation)
+		return json({ config: defaultSiteConfig });
 	}
 };
 
@@ -39,12 +67,17 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 			throw error(400, 'Invalid configuration format');
 		}
 
-		// Get the active configuration ID
-		const { data: activeConfig } = await supabase
+		// Get the active configuration ID using maybeSingle()
+		const { data: activeConfig, error: findError } = await supabase
 			.from('site_configuration')
 			.select('id')
 			.eq('is_active', true)
-			.single();
+			.maybeSingle();
+
+		if (findError) {
+			console.error('Error finding active site config:', findError);
+			throw error(500, 'Failed to find site configuration');
+		}
 
 		if (!activeConfig) {
 			// No active config exists, create one
@@ -53,7 +86,8 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 				.insert({
 					...config,
 					is_active: true,
-					updated_by: session.user.id
+					updated_by: session.user.id,
+					updated_at: new Date().toISOString()
 				})
 				.select()
 				.single();
@@ -62,6 +96,13 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 				console.error('Error creating site config:', insertError);
 				throw error(500, 'Failed to create site configuration');
 			}
+
+			// Defensive: ensure only this row is active (trigger should handle this, but belt-and-suspenders)
+			await supabase
+				.from('site_configuration')
+				.update({ is_active: false })
+				.neq('id', data.id)
+				.eq('is_active', true);
 
 			return json({ config: data });
 		}

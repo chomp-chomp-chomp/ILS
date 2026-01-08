@@ -222,10 +222,49 @@ Page-type overrides merge with the base theme (light or dark), allowing selectiv
 
 ## Technical Details
 
+### Required Environment Variables
+
+**SUPABASE_SERVICE_ROLE_KEY** (Recommended for production)
+
+The site configuration system can optionally use the Supabase service role key for server-side reads. This is **strongly recommended** for production deployments to ensure reliable loading of site configuration even when Row Level Security (RLS) policies are strict.
+
+**Why it's important:**
+- Bypasses RLS restrictions for server-side configuration loads
+- Ensures header/footer/theme render correctly for all users
+- Prevents 500 errors when RLS policies are misconfigured
+- Allows configuration to load even when database permissions are restrictive
+
+**How to set it up:**
+
+1. Get your service role key from Supabase Dashboard → Settings → API
+2. Add to your `.env` file or deployment environment:
+   ```
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+   ```
+3. In Vercel/production: Add to Environment Variables in project settings
+4. The system will automatically use it when available
+
+**Fallback behavior:**
+- If `SUPABASE_SERVICE_ROLE_KEY` is not set, the system uses the regular Supabase client
+- This works fine if RLS policies allow public read access to `site_configuration` table
+- Without the service key, ensure the following RLS policy exists:
+  ```sql
+  CREATE POLICY "Public can view active site config"
+    ON site_configuration FOR SELECT
+    TO public
+    USING (is_active = true);
+  ```
+
+**Diagnostic logging:**
+- When loading site config, check server logs for:
+  - `[getSiteConfigClient] Using SERVICE ROLE client` - Good! Using service key
+  - `[getSiteConfigClient] Using FALLBACK client` - Warning: No service key, using regular client
+
 ### Graceful Fallbacks
 
 The system is designed to never cause 500 errors. If the `site_configuration` table or active row is missing:
 - Server-side: `loadActiveSiteConfig()` returns `defaultSiteConfig`
+- API endpoints: Return defaults with 200 OK instead of throwing errors
 - Client-side: Components use default values via `||` operators
 - No header/footer is shown if not explicitly enabled
 

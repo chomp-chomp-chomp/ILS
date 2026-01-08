@@ -71,11 +71,13 @@ function getSiteConfigClient(fallback: SupabaseClient) {
 					persistSession: false
 				}
 			});
+			console.log('[getSiteConfigClient] Created service role client for site configuration');
 		}
-		return serviceClient;
+		return { client: serviceClient, usingServiceRole: true };
 	}
 
-	return fallback;
+	console.log('[getSiteConfigClient] Service role key not available, using fallback client');
+	return { client: fallback, usingServiceRole: false };
 }
 
 export async function loadActiveSiteConfig(
@@ -83,7 +85,8 @@ export async function loadActiveSiteConfig(
 ): Promise<{ siteConfig: Record<string, any>; error: PostgrestError | null }> {
 	try {
 		console.log('[loadActiveSiteConfig] Starting site config load operation');
-		const client = getSiteConfigClient(supabase);
+		const { client, usingServiceRole } = getSiteConfigClient(supabase);
+		console.log(`[loadActiveSiteConfig] Using ${usingServiceRole ? 'SERVICE ROLE' : 'FALLBACK'} client`);
 
 		console.log('[loadActiveSiteConfig] Querying database for active site configuration');
 		const { data, error } = await client
@@ -112,6 +115,7 @@ export async function loadActiveSiteConfig(
 			console.log('[loadActiveSiteConfig] Header enabled:', data.header_enabled);
 			console.log('[loadActiveSiteConfig] Footer enabled:', data.footer_enabled);
 			console.log('[loadActiveSiteConfig] Homepage info enabled:', data.homepage_info_enabled);
+			console.log('[loadActiveSiteConfig] Homepage hero enabled:', data.homepage_hero_enabled);
 			console.log('[loadActiveSiteConfig] Theme mode:', data.theme_mode);
 		} else {
 			console.log('[loadActiveSiteConfig] No active site config record found in database');
@@ -127,6 +131,7 @@ export async function loadActiveSiteConfig(
 		console.log('[loadActiveSiteConfig] - Header enabled:', mergedSiteConfig.header_enabled);
 		console.log('[loadActiveSiteConfig] - Footer enabled:', mergedSiteConfig.footer_enabled);
 		console.log('[loadActiveSiteConfig] - Homepage info enabled:', mergedSiteConfig.homepage_info_enabled);
+		console.log('[loadActiveSiteConfig] - Homepage hero enabled:', mergedSiteConfig.homepage_hero_enabled);
 		console.log('[loadActiveSiteConfig] - Theme mode:', mergedSiteConfig.theme_mode);
 
 		// Always return merged defaults + database data (never null)

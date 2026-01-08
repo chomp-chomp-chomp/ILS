@@ -59,6 +59,7 @@ npm install
 # Copy environment variables
 cp .env.example .env
 # Edit .env with your Supabase credentials
+# IMPORTANT: Add SUPABASE_SERVICE_ROLE_KEY for reliable site configuration loading
 
 # Set up database (see DATABASE_SCHEMA.md)
 
@@ -66,10 +67,19 @@ cp .env.example .env
 npm run dev
 ```
 
+**Important Environment Variables:**
+- `PUBLIC_SUPABASE_URL` - Your Supabase project URL (required)
+- `PUBLIC_SUPABASE_ANON_KEY` - Public anon key (required)
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (strongly recommended for production)
+  - Ensures reliable site config loading (header/footer/theme)
+  - Without this, RLS policies must allow public read access
+  - Get from Supabase Dashboard → Settings → API
+
 ## 📖 Documentation
 
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
 - **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)** - Database setup
+- **[SITE_CONFIGURATION.md](./SITE_CONFIGURATION.md)** - Site customization guide
 - **[.env.example](./.env.example)** - Environment variables
 
 ## 🏗️ Tech Stack
