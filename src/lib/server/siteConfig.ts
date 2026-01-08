@@ -4,40 +4,68 @@ import { createClient, type SupabaseClient, type PostgrestError } from '@supabas
 
 let serviceClient: SupabaseClient | null = null;
 
-// Centralized default site configuration
+/**
+ * Centralized default site configuration
+ * 
+ * UPDATING SERVER-SIDE DEFAULTS:
+ * To change the default configuration values that are used when no database 
+ * configuration exists, modify the values in this defaultSiteConfig object.
+ * 
+ * These defaults are merged with database values in loadActiveSiteConfig().
+ * Database values take precedence over defaults when both exist.
+ * 
+ * Key sections:
+ * - Header: Navigation bar at top of site (header_enabled, header_links)
+ * - Footer: Footer bar at bottom of site (footer_enabled, footer_text, footer_links)
+ * - Homepage Hero: Large banner section on homepage (homepage_hero_*)
+ * - Homepage Info: Informational section on homepage (homepage_info_*)
+ * - Metadata: Favicon and social media images (favicon_url, og_image_url, etc.)
+ * - Theme: Color schemes for light/dark modes
+ */
 export const defaultSiteConfig = {
-	// Header
-	header_enabled: false,
-	header_logo_url: null,
-	header_links: [],
+	// Header configuration
+	// Enable header_enabled: true to show custom header navigation
+	header_enabled: true,
+	header_logo_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library',
+	header_links: [
+		{ title: 'Home', url: 'https://library.chompchomp.cc/', order: 1 },
+		{ title: 'Advanced Search', url: 'https://library.chompchomp.cc/catalog/search/advanced', order: 2 },
+		{ title: 'Tools', url: 'https://chompchomp.cc/tools/', order: 3 },
+		{ title: 'Recipes', url: 'https://chompchomp.cc/', order: 4 }
+	],
 
-	// Footer
-	footer_enabled: false,
-	footer_text: 'Powered by Open Library System',
-	footer_links: [],
+	// Footer configuration
+	// Footer appears at bottom of all non-admin pages when footer_enabled is true
+	footer_enabled: true,
+	footer_text: 'Powered by Chomp Chomp',
+	footer_links: [
+		{ title: 'Powered by Chomp Chomp', url: 'https://chompchomp.cc', order: 1 }
+	],
 
-	// Homepage info
+	// Homepage info section (below search box)
 	homepage_info_enabled: false,
 	homepage_info_title: 'Quick Links',
 	homepage_info_content: 'Welcome to our library catalog. Use the search box above to find items by title, author, subject, or ISBN.',
 	homepage_info_links: [],
 
-	// Homepage hero
-	homepage_hero_enabled: false,
-	homepage_hero_title: '',
-	homepage_hero_tagline: '',
-	homepage_hero_image_url: null,
+	// Homepage hero section (large banner with image)
+	// This appears at the very top of the homepage when enabled
+	homepage_hero_enabled: true,
+	homepage_hero_title: 'Welcome to the Chomp Chomp Library',
+	homepage_hero_tagline: 'Explore our collection',
+	homepage_hero_image_url: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library?updatedAt=1767613169516',
 	homepage_hero_links: [],
 
-	// Site metadata assets
-	favicon_url: null,
-	apple_touch_icon_url: null,
-	android_chrome_192_url: null,
-	android_chrome_512_url: null,
+	// Site metadata assets (favicons, social sharing images)
+	// These URLs can point to files in /static or external URLs
+	favicon_url: '/favicon.ico',
+	apple_touch_icon_url: '/apple-touch-icon.png',
+	android_chrome_192_url: '/android-chrome-192x192.png',
+	android_chrome_512_url: '/android-chrome-512x512.png',
 	og_image_url: null,
 	twitter_card_image_url: null,
 
-	// Theme
+	// Theme configuration
 	theme_mode: 'system', // 'system', 'light', 'dark'
 	theme_light: {
 		primary: '#e73b42',

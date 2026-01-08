@@ -369,7 +369,29 @@
 		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.3);
 	}
 
-	/* Homepage Hero Styles */
+	/* Homepage Hero Styles 
+	 * 
+	 * CUSTOMIZING HERO SECTION:
+	 * The hero is a large banner section with background image at the top of homepage.
+	 * 
+	 * To customize hero:
+	 * 1. Enable/disable: siteConfig.homepage_hero_enabled
+	 * 2. Set title: siteConfig.homepage_hero_title
+	 * 3. Set tagline: siteConfig.homepage_hero_tagline
+	 * 4. Set background image: siteConfig.homepage_hero_image_url
+	 * 5. Add action buttons: siteConfig.homepage_hero_links
+	 * 
+	 * Key CSS Classes:
+	 * - .homepage-hero: Main hero container with background image
+	 * - .hero-overlay: Colored overlay gradient on top of image
+	 * - .hero-content-wrapper: Content container
+	 * - .hero-title: Main heading
+	 * - .hero-tagline: Subheading
+	 * - .hero-links: Container for action buttons
+	 * - .hero-link-button: Individual action button
+	 * 
+	 * The background image is applied via inline style attribute.
+	 */
 	.homepage-hero {
 		position: relative;
 		min-height: 400px;
