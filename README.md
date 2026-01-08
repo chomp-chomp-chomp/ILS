@@ -8,14 +8,19 @@ A modern, full-featured Integrated Library System (ILS) built with SvelteKit, Po
 
 ### 📚 Cataloging
 - **MARC21 Format Support**: Create and manage bibliographic records in standard MARC21 format
+- **MARC Import/Export**: Bulk import from MARCXML, export to MARCXML with filtering
 - **ISBN Lookup**: Automatically import records from OpenLibrary API
+- **Duplicate Detection**: Automatic duplicate checking during import
 - **Manual Entry**: Full MARC record creation with all major fields
+- **Batch Operations**: Bulk editing and updates
 - **Material Types**: Support for books, e-books, serials, DVDs, audiobooks, and more
 
 ### 🔍 Public OPAC (Online Public Access Catalog)
 - **Simple Search**: Fast, user-friendly search across all fields
 - **Advanced Search**: Boolean operators (AND/OR), field-specific searching, date ranges
 - **Full-Text Search**: PostgreSQL-powered search with ranking and relevance
+- **Faceted Navigation**: Filter by material type, language, publication date, location, and more
+- **Dynamic Facets**: Admin-configurable facets without code changes
 - **Detailed Records**: Display MARC data in user-friendly format
 - **Holdings Information**: View availability, location, and copy information
 
@@ -28,10 +33,14 @@ A modern, full-featured Integrated Library System (ILS) built with SvelteKit, Po
 
 ### 🔒 Admin Panel
 - **Secure Authentication**: Supabase-powered user authentication
-- **Dashboard**: Overview of catalog statistics
+- **Dashboard**: Overview of catalog statistics and recent activity
+- **System Maintenance Panel**: Health checks, cache management, database optimization
 - **Cataloging Tools**: Create, edit, and manage MARC records
+- **MARC Import/Export**: Bulk operations with MARCXML format
 - **Holdings Management**: Track copies, locations, and availability
 - **Serials Management**: Register and manage serial publications
+- **Facet Configuration**: Admin-configurable search facets
+- **Site Configuration**: Customize branding, theme, and appearance
 
 ## 🚀 Quick Start
 
@@ -77,10 +86,19 @@ npm run dev
 
 ## 📖 Documentation
 
+**Core Documentation:**
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
-- **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)** - Database setup
+- **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)** - Database setup and schema
 - **[SITE_CONFIGURATION.md](./SITE_CONFIGURATION.md)** - Site customization guide
 - **[.env.example](./.env.example)** - Environment variables
+
+**Feature Documentation:**
+- **[ADMIN_MAINTENANCE.md](./ADMIN_MAINTENANCE.md)** - System maintenance tools and best practices
+- **[MARC_IMPORT_EXPORT.md](./MARC_IMPORT_EXPORT.md)** - Bulk import/export guide
+- **[FACETED_SEARCH.md](./FACETED_SEARCH.md)** - Faceted search configuration
+- **[CATALOGING_FEATURES.md](./CATALOGING_FEATURES.md)** - Advanced cataloging features
+- **[AUTHORITY_CONTROL.md](./AUTHORITY_CONTROL.md)** - Authority control system
+- **[ILL_MODULE.md](./ILL_MODULE.md)** - Interlibrary loan management
 
 ## 🏗️ Tech Stack
 
