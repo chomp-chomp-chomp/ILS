@@ -2,122 +2,136 @@
 	import { invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
 	import type { LayoutData } from './$types';
 	import favicon from '$lib/assets/favicon.svg';
 	import AccessibilitySettings from '$lib/components/AccessibilitySettings.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
-	import { defaultSiteConfig } from '$lib/types/site-config';
-	import { getPageType, getMergedThemeTokens } from '$lib/types/site-config';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
+
+	// Site configuration (single source of truth for header/footer/homepage/theme)
+	const siteConfig = $derived((data as any).siteConfig || {
+		header_enabled: false,
+		header_logo_url: null,
+		header_links: [],
+		footer_enabled: false,
+		footer_text: '',
+		footer_links: [],
+		theme_mode: 'system',
+		theme_light: {
+			primary: '#e73b42',
+			secondary: '#667eea',
+			accent: '#2c3e50',
+			background: '#ffffff',
+			text: '#333333',
+			font: 'system-ui, -apple-system, sans-serif'
+		},
+		theme_dark: {
+			primary: '#ff6b72',
+			secondary: '#8b9eff',
+			accent: '#3d5a7f',
+			background: '#1a1a1a',
+			text: '#e5e5e5',
+			font: 'system-ui, -apple-system, sans-serif'
+		},
+		page_themes: {}
+	});
+
+	// Keep branding for backward compatibility (title, favicon, etc.)
+	const branding = $derived((data as any).branding || {
+		library_name: 'Chomp Chomp Library Catalog',
+		favicon_url: null,
+		custom_head_html: null,
+		custom_css: null
+	});
 
 	// Determine if we should show the default navigation
 	let showNav = $derived($page.url.pathname !== '/' && !$page.url.pathname.startsWith('/admin'));
 
-	// Use branding directly from data (already merged with defaults on server)
-	// Add safety check in case data.branding is somehow undefined
-	const branding = $derived((data as any).branding || {
-		library_name: 'Chomp Chomp Library Catalog',
-		primary_color: '#e73b42',
-		secondary_color: '#667eea',
-		accent_color: '#2c3e50',
-		background_color: '#ffffff',
-		text_color: '#333333',
-		font_family: 'system-ui, -apple-system, sans-serif',
-		show_header: false,
-		show_powered_by: false,
-		footer_text: '',
-		header_links: []
-	});
+	// Show custom header on all non-admin pages if enabled (from siteConfig)
+	let showCustomHeader = $derived(
+		siteConfig?.header_enabled === true && !$page.url.pathname.startsWith('/admin')
+	);
 
-	// Get site config with defaults
-	const siteConfig = $derived((data as any).siteConfig || defaultSiteConfig);
-
-	// Determine if we're on admin pages
-	const isAdminPage = $derived($page.url.pathname.startsWith('/admin'));
-
-	// Show custom header from siteConfig on non-admin pages if enabled
-	let showCustomHeader = $derived(siteConfig.header_enabled && !isAdminPage);
-
-	// Show footer from siteConfig on non-admin pages if enabled
-	let showFooter = $derived(siteConfig.footer_enabled && !isAdminPage);
+	// Show footer on non-admin pages if enabled (from siteConfig)
+	let showFooter = $derived(
+		siteConfig?.footer_enabled === true && !$page.url.pathname.startsWith('/admin')
+	);
 
 	// Theme management
-	let userTheme = $state<'light' | 'dark' | 'system'>('system');
-	let resolvedTheme = $state<'light' | 'dark'>('light');
+	let manualTheme = $state<'light' | 'dark' | null>(null);
+	let systemTheme = $state<'light' | 'dark'>('light');
+	let currentTheme = $derived(manualTheme || (siteConfig.theme_mode === 'system' ? systemTheme : siteConfig.theme_mode));
 
-	function getSystemTheme(): 'light' | 'dark' {
-		if (typeof window === 'undefined') return 'light';
-		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+	// Determine page type for theme overrides
+	function getPageType(pathname: string): string {
+		if (pathname === '/') return 'home';
+		if (pathname === '/catalog/search/results') return 'search_results';
+		if (pathname === '/catalog/search/advanced') return 'search_advanced';
+		if (pathname === '/catalog/browse') return 'catalog_browse';
+		if (pathname.startsWith('/catalog/record/')) return 'record_details';
+		return 'public_default';
 	}
 
-	function resolveTheme(theme: 'light' | 'dark' | 'system'): 'light' | 'dark' {
-		return theme === 'system' ? getSystemTheme() : theme;
-	}
+	const pageType = $derived(getPageType($page.url.pathname));
 
-	function applyTheme() {
-		if (typeof window === 'undefined') return;
-		
-		const pageType = getPageType($page.url.pathname);
-		const tokens = getMergedThemeTokens(siteConfig, pageType, resolvedTheme);
-		
-		// Update data attribute
-		document.documentElement.setAttribute('data-theme', resolvedTheme);
-		
-		// Apply theme tokens as CSS variables
-		Object.entries(tokens).forEach(([key, value]) => {
-			if (value) {
-				document.documentElement.style.setProperty(`--theme-${key}`, value);
-			}
-		});
-	}
+	// Get active theme with page-type overrides
+	const activeTheme = $derived(() => {
+		const baseTheme = currentTheme === 'dark' ? siteConfig.theme_dark : siteConfig.theme_light;
+		const pageOverride = siteConfig.page_themes?.[pageType] || {};
+		return { ...baseTheme, ...pageOverride };
+	});
 
+	// Load manual theme preference from localStorage
 	onMount(() => {
-		// Load theme preference
-		const stored = localStorage.getItem('theme') as 'light' | 'dark' | null;
-		if (stored && (stored === 'light' || stored === 'dark')) {
-			userTheme = stored;
-		} else {
-			userTheme = siteConfig.theme_mode;
+		const stored = localStorage.getItem('theme-preference');
+		if (stored === 'light' || stored === 'dark') {
+			manualTheme = stored;
 		}
-		resolvedTheme = resolveTheme(userTheme);
-		applyTheme();
 
-		// Listen for system theme changes
+		// Detect system theme preference
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-		const handleChange = () => {
-			if (userTheme === 'system') {
-				resolvedTheme = resolveTheme('system');
-				applyTheme();
-			}
-		};
-		mediaQuery.addEventListener('change', handleChange);
+		systemTheme = mediaQuery.matches ? 'dark' : 'light';
 
-		// Listen for theme toggle events
-		const handleThemeChange = (e: Event) => {
-			const customEvent = e as CustomEvent;
-			userTheme = customEvent.detail;
-			resolvedTheme = resolveTheme(userTheme);
-			applyTheme();
+		const handleChange = (e: MediaQueryListEvent) => {
+			systemTheme = e.matches ? 'dark' : 'light';
 		};
-		window.addEventListener('themechange', handleThemeChange);
+
+		mediaQuery.addEventListener('change', handleChange);
 
 		const { data: authData } = data.supabase.auth.onAuthStateChange(() => {
 			invalidate('supabase:auth');
 		});
 
 		return () => {
-			authData.subscription.unsubscribe();
 			mediaQuery.removeEventListener('change', handleChange);
-			window.removeEventListener('themechange', handleThemeChange);
+			authData.subscription.unsubscribe();
 		};
 	});
 
-	// Re-apply theme when page changes
-	$effect(() => {
-		$page.url.pathname;
-		applyTheme();
-	});
+	// Toggle theme function (exposed via window for theme toggle button)
+	function toggleTheme() {
+		if (manualTheme === 'light') {
+			manualTheme = 'dark';
+		} else if (manualTheme === 'dark') {
+			manualTheme = null; // Back to system
+		} else {
+			manualTheme = 'light';
+		}
+
+		if (browser) {
+			if (manualTheme) {
+				localStorage.setItem('theme-preference', manualTheme);
+			} else {
+				localStorage.removeItem('theme-preference');
+			}
+		}
+	}
+
+	// Expose theme toggle globally
+	if (browser) {
+		(window as any).toggleTheme = toggleTheme;
+	}
 </script>
 
 <svelte:head>
@@ -139,31 +153,42 @@
 
 <main
 	id="main-content"
+	class="theme-{currentTheme}"
+	data-page-type={pageType}
 	style="
-		--primary-color: {branding?.primary_color || '#e73b42'};
-		--secondary-color: {branding?.secondary_color || '#667eea'};
-		--accent-color: {branding?.accent_color || '#2c3e50'};
-		--background-color: {branding?.background_color || '#ffffff'};
-		--text-color: {branding?.text_color || '#333333'};
-		--font-family: {branding?.font_family || 'system-ui, -apple-system, sans-serif'};
-		--heading-font: {branding?.heading_font || branding?.font_family || 'system-ui, -apple-system, sans-serif'};
+		--primary-color: {activeTheme().primary};
+		--secondary-color: {activeTheme().secondary};
+		--accent-color: {activeTheme().accent};
+		--background-color: {activeTheme().background};
+		--text-color: {activeTheme().text};
+		--font-family: {activeTheme().font};
 	"
 >
-	<!-- Custom Header from Site Config (if enabled in siteConfig) -->
+	<!-- Custom Header (if enabled in siteConfig) -->
 	{#if showCustomHeader}
 		<nav class="custom-header">
 			<div class="header-container">
-				{#if siteConfig.header_logo_url}
-					<img src={siteConfig.header_logo_url} alt={branding?.library_name || 'Library'} class="header-logo" />
+				{#if siteConfig?.header_logo_url}
+					<img
+						src={siteConfig.header_logo_url}
+						alt={branding?.library_name || 'Library'}
+						class="header-logo"
+					/>
 				{/if}
 				<div class="header-links">
-					{#each [...siteConfig.header_links].sort((a, b) => a.order - b.order) as link}
+					{#each [...(siteConfig?.header_links || [])].sort((a, b) => a.order - b.order) as link}
 						<a href={link.url} class="header-link">{link.title}</a>
 					{/each}
 				</div>
-				<div class="header-actions">
-					<ThemeToggle siteConfig={siteConfig} />
-				</div>
+				<button class="theme-toggle" onclick={toggleTheme} aria-label="Toggle theme">
+					{#if manualTheme === 'light'}
+						☀️
+					{:else if manualTheme === 'dark'}
+						🌙
+					{:else}
+						🔄
+					{/if}
+				</button>
 			</div>
 		</nav>
 	{/if}
@@ -174,26 +199,32 @@
 			<div class="nav-container">
 				<a href="/" class="nav-link">Home</a>
 				<a href="/catalog/search/advanced" class="nav-link">Advanced Search</a>
-				<div class="nav-actions">
-					<ThemeToggle siteConfig={siteConfig} />
-				</div>
+				<button class="theme-toggle nav-theme-toggle" onclick={toggleTheme} aria-label="Toggle theme">
+					{#if manualTheme === 'light'}
+						☀️
+					{:else if manualTheme === 'dark'}
+						🌙
+					{:else}
+						🔄
+					{/if}
+				</button>
 			</div>
 		</nav>
 	{/if}
 	{@render children()}
 
-	<!-- Footer from Site Config (if enabled in siteConfig, shown on non-admin pages) -->
+	<!-- Footer (if enabled in siteConfig, shown on non-admin pages) -->
 	{#if showFooter}
 		<footer class="site-footer">
 			<div class="footer-container">
 				<div class="footer-content">
 					<!-- Main Footer Text -->
-					{#if siteConfig.footer_text}
+					{#if siteConfig?.footer_text}
 						<p class="footer-text">{siteConfig.footer_text}</p>
 					{/if}
 
 					<!-- Footer Links -->
-					{#if siteConfig.footer_links && siteConfig.footer_links.length > 0}
+					{#if siteConfig?.footer_links && siteConfig.footer_links.length > 0}
 						<div class="footer-links">
 							{#each [...siteConfig.footer_links].sort((a, b) => a.order - b.order) as link}
 								<a href={link.url} class="footer-link">{link.title}</a>
@@ -207,6 +238,36 @@
 </main>
 
 <style>
+	/* Base theme support */
+	main {
+		background: var(--background-color);
+		color: var(--text-color);
+		font-family: var(--font-family);
+		min-height: 100vh;
+		transition: background-color 0.3s, color 0.3s;
+	}
+
+	/* Theme toggle button */
+	.theme-toggle {
+		background: rgba(255, 255, 255, 0.2);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		border-radius: 4px;
+		padding: 0.5rem 0.75rem;
+		font-size: 1.2rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		color: white;
+	}
+
+	.theme-toggle:hover {
+		background: rgba(255, 255, 255, 0.3);
+		transform: scale(1.05);
+	}
+
+	.nav-theme-toggle {
+		margin-left: auto;
+	}
+
 	.site-nav {
 		background: var(--primary-color);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.1);
@@ -220,10 +281,6 @@
 		display: flex;
 		gap: 2rem;
 		align-items: center;
-	}
-
-	.nav-actions {
-		margin-left: auto;
 	}
 
 	.nav-link {
@@ -268,10 +325,6 @@
 		align-items: center;
 	}
 
-	.header-actions {
-		margin-left: auto;
-	}
-
 	.header-link {
 		color: white;
 		text-decoration: none;
@@ -288,7 +341,7 @@
 
 	/* Footer Styles */
 	.site-footer {
-		background: var(--accent-color, #2c3e50);
+		background: var(--accent-color);
 		color: rgba(255, 255, 255, 0.9);
 		border-top: 1px solid rgba(255, 255, 255, 0.1);
 		padding: 2rem 0;
@@ -304,7 +357,7 @@
 	.footer-content {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1rem;
 		align-items: center;
 		text-align: center;
 	}
@@ -332,7 +385,7 @@
 	}
 
 	.footer-link:hover {
-		color: var(--primary-color, #e73b42);
+		color: var(--primary-color);
 	}
 
 	@media (max-width: 768px) {

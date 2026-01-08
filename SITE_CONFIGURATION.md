@@ -1,609 +1,322 @@
 # Site Configuration System
 
-**Version**: 1.0  
-**Date**: January 2026  
-**Status**: Production Ready
-
 ## Overview
 
-The **Site Configuration System** is a comprehensive solution for managing public-facing site content and theming, independent of the existing branding system. It provides a single source of truth for:
+The Site Configuration System is the single source of truth for public-facing site customization, including:
+- Custom header with logo and navigation links
+- Custom footer with text and links
+- Homepage information section with content and quick links
+- Theme system with light/dark modes and per-page-type overrides
 
-- Custom header navigation
-- Footer content and links
-- Homepage information section
-- Light/dark theme system with per-page overrides
+## Architecture
 
-## Key Features
+### Database
 
-### 1. Header Configuration
-- Enable/disable custom header on public pages
-- Upload header logo
-- Add/remove/reorder navigation links
-- Links automatically sorted by order
-- Theme toggle integrated into header
+**Table**: `site_configuration`
 
-### 2. Footer Configuration
-- Enable/disable footer on public pages
-- Plain text footer content
-- Add/remove/reorder footer links
-- Shown only on non-admin routes
-
-### 3. Homepage Info Section
-- Enable/disable info section on homepage
-- Customizable title and plain text content
-- Add/remove/reorder quick links
-- Alternative to default catalog description
-
-### 4. Theme System
-- **Three theme modes**: Light, Dark, System (auto-detect)
-- **Theme toggle**: Cycles through light → dark → system
-- **localStorage persistence**: User preference saved across sessions
-- **System theme detection**: Respects `prefers-color-scheme` media query
-- **Per-page overrides**: Different themes for different page types
-- **CSS variable application**: Applies theme tokens as `--theme-*` variables
-
-### 5. Page Type Detection
-Automatically detects and applies page-specific theme overrides for:
-- `home` - Homepage (/)
-- `search_results` - Search results (/catalog/search/results)
-- `search_advanced` - Advanced search (/catalog/search/advanced)
-- `catalog_browse` - Browse page (/catalog/browse)
-- `record_details` - Record detail pages (/catalog/record/*)
-- `public_default` - All other public pages
-
-## Database Schema
-
-### Table: `site_configuration`
+The system uses a single active configuration row with the following structure:
 
 ```sql
 CREATE TABLE site_configuration (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  id UUID PRIMARY KEY,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
   updated_by UUID REFERENCES auth.users(id),
   is_active BOOLEAN DEFAULT true,
-
+  
   -- Header
-  header_enabled BOOLEAN DEFAULT false,
+  header_enabled BOOLEAN,
   header_logo_url TEXT,
-  header_links JSONB DEFAULT '[]'::jsonb,
-
+  header_links JSONB, -- [{ title, url, order }]
+  
   -- Footer
-  footer_enabled BOOLEAN DEFAULT false,
-  footer_text TEXT DEFAULT '',
-  footer_links JSONB DEFAULT '[]'::jsonb,
-
+  footer_enabled BOOLEAN,
+  footer_text TEXT,
+  footer_links JSONB, -- [{ title, url, order }]
+  
   -- Homepage Info
-  homepage_info_enabled BOOLEAN DEFAULT false,
-  homepage_info_title TEXT DEFAULT '',
-  homepage_info_content TEXT DEFAULT '',
-  homepage_info_links JSONB DEFAULT '[]'::jsonb,
-
+  homepage_info_enabled BOOLEAN,
+  homepage_info_title TEXT,
+  homepage_info_content TEXT,
+  homepage_info_links JSONB, -- [{ title, url, order }]
+  
   -- Theme
-  theme_mode TEXT DEFAULT 'system',
-  theme_light JSONB DEFAULT '{}'::jsonb,
-  theme_dark JSONB DEFAULT '{}'::jsonb,
-  page_themes JSONB DEFAULT '{}'::jsonb
+  theme_mode TEXT, -- 'system', 'light', 'dark'
+  theme_light JSONB, -- { primary, secondary, accent, background, text, font }
+  theme_dark JSONB,
+  page_themes JSONB -- { home: {...}, search_results: {...}, etc. }
 );
 ```
 
-**Key Constraints:**
-- Unique partial index ensures only one active configuration
-- RLS policies allow public read of active config
-- Authenticated users can view/edit all configs
+### Server-Side Loading
 
-### Default Theme Tokens
+**File**: `src/lib/server/siteConfig.ts`
 
-**Light Theme:**
-```json
-{
-  "primary": "#e73b42",
-  "secondary": "#667eea",
-  "accent": "#2c3e50",
-  "background": "#ffffff",
-  "surface": "#f5f5f5",
-  "text": "#333333",
-  "text-muted": "#666666",
-  "border": "#e0e0e0"
-}
-```
+Provides:
+- `defaultSiteConfig`: Safe fallback configuration
+- `loadActiveSiteConfig(supabase)`: Loads active configuration with graceful error handling
 
-**Dark Theme:**
-```json
-{
-  "primary": "#ff5a61",
-  "secondary": "#7c8ffa",
-  "accent": "#4a5f7f",
-  "background": "#1a1a1a",
-  "surface": "#2d2d2d",
-  "text": "#e0e0e0",
-  "text-muted": "#a0a0a0",
-  "border": "#404040"
-}
-```
+The configuration is loaded in the root layout server load function (`src/routes/+layout.server.ts`) and passed to all pages as `data.siteConfig`.
 
-## API Endpoints
+### Public Rendering
 
-### GET /api/site-config
-Returns the active site configuration.
+**Files**: 
+- `src/routes/+layout.svelte` - Renders header/footer, applies theme
+- `src/routes/+page.svelte` - Renders homepage info section
 
-**Response:**
-```json
-{
-  "success": true,
-  "config": {
-    "header_enabled": false,
-    "header_logo_url": null,
-    "header_links": [],
-    "footer_enabled": false,
-    "footer_text": "",
-    "footer_links": [],
-    "homepage_info_enabled": false,
-    "homepage_info_title": "",
-    "homepage_info_content": "",
-    "homepage_info_links": [],
-    "theme_mode": "system",
-    "theme_light": { /* theme tokens */ },
-    "theme_dark": { /* theme tokens */ },
-    "page_themes": { /* per-page overrides */ }
-  }
-}
-```
+The layout component:
+1. Reads `siteConfig` from page data
+2. Applies conditional rendering for header/footer based on `*_enabled` flags
+3. Calculates active theme (light/dark) based on system preference and manual override
+4. Applies page-type-specific theme overrides
+5. Provides theme toggle button that persists to localStorage
 
-**Error Handling:**
-- Returns defaults if table doesn't exist (never crashes)
-- Merges database data with defaults
-- Safe for missing/partial data
+### Theme System
 
-### PUT /api/site-config
-Updates the active site configuration (requires authentication).
+#### Theme Modes
+- **system**: Automatically detects user's OS preference (light/dark)
+- **light**: Forces light theme
+- **dark**: Forces dark theme
 
-**Request Body:**
+Users can override any mode with the theme toggle button (☀️/🌙/🔄):
+- ☀️ = Manual light mode
+- 🌙 = Manual dark mode
+- 🔄 = System preference
+
+#### Theme Tokens
+
+Each theme (light/dark) includes these tokens:
+- `primary`: Main brand color (used for headers, buttons)
+- `secondary`: Secondary accent color
+- `accent`: Tertiary accent color
+- `background`: Page background color
+- `text`: Main text color
+- `font`: Font family stack
+
+#### Per-Page-Type Overrides
+
+The system supports theme customization for specific page types:
+- `home` - Homepage (/)
+- `search_results` - Search results page
+- `search_advanced` - Advanced search page
+- `catalog_browse` - Browse catalog page
+- `record_details` - Individual record detail pages
+- `public_default` - Fallback for all other public pages
+
+Page-type overrides merge with the base theme (light or dark), allowing selective customization.
+
+### Admin Interface
+
+**URL**: `/admin/site-config`
+
+**Files**:
+- `src/routes/admin/site-config/+page.server.ts` - Loads current configuration
+- `src/routes/admin/site-config/+page.svelte` - Admin UI
+
+**Features**:
+- Tabbed interface (Header / Footer / Homepage Info / Theme)
+- Link management with drag-and-drop ordering
+- Visual color pickers for theme tokens
+- Per-page-type theme override editor
+- Live save with validation
+- Reset to last saved state
+
+### API Endpoints
+
+**URL**: `/api/site-config`
+
+**Methods**:
+- `GET` - Read active site configuration (public)
+- `PUT` - Update site configuration (authenticated only)
+
+**Request Body (PUT)**:
 ```json
 {
   "header_enabled": true,
   "header_logo_url": "https://example.com/logo.png",
   "header_links": [
-    { "title": "Home", "url": "/", "order": 0 },
-    { "title": "About", "url": "/about", "order": 1 }
+    { "title": "Catalog", "url": "/catalog", "order": 1 },
+    { "title": "About", "url": "/about", "order": 2 }
   ],
   "footer_enabled": true,
-  "footer_text": "Copyright © 2024",
+  "footer_text": "© 2024 My Library",
   "footer_links": [
-    { "title": "Privacy", "url": "/privacy", "order": 0 }
+    { "title": "Privacy", "url": "/privacy", "order": 1 }
+  ],
+  "homepage_info_enabled": true,
+  "homepage_info_title": "Welcome",
+  "homepage_info_content": "Welcome to our catalog...",
+  "homepage_info_links": [
+    { "title": "New Arrivals", "url": "/new", "order": 1 }
   ],
   "theme_mode": "system",
-  "theme_light": { /* tokens */ },
-  "theme_dark": { /* tokens */ }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "config": { /* updated config */ }
-}
-```
-
-**Authentication:**
-- Requires valid session (authenticated user)
-- Sets `updated_by` to current user ID
-- Updates `updated_at` timestamp automatically
-
-## Admin Interface
-
-### Location
-`/admin/site-config`
-
-### Access
-Accessible via **Admin → Configuration → Site Configuration**
-
-### Interface Overview
-
-The admin interface uses a **4-tab layout**:
-
-#### 1. Header Tab
-- **Enable Custom Header** - Toggle checkbox
-- **Header Logo URL** - Text input for logo image
-- **Header Links** - Dynamic list with:
-  - Add new link (title + URL)
-  - Reorder links (↑↓ buttons)
-  - Remove links (🗑 button)
-
-#### 2. Footer Tab
-- **Enable Footer** - Toggle checkbox
-- **Footer Text** - Textarea for main footer text
-- **Footer Links** - Dynamic list (same controls as header)
-
-#### 3. Homepage Info Tab
-- **Enable Homepage Info Section** - Toggle checkbox
-- **Section Title** - Text input
-- **Section Content** - Textarea (plain text)
-- **Homepage Links** - Dynamic list (same controls)
-
-#### 4. Theme Tab
-- **Default Theme Mode** - Dropdown (system/light/dark)
-- **Light Theme Tokens** - JSON editor textarea
-- **Dark Theme Tokens** - JSON editor textarea
-- **Per-Page Theme Overrides** - Info message (advanced feature)
-
-### User Flow
-1. Navigate to `/admin/site-config`
-2. Select desired tab
-3. Configure settings
-4. Click **Save Configuration**
-5. Changes immediately reflected on public site
-
-## Theme System
-
-### Theme Toggle Component
-**Location**: Header and navigation bars
-
-**Behavior**:
-- Displays current theme with icon
-  - ☀️ Light mode
-  - 🌙 Dark mode
-  - 🌓 System mode
-- Clicking cycles: light → dark → system → light
-- Persists preference to `localStorage`
-- Dispatches `themechange` event
-
-### Theme Application
-**Applied via CSS variables** prefixed with `--theme-*`:
-
-```css
-:root {
-  --theme-primary: #e73b42;
-  --theme-secondary: #667eea;
-  --theme-accent: #2c3e50;
-  --theme-background: #ffffff;
-  --theme-surface: #f5f5f5;
-  --theme-text: #333333;
-  --theme-text-muted: #666666;
-  --theme-border: #e0e0e0;
-}
-```
-
-**Usage in components**:
-```css
-.element {
-  background: var(--theme-background);
-  color: var(--theme-text);
-  border: 1px solid var(--theme-border);
-}
-```
-
-### System Theme Detection
-- Uses `window.matchMedia('(prefers-color-scheme: dark)')`
-- Listens for system theme changes
-- Automatically updates when system preference changes (if theme mode is 'system')
-
-### Page-Specific Overrides
-Theme tokens can be overridden per page type. For example:
-
-```json
-{
+  "theme_light": {
+    "primary": "#e73b42",
+    "secondary": "#667eea",
+    "accent": "#2c3e50",
+    "background": "#ffffff",
+    "text": "#333333",
+    "font": "system-ui, -apple-system, sans-serif"
+  },
+  "theme_dark": {
+    "primary": "#ff6b72",
+    "secondary": "#8b9eff",
+    "accent": "#3d5a7f",
+    "background": "#1a1a1a",
+    "text": "#e5e5e5",
+    "font": "system-ui, -apple-system, sans-serif"
+  },
   "page_themes": {
-    "search_results": {
-      "light": {
-        "primary": "#1976d2",
-        "background": "#f0f4f8"
-      },
-      "dark": {
-        "primary": "#64b5f6",
-        "background": "#121212"
-      }
+    "home": {
+      "primary": "#ff0000"
     }
   }
 }
 ```
 
-This makes search results use a blue theme instead of red.
+## Usage
 
-## TypeScript Types
+### Initial Setup
 
-### Core Types
+1. **Run Migration**: Apply `migrations/024_site_configuration.sql` in Supabase SQL Editor
+2. **Verify Table**: Check that `site_configuration` table exists with default row
+3. **Access Admin**: Navigate to `/admin/site-config`
 
-```typescript
-interface HeaderLink {
-  title: string;
-  url: string;
-  order: number;
-}
-
-interface FooterLink {
-  title: string;
-  url: string;
-  order: number;
-}
-
-interface HomepageInfoLink {
-  title: string;
-  url: string;
-  order: number;
-}
-
-interface ThemeTokens {
-  primary?: string;
-  secondary?: string;
-  accent?: string;
-  background?: string;
-  surface?: string;
-  text?: string;
-  'text-muted'?: string;
-  border?: string;
-  [key: string]: string | undefined;
-}
-
-type PageType = 
-  | 'home' 
-  | 'search_results' 
-  | 'search_advanced' 
-  | 'catalog_browse' 
-  | 'record_details' 
-  | 'public_default';
-
-interface SiteConfiguration {
-  id?: string;
-  created_at?: string;
-  updated_at?: string;
-  updated_by?: string;
-  is_active?: boolean;
-
-  header_enabled: boolean;
-  header_logo_url: string | null;
-  header_links: HeaderLink[];
-
-  footer_enabled: boolean;
-  footer_text: string;
-  footer_links: FooterLink[];
-
-  homepage_info_enabled: boolean;
-  homepage_info_title: string;
-  homepage_info_content: string;
-  homepage_info_links: HomepageInfoLink[];
-
-  theme_mode: 'system' | 'light' | 'dark';
-  theme_light: ThemeTokens;
-  theme_dark: ThemeTokens;
-  page_themes: PageThemes;
-}
-```
-
-### Utility Functions
-
-```typescript
-// Merge with defaults
-mergeSiteConfig(data: Partial<SiteConfiguration> | null): SiteConfiguration
-
-// Detect page type from pathname
-getPageType(pathname: string): PageType
-
-// Get merged theme tokens for page and mode
-getMergedThemeTokens(
-  config: SiteConfiguration,
-  pageType: PageType,
-  themeMode: 'light' | 'dark'
-): ThemeTokens
-
-// Safely coerce JSONB arrays
-coerceToArray<T>(value: unknown): T[]
-
-// Safely coerce JSONB objects
-coerceToObject<T>(value: unknown, defaultValue: T): T
-```
-
-## Relationship to Branding System
-
-### Site Configuration (New)
-**Purpose**: Public site content and theming
-- Header navigation
-- Footer content
-- Homepage info section
-- Light/dark theme system
-
-### Branding System (Existing)
-**Purpose**: Visual identity and advanced customization
-- Library name and tagline
-- Logos (multiple contexts)
-- Color palette (for components)
-- Typography (fonts)
-- Custom CSS/HTML
-- Contact information
-- Social media links
-- Display preferences (covers, facets, items per page)
-
-### Coexistence
-- **No Conflicts**: Both systems work independently
-- **Different Scopes**: Site config handles content/theming, branding handles identity/styling
-- **Compatible**: Both can be enabled simultaneously
-- **Header/Footer**: Now controlled by site config (not branding)
-- **Homepage Info**: Now controlled by site config (not branding)
-
-## Migration Instructions
-
-### For Supabase Users
-
-1. **Open Supabase SQL Editor**
-2. **Run migration**: `migrations/026_site_configuration.sql`
-3. **Verify table created**: Check Tables in Supabase Dashboard
-4. **Verify default row**: Query `SELECT * FROM site_configuration WHERE is_active = true;`
-
-### For Existing Sites
-
-If you previously used branding for header/footer/homepage info:
-
-1. **Save current settings** from branding configuration
-2. **Run site configuration migration**
-3. **Transfer settings** to site configuration via admin UI
-4. **Test public pages** to ensure header/footer render correctly
-5. **Optionally disable** old branding flags (they won't interfere)
-
-## Usage Examples
-
-### Enable Custom Header
+### Enabling Header
 
 1. Go to `/admin/site-config`
-2. Click **Header** tab
-3. Check **Enable Custom Header**
-4. Enter **Header Logo URL**: `https://example.com/logo.png`
-5. Add links:
-   - Title: "Home", URL: "/", Order: 0
-   - Title: "About", URL: "/about", Order: 1
-   - Title: "Contact", URL: "/contact", Order: 2
-6. Click **Save Configuration**
-7. Visit public pages to see custom header
+2. Click "Header" tab
+3. Check "Enable Custom Header"
+4. Enter logo URL (optional)
+5. Add navigation links with title and URL
+6. Click "Save Configuration"
 
-### Configure Light/Dark Themes
+### Enabling Footer
 
 1. Go to `/admin/site-config`
-2. Click **Theme** tab
-3. Set **Default Theme Mode** to "system"
-4. Edit **Light Theme Tokens**:
-   ```json
-   {
-     "primary": "#1976d2",
-     "background": "#ffffff",
-     "text": "#212121"
-   }
-   ```
-5. Edit **Dark Theme Tokens**:
-   ```json
-   {
-     "primary": "#64b5f6",
-     "background": "#121212",
-     "text": "#e0e0e0"
-   }
-   ```
-6. Click **Save Configuration**
-7. Visit public site and use theme toggle to test
+2. Click "Footer" tab
+3. Check "Enable Custom Footer"
+4. Enter footer text
+5. Add footer links (optional)
+6. Click "Save Configuration"
 
-### Add Homepage Info Section
+### Configuring Homepage Info
 
 1. Go to `/admin/site-config`
-2. Click **Homepage Info** tab
-3. Check **Enable Homepage Info Section**
-4. Enter **Section Title**: "Quick Access"
-5. Enter **Section Content**: "Find resources, research guides, and help documentation."
-6. Add links:
-   - Title: "Research Guides", URL: "/guides", Order: 0
-   - Title: "Help Center", URL: "/help", Order: 1
-7. Click **Save Configuration**
-8. Visit homepage to see info section
+2. Click "Homepage Info" tab
+3. Check "Enable Homepage Info Section"
+4. Enter title (e.g., "Quick Links")
+5. Enter content (plain text)
+6. Add quick links (optional)
+7. Click "Save Configuration"
+
+### Customizing Theme
+
+1. Go to `/admin/site-config`
+2. Click "Theme" tab
+3. Select theme mode (System/Light/Dark)
+4. Click "☀️ Light Theme" or "🌙 Dark Theme" to edit
+5. Adjust color tokens using color pickers or hex inputs
+6. (Optional) Select page type and add per-page overrides
+7. Click "Save Configuration"
+
+## Technical Details
+
+### Graceful Fallbacks
+
+The system is designed to never cause 500 errors. If the `site_configuration` table or active row is missing:
+- Server-side: `loadActiveSiteConfig()` returns `defaultSiteConfig`
+- Client-side: Components use default values via `||` operators
+- No header/footer is shown if not explicitly enabled
+
+### Theme Application Flow
+
+1. `+layout.server.ts` loads `siteConfig` from database
+2. `+layout.svelte` receives `siteConfig` in page data
+3. System theme is detected via `window.matchMedia('(prefers-color-scheme: dark)')`
+4. Manual theme preference is loaded from `localStorage` if present
+5. Current theme is calculated: `manualTheme || (theme_mode === 'system' ? systemTheme : theme_mode)`
+6. Page type is determined from URL pathname
+7. Active theme is computed: `baseTheme + pageOverrides`
+8. CSS variables are injected into `<main>` element
+
+### Performance Considerations
+
+- Configuration is loaded once per page load (no reactivity needed)
+- Theme calculation happens on mount (minimal overhead)
+- CSS variables provide instant theme switching
+- No external API calls for theme system
+
+## Migration from Branding System
+
+The site configuration system **replaces** branding for:
+- Header (`show_header`, `header_links`, `logo_url`)
+- Footer (`show_powered_by`, `footer_text`, `footer_links`)
+- Homepage Info (`show_homepage_info`, `homepage_info_*`)
+
+Branding remains for:
+- Library name (`library_name`)
+- Favicon (`favicon_url`)
+- Custom CSS/HTML (`custom_css`, `custom_head_html`)
+- Contact information (still in branding)
+- Social media links (still in branding)
+
+**Recommendation**: In the future, deprecate branding table and migrate all remaining fields to site_configuration.
 
 ## Troubleshooting
 
-### Configuration Not Loading
-**Symptom**: Public pages show no header/footer  
-**Solution**:
-1. Check database table exists: `SELECT * FROM site_configuration;`
-2. Verify active row: `WHERE is_active = true`
-3. Check RLS policies allow public read
-4. Review browser console for errors
+### Header/Footer Not Showing
 
-### Theme Not Applying
-**Symptom**: Colors don't change with theme toggle  
-**Solution**:
-1. Check localStorage has `theme` key
-2. Verify CSS variables are applied to `:root`
-3. Ensure component styles use `var(--theme-*)` variables
+**Check**:
+1. Is `header_enabled` / `footer_enabled` set to `true`?
+2. Are you on a public page (not `/admin/*`)?
+3. Does active site configuration exist in database?
 4. Check browser console for JavaScript errors
 
-### Theme Toggle Not Working
-**Symptom**: Clicking theme button does nothing  
-**Solution**:
-1. Check browser console for errors
-2. Verify localStorage is accessible (not disabled)
-3. Check `themechange` event listener is attached
-4. Ensure `ThemeToggle` component is rendered
+### Theme Not Changing
 
-### Links Not Ordered Correctly
-**Symptom**: Links appear in wrong order  
-**Solution**:
-1. Check `order` property on each link
-2. Use admin UI to reorder with ↑↓ buttons
-3. Save configuration
-4. Hard refresh page (Ctrl+Shift+R)
+**Check**:
+1. Is localStorage blocking theme preference?
+2. Are CSS variables being applied? (Inspect `<main>` element styles)
+3. Check that theme tokens are valid hex colors
+4. Verify `theme_mode` is set correctly
 
-### Migration Fails
-**Symptom**: SQL errors when running migration  
-**Solution**:
-1. Check table doesn't already exist
-2. Verify RLS is enabled on database
-3. Run each CREATE statement individually
-4. Check Supabase logs for detailed errors
+### Admin Page Not Saving
 
-## Performance Considerations
-
-### Server-Side
-- **Single query**: Load active config in layout (cached by SvelteKit)
-- **Defensive coding**: Never crashes if table missing
-- **Merged defaults**: Always returns complete config
-- **No N+1 queries**: All data loaded at once
-
-### Client-Side
-- **localStorage**: Minimal overhead for theme persistence
-- **CSS variables**: Performant theme switching (no re-render)
-- **Event-based**: Theme changes propagate via custom events
-- **Lazy evaluation**: Only applies theme when pathname changes
-
-### Optimization Tips
-1. **Keep link arrays small**: < 10 links per section
-2. **Use simple theme tokens**: Avoid complex calculations
-3. **Cache theme preference**: Reduce localStorage reads
-4. **Minimize per-page overrides**: Use sparingly for specific pages
+**Check**:
+1. Are you authenticated? (Check session)
+2. Check browser console for API errors
+3. Verify RLS policies allow authenticated UPDATE
+4. Check Supabase logs for database errors
 
 ## Security
 
-### RLS Policies
-- **Public**: Can SELECT active configuration (read-only)
-- **Authenticated**: Can SELECT all, UPDATE, INSERT (admin only)
-- **No DELETE**: Prevents accidental config loss
+### Row Level Security (RLS)
+
+**Public**: Can SELECT active configuration only (`is_active = true`)
+**Authenticated**: Can SELECT all, INSERT, UPDATE, DELETE
+
+### Admin Access
+
+Admin pages are protected by:
+1. Server-side authentication check in `+layout.server.ts`
+2. API endpoints verify session before mutations
+3. RLS policies enforce permissions at database level
 
 ### Input Validation
-- **URLs**: Validated on server before saving
-- **JSON**: Parsed safely with try/catch
-- **Links**: Array length limited to prevent abuse
-- **Theme tokens**: Validated as valid color values
 
-### XSS Prevention
-- **Plain text only**: No HTML in footer_text, homepage_info_content
-- **URL sanitization**: Links validated before rendering
-- **Svelte escaping**: Automatic HTML escaping in templates
+- Color values should be hex format (#rrggbb)
+- URLs should be validated client-side
+- Text content is plain text only (no HTML)
+- JSONB fields are validated for structure
 
 ## Future Enhancements
 
-### Planned Features
-1. **Rich text editor** for homepage content (TipTap integration)
-2. **Image upload** for header logo (ImageKit integration)
-3. **Link icons** (Font Awesome or custom)
-4. **Footer columns** (multi-column footer layout)
-5. **Theme preview** in admin (live preview pane)
-6. **Import/export** configuration (JSON backup/restore)
-7. **Theme presets** (pre-configured color schemes)
-8. **Advanced overrides** (per-page theme editor UI)
-
-### Community Contributions
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-## Support
-
-### Documentation
-- **Main docs**: [README.md](./README.md)
-- **API Reference**: [API.md](./API.md)
-- **User Guide**: [USER_GUIDE.md](./USER_GUIDE.md)
-
-### Issues
-Report bugs or request features:
-- **GitHub Issues**: [chomp-chomp-chomp/ILS/issues](https://github.com/chomp-chomp-chomp/ILS/issues)
-
-### Questions
-Ask questions in:
-- **GitHub Discussions**: [chomp-chomp-chomp/ILS/discussions](https://github.com/chomp-chomp-chomp/ILS/discussions)
-
----
-
-**Last Updated**: January 7, 2026  
-**Version**: 1.0  
-**License**: MIT
+- [ ] Import/export site configuration as JSON
+- [ ] Theme preview pane in admin UI
+- [ ] A/B testing for different configurations
+- [ ] Multi-tenant support (multiple active configs)
+- [ ] Scheduled configuration changes
+- [ ] Configuration versioning and rollback
+- [ ] Migration wizard from branding to site config
+- [ ] Template library for popular themes

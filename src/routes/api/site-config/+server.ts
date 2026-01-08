@@ -1,138 +1,94 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { mergeSiteConfig } from '$lib/types/site-config';
-import type { SiteConfiguration } from '$lib/types/site-config';
 
-/**
- * GET /api/site-config
- * Returns the active site configuration, falling back to defaults if missing
- */
-export const GET: RequestHandler = async ({ locals: { supabase } }) => {
-  try {
-    // Try to fetch active configuration
-    const { data, error: dbError } = await supabase
-      .from('site_configuration')
-      .select('*')
-      .eq('is_active', true)
-      .maybeSingle();
+// GET - Read active site configuration
+export const GET: RequestHandler = async ({ locals: { supabase, safeGetSession } }) => {
+	try {
+		// Public can read active config, authenticated can read all
+		const { data, error: dbError } = await supabase
+			.from('site_configuration')
+			.select('*')
+			.eq('is_active', true)
+			.single();
 
-    if (dbError) {
-      console.warn('[Site Config API] Database error, returning defaults:', dbError.message);
-      // Return defaults if table doesn't exist or other DB error
-      return json({ success: true, config: mergeSiteConfig(null) });
-    }
+		if (dbError) {
+			console.error('Error loading site config:', dbError);
+			throw error(500, 'Failed to load site configuration');
+		}
 
-    // Merge with defaults to ensure all fields are present
-    const config = mergeSiteConfig(data);
-
-    return json({ success: true, config });
-  } catch (err) {
-    console.error('[Site Config API] Exception in GET:', err);
-    // Return defaults on any error - never crash
-    return json({ success: true, config: mergeSiteConfig(null) });
-  }
+		return json({ config: data });
+	} catch (err) {
+		console.error('Exception in GET /api/site-config:', err);
+		throw error(500, 'Internal server error');
+	}
 };
 
-/**
- * PUT /api/site-config
- * Updates the active site configuration (requires authentication)
- */
+// PUT - Update site configuration (authenticated only)
 export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGetSession } }) => {
-  try {
-    // Check authentication
-    const { session } = await safeGetSession();
-    if (!session) {
-      throw error(401, 'Unauthorized - Authentication required');
-    }
+	const { session } = await safeGetSession();
 
-    const body = await request.json() as Partial<SiteConfiguration>;
-    
-    console.log('[Site Config API] Received update from user:', session.user.id);
+	if (!session) {
+		throw error(401, 'Unauthorized');
+	}
 
-    // Build update payload
-    const updatePayload = {
-      header_enabled: body.header_enabled ?? false,
-      header_logo_url: body.header_logo_url || null,
-      header_links: body.header_links || [],
-      footer_enabled: body.footer_enabled ?? false,
-      footer_text: body.footer_text || '',
-      footer_links: body.footer_links || [],
-      homepage_info_enabled: body.homepage_info_enabled ?? false,
-      homepage_info_title: body.homepage_info_title || '',
-      homepage_info_content: body.homepage_info_content || '',
-      homepage_info_links: body.homepage_info_links || [],
-      theme_mode: body.theme_mode || 'system',
-      theme_light: body.theme_light || {},
-      theme_dark: body.theme_dark || {},
-      page_themes: body.page_themes || {},
-      updated_by: session.user.id
-    };
+	try {
+		const config = await request.json();
 
-    // Check if an active configuration exists
-    const { data: existing, error: existingError } = await supabase
-      .from('site_configuration')
-      .select('id')
-      .eq('is_active', true)
-      .maybeSingle();
+		// Validate config structure
+		if (!config || typeof config !== 'object') {
+			throw error(400, 'Invalid configuration format');
+		}
 
-    if (existingError && existingError.code !== 'PGRST116') {
-      console.error('[Site Config API] Error checking existing config:', existingError);
-      throw error(500, `Database error: ${existingError.message}`);
-    }
+		// Get the active configuration ID
+		const { data: activeConfig } = await supabase
+			.from('site_configuration')
+			.select('id')
+			.eq('is_active', true)
+			.single();
 
-    let result;
+		if (!activeConfig) {
+			// No active config exists, create one
+			const { data, error: insertError } = await supabase
+				.from('site_configuration')
+				.insert({
+					...config,
+					is_active: true,
+					updated_by: session.user.id
+				})
+				.select()
+				.single();
 
-    if (existing) {
-      // Update existing configuration
-      console.log('[Site Config API] Updating existing configuration:', existing.id);
-      
-      const { data, error: updateError } = await supabase
-        .from('site_configuration')
-        .update(updatePayload)
-        .eq('id', existing.id)
-        .select()
-        .single();
+			if (insertError) {
+				console.error('Error creating site config:', insertError);
+				throw error(500, 'Failed to create site configuration');
+			}
 
-      if (updateError) {
-        console.error('[Site Config API] Error updating:', updateError);
-        throw error(500, `Failed to update configuration: ${updateError.message}`);
-      }
+			return json({ config: data });
+		}
 
-      result = data;
-    } else {
-      // Create new configuration
-      console.log('[Site Config API] Creating new configuration');
-      
-      const { data, error: insertError } = await supabase
-        .from('site_configuration')
-        .insert({
-          ...updatePayload,
-          is_active: true
-        })
-        .select()
-        .single();
+		// Update existing active configuration
+		const { data, error: updateError } = await supabase
+			.from('site_configuration')
+			.update({
+				...config,
+				updated_by: session.user.id,
+				updated_at: new Date().toISOString()
+			})
+			.eq('id', activeConfig.id)
+			.select()
+			.single();
 
-      if (insertError) {
-        console.error('[Site Config API] Error inserting:', insertError);
-        throw error(500, `Failed to create configuration: ${insertError.message}`);
-      }
+		if (updateError) {
+			console.error('Error updating site config:', updateError);
+			throw error(500, 'Failed to update site configuration');
+		}
 
-      result = data;
-    }
-
-    console.log('[Site Config API] Operation completed successfully');
-    
-    // Merge result with defaults before returning
-    const mergedResult = mergeSiteConfig(result);
-    
-    return json({ success: true, config: mergedResult });
-  } catch (err) {
-    console.error('[Site Config API] Exception in PUT:', err);
-    
-    if (err instanceof Error && 'status' in err) {
-      throw err;
-    }
-    
-    throw error(500, 'Internal server error');
-  }
+		return json({ config: data });
+	} catch (err) {
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err; // Re-throw SvelteKit errors
+		}
+		console.error('Exception in PUT /api/site-config:', err);
+		throw error(500, 'Internal server error');
+	}
 };

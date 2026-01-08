@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
-	import { defaultSiteConfig } from '$lib/types/site-config';
 
 	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
-	// Use branding directly from data (already merged with defaults on server)
+	// Use branding for library name, tagline, logo (kept for backward compatibility)
 	const branding = $derived(data.branding);
 
-	// Get site config with defaults
-	const siteConfig = $derived((data as any).siteConfig || defaultSiteConfig);
+	// Use siteConfig for homepage info section
+	const siteConfig = $derived((data as any).siteConfig || {
+		homepage_info_enabled: false,
+		homepage_info_title: 'Quick Links',
+		homepage_info_content: '',
+		homepage_info_links: []
+	});
 
 	function handleSearch() {
 		if (query.trim()) {
@@ -53,12 +57,10 @@
 				<a href="/catalog/browse">Browse Collection</a>
 			</div>
 
-			<!-- Homepage Info Section from Site Config (if enabled) -->
+			<!-- Homepage Info Section (if enabled in siteConfig) -->
 			{#if siteConfig.homepage_info_enabled}
 				<section class="homepage-info">
-					{#if siteConfig.homepage_info_title}
-						<h2>{siteConfig.homepage_info_title}</h2>
-					{/if}
+					<h2>{siteConfig.homepage_info_title || 'Quick Links'}</h2>
 					{#if siteConfig.homepage_info_content}
 						<div class="info-content">
 							<p>{siteConfig.homepage_info_content}</p>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Configuration Theme Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            transition: all 0.3s;
+        }
+
+        /* Theme classes */
+        .theme-light {
+            --primary-color: #e73b42;
+            --secondary-color: #667eea;
+            --accent-color: #2c3e50;
+            --background-color: #ffffff;
+            --text-color: #333333;
+        }
+
+        .theme-dark {
+            --primary-color: #ff6b72;
+            --secondary-color: #8b9eff;
+            --accent-color: #3d5a7f;
+            --background-color: #1a1a1a;
+            --text-color: #e5e5e5;
+        }
+
+        main {
+            background: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .custom-header {
+            background: var(--primary-color);
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .header-logo {
+            height: 40px;
+            width: auto;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 1.5rem;
+            flex: 1;
+        }
+
+        .header-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .header-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 0.5rem 0.75rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        /* Content */
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .search-box {
+            max-width: 600px;
+            margin: 2rem auto;
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            background: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .search-box button {
+            padding: 1rem 2rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .search-box button:hover {
+            opacity: 0.9;
+        }
+
+        .homepage-info {
+            max-width: 700px;
+            margin: 3rem auto;
+            padding: 2rem;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 8px;
+        }
+
+        .homepage-info h2 {
+            margin-bottom: 1rem;
+        }
+
+        .info-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .info-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .info-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--accent-color);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-color);
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: var(--background-color);
+            color: var(--text-color);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--primary-color);
+        }
+
+        .controls h3 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            color: var(--primary-color);
+        }
+
+        .controls label {
+            display: block;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        .controls input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main id="main-content" class="theme-light">
+        <!-- Header -->
+        <nav class="custom-header" id="header" style="display: block;">
+            <div class="header-container">
+                <div class="header-logo">LOGO</div>
+                <div class="header-links">
+                    <a href="#" class="header-link">Home</a>
+                    <a href="#" class="header-link">Catalog</a>
+                    <a href="#" class="header-link">About</a>
+                    <a href="#" class="header-link">Contact</a>
+                </div>
+                <button class="theme-toggle" onclick="toggleTheme()">☀️</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="hero">
+            <h1>Library Catalog</h1>
+            <p>Search our collection of books, journals, and digital resources</p>
+
+            <div class="search-box">
+                <input type="search" placeholder="Search by title, author, subject, ISBN...">
+                <button>Search</button>
+            </div>
+
+            <!-- Homepage Info -->
+            <section class="homepage-info" id="homepage-info" style="display: block;">
+                <h2>Quick Links</h2>
+                <p>Welcome to our library catalog. Explore our collection and discover new resources.</p>
+                <div class="info-links">
+                    <a href="#" class="info-link">New Arrivals</a>
+                    <a href="#" class="info-link">Popular Books</a>
+                    <a href="#" class="info-link">Digital Resources</a>
+                    <a href="#" class="info-link">Study Spaces</a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer" id="footer" style="display: block;">
+            <div class="footer-container">
+                <p>© 2024 Library Catalog System - Powered by Open Library System</p>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Privacy Policy</a>
+                    <a href="#" class="footer-link">Terms of Service</a>
+                    <a href="#" class="footer-link">Contact Us</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Demo Controls -->
+    <div class="controls">
+        <h3>Site Configuration Demo</h3>
+        <label>
+            <input type="checkbox" id="toggle-header" checked onchange="toggleSection('header')">
+            Enable Header
+        </label>
+        <label>
+            <input type="checkbox" id="toggle-footer" checked onchange="toggleSection('footer')">
+            Enable Footer
+        </label>
+        <label>
+            <input type="checkbox" id="toggle-homepage-info" checked onchange="toggleSection('homepage-info')">
+            Enable Homepage Info
+        </label>
+    </div>
+
+    <script>
+        let currentTheme = 'light';
+        let themeMode = 'system'; // system, light, dark
+        let manualTheme = null; // null = system, 'light', 'dark'
+
+        function toggleTheme() {
+            const main = document.getElementById('main-content');
+            const button = document.querySelector('.theme-toggle');
+            
+            if (currentTheme === 'light') {
+                currentTheme = 'dark';
+                manualTheme = 'dark';
+                button.textContent = '🌙';
+            } else if (currentTheme === 'dark' && manualTheme) {
+                currentTheme = 'light';
+                manualTheme = null; // back to system
+                button.textContent = '🔄';
+                // Detect actual system theme
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                currentTheme = prefersDark ? 'dark' : 'light';
+            } else {
+                currentTheme = 'light';
+                manualTheme = 'light';
+                button.textContent = '☀️';
+            }
+            
+            main.className = `theme-${currentTheme}`;
+            console.log('Theme changed to:', currentTheme, 'Manual override:', manualTheme);
+        }
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const checkbox = document.getElementById(`toggle-${sectionId}`);
+            section.style.display = checkbox.checked ? 'block' : 'none';
+            console.log(`${sectionId} ${checkbox.checked ? 'enabled' : 'disabled'}`);
+        }
+
+        // Detect system theme preference on load
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+            currentTheme = 'dark';
+            document.getElementById('main-content').className = 'theme-dark';
+            document.querySelector('.theme-toggle').textContent = '🌙';
+        }
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (manualTheme === null) {
+                currentTheme = e.matches ? 'dark' : 'light';
+                document.getElementById('main-content').className = `theme-${currentTheme}`;
+                document.querySelector('.theme-toggle').textContent = '🔄';
+                console.log('System theme changed to:', currentTheme);
+            }
+        });
+
+        console.log('Site Configuration Demo loaded');
+        console.log('- Toggle header/footer/homepage info using checkboxes');
+        console.log('- Click theme button to cycle: Light ☀️ → Dark 🌙 → System 🔄');
+    </script>
+</body>
+</html>
