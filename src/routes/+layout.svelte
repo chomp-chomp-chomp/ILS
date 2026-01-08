@@ -43,6 +43,20 @@
 		twitter_card_image_url: null
 	});
 
+	// Debug logging for siteConfig
+	$effect(() => {
+		if (browser) {
+			console.log('🔍 [Layout Debug] Current page:', $page.url.pathname);
+			console.log('🔍 [Layout Debug] siteConfig object:', siteConfig);
+			console.log('🔍 [Layout Debug] siteConfig.footer_enabled:', siteConfig?.footer_enabled);
+			console.log('🔍 [Layout Debug] siteConfig.footer_text:', siteConfig?.footer_text);
+			console.log('🔍 [Layout Debug] siteConfig.footer_links:', siteConfig?.footer_links);
+			console.log('🔍 [Layout Debug] siteConfig.header_enabled:', siteConfig?.header_enabled);
+			console.log('🔍 [Layout Debug] siteConfig.homepage_hero_enabled:', siteConfig?.homepage_hero_enabled);
+			console.log('🔍 [Layout Debug] Raw data.siteConfig:', (data as any).siteConfig);
+		}
+	});
+
 	// Keep branding for backward compatibility (title, favicon, etc.)
 	const branding = $derived((data as any).branding || {
 		library_name: 'Chomp Chomp Library Catalog',
@@ -64,14 +78,25 @@
 	let showNav = $derived($page.url.pathname !== '/' && !$page.url.pathname.startsWith('/admin'));
 
 	// Show custom header on all non-admin pages if enabled (from siteConfig)
+	// ROBUST: Explicit boolean check with fallback
 	let showCustomHeader = $derived(
-		siteConfig?.header_enabled === true && !$page.url.pathname.startsWith('/admin')
+		Boolean(siteConfig?.header_enabled) === true && !$page.url.pathname.startsWith('/admin')
 	);
 
 	// Show footer on non-admin pages if enabled (from siteConfig)
+	// ROBUST: Explicit boolean check with fallback
 	let showFooter = $derived(
-		siteConfig?.footer_enabled === true && !$page.url.pathname.startsWith('/admin')
+		Boolean(siteConfig?.footer_enabled) === true && !$page.url.pathname.startsWith('/admin')
 	);
+
+	// Debug logging for computed show flags
+	$effect(() => {
+		if (browser) {
+			console.log('🔍 [Layout Debug] showCustomHeader:', showCustomHeader);
+			console.log('🔍 [Layout Debug] showFooter:', showFooter);
+			console.log('🔍 [Layout Debug] Is admin page:', $page.url.pathname.startsWith('/admin'));
+		}
+	});
 
 	// Theme management
 	let manualTheme = $state<'light' | 'dark' | null>(null);
@@ -393,7 +418,11 @@
 		color: rgba(255, 255, 255, 0.9);
 		border-top: 1px solid rgba(255, 255, 255, 0.1);
 		padding: 2rem 0;
-		margin-top: auto;
+		margin-top: 4rem;
+		width: 100%;
+		/* ROBUST: Ensure footer always renders and is visible */
+		display: block !important;
+		position: relative;
 	}
 
 	.footer-container {

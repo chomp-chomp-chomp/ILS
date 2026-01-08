@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -21,6 +22,17 @@
 		homepage_hero_links: []
 	});
 
+	// Debug logging for homepage
+	$effect(() => {
+		if (browser) {
+			console.log('🏠 [Homepage Debug] siteConfig:', siteConfig);
+			console.log('🏠 [Homepage Debug] homepage_hero_enabled:', siteConfig?.homepage_hero_enabled);
+			console.log('🏠 [Homepage Debug] homepage_hero_title:', siteConfig?.homepage_hero_title);
+			console.log('🏠 [Homepage Debug] homepage_info_enabled:', siteConfig?.homepage_info_enabled);
+			console.log('🏠 [Homepage Debug] Raw data.siteConfig:', (data as any).siteConfig);
+		}
+	});
+
 	function handleSearch() {
 		if (query.trim()) {
 			goto(`/catalog/search?q=${encodeURIComponent(query)}`);
@@ -30,7 +42,8 @@
 
 <div class="catalog-home">
 	<!-- Homepage Hero Section (if enabled in siteConfig) -->
-	{#if siteConfig.homepage_hero_enabled}
+	<!-- ROBUST: Explicit boolean check -->
+	{#if Boolean(siteConfig?.homepage_hero_enabled) === true}
 		<section 
 			class="homepage-hero" 
 			style={siteConfig.homepage_hero_image_url ? `background-image: url('${siteConfig.homepage_hero_image_url}');` : ''}
@@ -97,7 +110,8 @@
 			</div>
 
 			<!-- Homepage Info Section (if enabled in siteConfig) -->
-			{#if siteConfig.homepage_info_enabled}
+			<!-- ROBUST: Explicit boolean check -->
+			{#if Boolean(siteConfig?.homepage_info_enabled) === true}
 				<section class="homepage-info">
 					<h2>{siteConfig.homepage_info_title || 'Quick Links'}</h2>
 					{#if siteConfig.homepage_info_content}
@@ -366,6 +380,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		/* ROBUST: Ensure hero always renders properly */
+		width: 100%;
+		overflow: hidden;
 	}
 
 	.hero-overlay {
