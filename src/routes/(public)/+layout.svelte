@@ -75,6 +75,9 @@
 	// Determine if we should show the navigation bar (not on homepage)
 	let showNav = $derived($page.url.pathname !== '/');
 
+	// Show hero on homepage ONLY (consolidated - no duplicate heroes)
+	let showHero = $derived($page.url.pathname === '/' && siteSettings.hero.imageUrl);
+
 	// Check if user is authenticated (for floating admin button)
 	let isAuthenticated = $derived(!!data.session);
 
@@ -173,6 +176,30 @@
 			{branding.custom_css}
 		</style>
 	{/if}
+	
+	<!-- Typography and Footer CSS Variables (supports both siteSettings and branding) -->
+	<style>
+		:root {
+			--typography-h1-size: {siteSettings.typography?.h1Size || branding.font_size_h1 || '2.5rem'};
+			--typography-h2-size: {siteSettings.typography?.h2Size || branding.font_size_h2 || '2rem'};
+			--typography-h3-size: {siteSettings.typography?.h3Size || branding.font_size_h3 || '1.75rem'};
+			--typography-h4-size: {siteSettings.typography?.h4Size || branding.font_size_h4 || '1.5rem'};
+			--typography-h5-size: {siteSettings.typography?.h5Size || '1.25rem'};
+			--typography-h6-size: {siteSettings.typography?.h6Size || '1rem'};
+			--typography-p-size: {siteSettings.typography?.pSize || branding.font_size_p || '1rem'};
+			--typography-small-size: {siteSettings.typography?.smallSize || branding.font_size_small || '0.875rem'};
+			--typography-line-height: {siteSettings.typography?.lineHeight || '1.6'};
+			
+			--footer-background-color: {siteSettings.footer?.backgroundColor || branding.footer_background_color || '#2c3e50'};
+			--footer-text-color: {siteSettings.footer?.textColor || branding.footer_text_color || 'rgba(255, 255, 255, 0.9)'};
+			--footer-link-color: {siteSettings.footer?.linkColor || branding.footer_link_color || 'rgba(255, 255, 255, 0.9)'};
+			--footer-link-hover-color: {siteSettings.footer?.linkHoverColor || '#e73b42'};
+			--footer-padding: {siteSettings.footer?.padding || branding.footer_padding || '2rem 0'};
+			
+			--hero-min-height: {siteSettings.hero?.minHeight || '250px'};
+			--hero-mobile-min-height: {siteSettings.hero?.mobileMinHeight || '200px'};
+		}
+	</style>
 </svelte:head>
 
 <AccessibilitySettings />
@@ -229,6 +256,22 @@
 		</nav>
 	{/if}
 
+	<!-- Hero Section (on homepage ONLY - consolidated, no duplicates) -->
+	{#if showHero}
+		<section class="homepage-hero" style="background-image: url('{siteSettings.hero.imageUrl}');">
+			<div class="hero-overlay">
+				<div class="hero-content">
+					{#if siteSettings.hero.title}
+						<h1 class="hero-title">{siteSettings.hero.title}</h1>
+					{/if}
+					{#if siteSettings.hero.subhead}
+						<p class="hero-tagline">{siteSettings.hero.subhead}</p>
+					{/if}
+				</div>
+			</div>
+		</section>
+	{/if}
+
 	<!-- Main Content -->
 	<main id="main-content">
 		{@render children()}
@@ -244,7 +287,6 @@
 						{@html parsedFooterContent}
 					</div>
 				{:else if siteSettings.footer.links && siteSettings.footer.links.length > 0}
-					<!-- Footer links from siteSettings -->
 					<div class="footer-links">
 						{#each siteSettings.footer.links.sort((a, b) => (a.order || 0) - (b.order || 0)) as link}
 							<a href={link.url} class="footer-link">
@@ -295,6 +337,46 @@
 		--accent-color: #3d5a7f;
 		--background-color: #1a1a1a;
 		--text-color: #e5e5e5;
+	}
+	
+	/* Apply typography CSS variables globally */
+	:global(h1) {
+		font-size: var(--typography-h1-size, 2.5rem);
+		line-height: 1.2;
+	}
+	
+	:global(h2) {
+		font-size: var(--typography-h2-size, 2rem);
+		line-height: 1.3;
+	}
+	
+	:global(h3) {
+		font-size: var(--typography-h3-size, 1.75rem);
+		line-height: 1.3;
+	}
+	
+	:global(h4) {
+		font-size: var(--typography-h4-size, 1.5rem);
+		line-height: 1.4;
+	}
+	
+	:global(h5) {
+		font-size: var(--typography-h5-size, 1.25rem);
+		line-height: 1.4;
+	}
+	
+	:global(h6) {
+		font-size: var(--typography-h6-size, 1rem);
+		line-height: 1.4;
+	}
+	
+	:global(p) {
+		font-size: var(--typography-p-size, 1rem);
+		line-height: var(--typography-line-height, 1.6);
+	}
+	
+	:global(small), :global(.small) {
+		font-size: var(--typography-small-size, 0.875rem);
 	}
 
 	/* Apply typography globally - supports both branding and siteSettings */
@@ -411,7 +493,7 @@
 	/* Homepage Hero Styles */
 	.homepage-hero {
 		position: relative;
-		min-height: 400px;
+		min-height: var(--hero-min-height, 250px);
 		background-size: cover;
 		background-position: center;
 		background-repeat: no-repeat;
@@ -436,32 +518,11 @@
 		text-align: center;
 		color: white;
 		max-width: 900px;
-		padding: 3rem 2rem;
-	}
-
-	.admin-link-wrapper {
-		position: absolute;
-		top: 1rem;
-		right: 2rem;
-	}
-
-	.admin-link {
-		color: white;
-		background: rgba(255, 255, 255, 0.2);
-		border: 1px solid rgba(255, 255, 255, 0.4);
-		padding: 0.5rem 1rem;
-		border-radius: 4px;
-		text-decoration: none;
-		transition: all 0.2s;
-	}
-
-	.admin-link:hover {
-		background: white;
-		color: var(--primary-color);
+		padding: 2rem;
 	}
 
 	.hero-title {
-		font-size: 3rem;
+		font-size: var(--typography-h1-size, 2.5rem);
 		font-weight: 700;
 		margin: 0 0 1rem 0;
 		color: white;
@@ -470,7 +531,7 @@
 	}
 
 	.hero-tagline {
-		font-size: 1.5rem;
+		font-size: var(--typography-h3-size, 1.5rem);
 		margin: 0;
 		color: rgba(255, 255, 255, 0.95);
 		font-weight: 300;
@@ -482,12 +543,12 @@
 		flex: 1;
 	}
 
-	/* Footer Styles */
+	/* Footer Styles - using CSS variables */
 	.site-footer {
-		background: var(--footer-bg);
-		color: var(--footer-text);
+		background: var(--footer-background-color, #2c3e50);
+		color: var(--footer-text-color, rgba(255, 255, 255, 0.9));
 		border-top: 1px solid rgba(255, 255, 255, 0.1);
-		padding: var(--footer-padding);
+		padding: var(--footer-padding, 2rem 0);
 		margin-top: 4rem;
 	}
 
@@ -510,20 +571,28 @@
 	}
 
 	.footer-text {
-		font-size: var(--font-size-small);
-		color: var(--footer-text);
+		font-size: 0.9rem;
+		color: var(--footer-text-color, rgba(255, 255, 255, 0.8));
 		margin: 0;
 	}
 
+	.footer-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2rem;
+		justify-content: center;
+		align-items: center;
+	}
+
 	.footer-link {
-		color: var(--footer-link);
-		text-decoration: underline;
-		font-size: var(--font-size-small);
-		transition: opacity 0.2s;
+		color: var(--footer-link-color, rgba(255, 255, 255, 0.9));
+		text-decoration: none;
+		font-size: 0.9rem;
+		transition: color 0.2s;
 	}
 
 	.footer-link:hover {
-		opacity: 0.8;
+		color: var(--footer-link-hover-color, var(--primary-color));
 	}
 
 	.footer-links {
@@ -552,24 +621,34 @@
 			padding: 0 1rem;
 		}
 
+		/* Hide desktop links on mobile (hamburger menu shows instead) */
 		.header-links {
-			display: none; /* Hide on mobile, use HamburgerMenu instead */
+			display: none;
+		}
+
+		.homepage-hero {
+			min-height: var(--hero-mobile-min-height, 200px);
+		}
+
+		.hero-title {
+			font-size: calc(var(--typography-h1-size, 2.5rem) * 0.7);
+		}
+
+		.hero-tagline {
+			font-size: calc(var(--typography-h3-size, 1.5rem) * 0.8);
+		}
+
+		.hero-content {
+			padding: 1.5rem 1rem;
 		}
 
 		.footer-container {
 			padding: 0 1rem;
 		}
-
+		
 		.footer-links {
 			flex-direction: column;
 			gap: 1rem;
-		}
-	}
-
-	/* Desktop: Show header links */
-	@media (min-width: 769px) {
-		.header-links {
-			display: flex;
 		}
 	}
 </style>

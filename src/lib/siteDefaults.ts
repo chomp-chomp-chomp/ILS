@@ -16,6 +16,25 @@
 export interface HeaderLink {
 	title: string;
 	url: string;
+	order?: number;
+}
+
+export interface FooterLink {
+	title: string;
+	url: string;
+	order?: number;
+}
+
+export interface Typography {
+	h1Size: string;
+	h2Size: string;
+	h3Size: string;
+	h4Size: string;
+	h5Size: string;
+	h6Size: string;
+	pSize: string;
+	smallSize: string;
+	lineHeight: string;
 }
 
 export interface SiteSettings {
@@ -28,6 +47,12 @@ export interface SiteSettings {
 	footer: {
 		text: string;
 		link: string;
+		links?: FooterLink[];
+		backgroundColor?: string;
+		textColor?: string;
+		linkColor?: string;
+		linkHoverColor?: string;
+		padding?: string;
 	};
 	
 	// Homepage Hero Section
@@ -35,7 +60,12 @@ export interface SiteSettings {
 		title: string;
 		subhead: string;
 		imageUrl: string;
+		minHeight?: string;
+		mobileMinHeight?: string;
 	};
+	
+	// Typography
+	typography?: Typography;
 }
 
 /**
@@ -51,31 +81,55 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 		links: [
 			{
 				title: 'Home',
-				url: 'https://library.chompchomp.cc/'
+				url: 'https://library.chompchomp.cc/',
+				order: 1
 			},
 			{
 				title: 'Advanced Search',
-				url: 'https://library.chompchomp.cc/catalog/search/advanced'
+				url: 'https://library.chompchomp.cc/catalog/search/advanced',
+				order: 2
 			},
 			{
 				title: 'Chomp Chomp Tools',
-				url: 'https://chompchomp.cc/tools/'
+				url: 'https://chompchomp.cc/tools/',
+				order: 3
 			},
 			{
 				title: 'Chomp Chomp Recipes',
-				url: 'https://chompchomp.cc/'
+				url: 'https://chompchomp.cc/',
+				order: 4
 			}
 		]
 	},
 	
 	footer: {
 		text: 'Powered by Chomp Chomp',
-		link: 'https://chompchomp.cc'
+		link: 'https://chompchomp.cc',
+		links: [],
+		backgroundColor: '#2c3e50',
+		textColor: 'rgba(255, 255, 255, 0.9)',
+		linkColor: 'rgba(255, 255, 255, 0.9)',
+		linkHoverColor: '#e73b42',
+		padding: '2rem 0'
 	},
 	
 	hero: {
 		title: 'Welcome to the Chomp Chomp Library',
 		subhead: 'Explore our collection',
-		imageUrl: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library?updatedAt=1767613169516'
+		imageUrl: 'https://ik.imagekit.io/chompchomp/Chomp%20Chomp%20Library?updatedAt=1767613169516',
+		minHeight: '250px',
+		mobileMinHeight: '200px'
+	},
+	
+	typography: {
+		h1Size: '2.5rem',
+		h2Size: '2rem',
+		h3Size: '1.75rem',
+		h4Size: '1.5rem',
+		h5Size: '1.25rem',
+		h6Size: '1rem',
+		pSize: '1rem',
+		smallSize: '0.875rem',
+		lineHeight: '1.6'
 	}
 };
