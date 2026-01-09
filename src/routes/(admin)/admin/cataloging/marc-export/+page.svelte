@@ -1,8 +1,6 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
-
-	let { data }: { data: PageData } = $props();
 
 	let records = $state<any[]>([]);
 	let filteredRecords = $state<any[]>([]);
@@ -22,7 +20,7 @@
 
 	async function loadRecords() {
 		try {
-			const { data: recordsData, error: fetchError } = await data.supabase
+			const { data: recordsData, error: fetchError } = await supabase
 				.from('marc_records')
 				.select('*')
 				.order('created_at', { ascending: false });

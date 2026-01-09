@@ -1,8 +1,6 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
-
-	let { data }: { data: PageData } = $props();
 
 	let file = $state<File | null>(null);
 	let fileInput: HTMLInputElement;
@@ -199,7 +197,7 @@
 		if (isbns.length === 0 && controlNumbers.length === 0) return;
 
 		try {
-			const { data: existingRecords } = await data.supabase
+			const { data: existingRecords } = await supabase
 				.from('marc_records')
 				.select('isbn, control_number')
 				.or(`isbn.in.(${isbns.join(',')}),control_number.in.(${controlNumbers.join(',')})`);
@@ -263,7 +261,7 @@
 					// Remove temporary fields
 					const { _index, isDuplicate, duplicateInfo, ...cleanRecord } = record;
 
-					const { error } = await data.supabase
+					const { error } = await supabase
 						.from('marc_records')
 						.insert([{
 							...cleanRecord,

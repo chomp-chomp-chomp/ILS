@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
@@ -37,7 +38,7 @@
 		loading = true;
 
 		// Load serial
-		const { data: serialData } = await data.supabase
+		const { data: serialData } = await supabase
 			.from('serials')
 			.select('*')
 			.eq('id', serialId)
@@ -46,7 +47,7 @@
 		serial = serialData;
 
 		// Load unbound received issues
-		const { data: unboundData } = await data.supabase
+		const { data: unboundData } = await supabase
 			.from('serial_issues')
 			.select('*')
 			.eq('serial_id', serialId)
@@ -59,7 +60,7 @@
 		unboundIssues = unboundData || [];
 
 		// Load binding batches
-		const { data: batchesData } = await data.supabase
+		const { data: batchesData } = await supabase
 			.from('serial_binding_batches')
 			.select('*, vendors(name)')
 			.order('created_at', { ascending: false });
@@ -67,7 +68,7 @@
 		bindingBatches = batchesData || [];
 
 		// Load vendors
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -76,7 +77,7 @@
 		vendors = vendorsData || [];
 
 		// Load budgets
-		const { data: budgetsData } = await data.supabase
+		const { data: budgetsData } = await supabase
 			.from('budgets')
 			.select('id, name, code')
 			.eq('status', 'active')
@@ -112,7 +113,7 @@
 				notes: batchNotes || null
 			};
 
-			const { data: insertedBatch, error: batchError } = await data.supabase
+			const { data: insertedBatch, error: batchError } = await supabase
 				.from('serial_binding_batches')
 				.insert([batchData])
 				.select()
@@ -130,14 +131,14 @@
 				spine_label: spineLabel || null
 			}));
 
-			const { error: itemsError } = await data.supabase
+			const { error: itemsError } = await supabase
 				.from('serial_binding_items')
 				.insert(bindingItems);
 
 			if (itemsError) throw itemsError;
 
 			// Update issue statuses
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('serial_issues')
 				.update({
 					binding_status: 'marked_for_binding',
@@ -159,19 +160,19 @@
 	}
 
 	async function updateBatchStatus(batchId: string, status: string, updates: any = {}) {
-		await data.supabase
+		await supabase
 			.from('serial_binding_batches')
 			.update({ status, ...updates })
 			.eq('id', batchId);
 
 		// Update issue statuses
 		if (status === 'in_binding') {
-			await data.supabase
+			await supabase
 				.from('serial_issues')
 				.update({ binding_status: 'in_binding' })
 				.eq('binding_batch_id', batchId);
 		} else if (status === 'returned' || status === 'complete') {
-			await data.supabase
+			await supabase
 				.from('serial_issues')
 				.update({ binding_status: 'bound' })
 				.eq('binding_batch_id', batchId);

@@ -1,9 +1,7 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-
-	let { data }: { data: PageData } = $props();
 
 	let records = $state<any[]>([]);
 	let loading = $state(true);
@@ -16,7 +14,7 @@
 
 	async function loadArchivedRecords() {
 		try {
-			const { data: recordsData, error: fetchError } = await data.supabase
+			const { data: recordsData, error: fetchError } = await supabase
 				.from('marc_records')
 				.select('*')
 				.eq('status', 'archived')
@@ -36,7 +34,7 @@
 		if (!confirm('Restore this record to active status?')) return;
 
 		try {
-			const { error: restoreError } = await data.supabase.rpc('restore_marc_record', {
+			const { error: restoreError } = await supabase.rpc('restore_marc_record', {
 				record_id: recordId
 			});
 
@@ -53,10 +51,10 @@
 		if (!confirm('Move this record to trash? It will be permanently deleted after 30 days.')) return;
 
 		try {
-			const { data: sessionData } = await data.supabase.auth.getSession();
+			const { data: sessionData } = await supabase.auth.getSession();
 			const userId = sessionData?.session?.user?.id;
 
-			const { error: deleteError } = await data.supabase.rpc('soft_delete_marc_record', {
+			const { error: deleteError } = await supabase.rpc('soft_delete_marc_record', {
 				record_id: recordId,
 				user_id: userId
 			});

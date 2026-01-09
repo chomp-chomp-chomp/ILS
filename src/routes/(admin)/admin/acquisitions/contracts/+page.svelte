@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData} from './$types';
 	import { onMount } from 'svelte';
 
@@ -38,7 +39,7 @@
 
 	async function loadContracts() {
 		loading = true;
-		const { data: contractsData } = await data.supabase
+		const { data: contractsData } = await supabase
 			.from('contracts')
 			.select(
 				`
@@ -54,7 +55,7 @@
 	}
 
 	async function loadVendors() {
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -64,7 +65,7 @@
 	}
 
 	async function loadBudgets() {
-		const { data: budgetsData } = await data.supabase
+		const { data: budgetsData } = await supabase
 			.from('budgets')
 			.select('id, name, code')
 			.eq('status', 'active')
@@ -146,7 +147,7 @@
 
 		try {
 			if (editingId) {
-				const { error } = await data.supabase
+				const { error } = await supabase
 					.from('contracts')
 					.update(contractData)
 					.eq('id', editingId);
@@ -154,7 +155,7 @@
 				if (error) throw error;
 				message = 'Contract updated successfully!';
 			} else {
-				const { error } = await data.supabase.from('contracts').insert([contractData]);
+				const { error } = await supabase.from('contracts').insert([contractData]);
 
 				if (error) throw error;
 				message = 'Contract created successfully!';
@@ -175,7 +176,7 @@
 		if (!confirm('Are you sure you want to delete this contract?')) return;
 
 		try {
-			const { error } = await data.supabase.from('contracts').delete().eq('id', contractId);
+			const { error } = await supabase.from('contracts').delete().eq('id', contractId);
 
 			if (error) throw error;
 

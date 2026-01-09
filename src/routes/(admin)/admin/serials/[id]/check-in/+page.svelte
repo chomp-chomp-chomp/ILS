@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
@@ -33,7 +34,7 @@
 		loading = true;
 
 		// Load serial
-		const { data: serialData } = await data.supabase
+		const { data: serialData } = await supabase
 			.from('serials')
 			.select('*')
 			.eq('id', serialId)
@@ -42,7 +43,7 @@
 		serial = serialData;
 
 		// Load expected issues (not received yet)
-		const { data: expectedData } = await data.supabase
+		const { data: expectedData } = await supabase
 			.from('serial_issues')
 			.select('*')
 			.eq('serial_id', serialId)
@@ -52,7 +53,7 @@
 		expectedIssues = expectedData || [];
 
 		// Load late issues
-		const { data: lateData } = await data.supabase
+		const { data: lateData } = await supabase
 			.from('serial_issues')
 			.select('*')
 			.eq('serial_id', serialId)
@@ -81,7 +82,7 @@
 				supplement_description: supplementDescription || null
 			};
 
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('serial_issues')
 				.update(updates)
 				.eq('id', issue.id);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -140,7 +141,7 @@
 				}
 			};
 
-			const { data: inserted, error: insertError } = await data.supabase
+			const { data: inserted, error: insertError } = await supabase
 				.from('marc_records')
 				.insert([marcRecord])
 				.select();
@@ -156,7 +157,7 @@
 					copy_number: 1
 				};
 
-				await data.supabase.from('holdings').insert([defaultHolding]);
+				await supabase.from('holdings').insert([defaultHolding]);
 			}
 
 			goto('/admin/cataloging');

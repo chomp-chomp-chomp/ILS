@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -41,7 +42,7 @@
 
 	async function loadRecords() {
 		try {
-			const { data: recordsData, error: fetchError } = await data.supabase
+			const { data: recordsData, error: fetchError } = await supabase
 				.from('marc_records')
 				.select('*')
 				.eq('status', 'active')  // Only show active records, not archived or deleted
@@ -135,7 +136,7 @@
 		if (!confirm('Are you sure you want to delete this record?')) return;
 
 		try {
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('marc_records')
 				.delete()
 				.eq('id', id);
@@ -250,7 +251,7 @@
 					}
 
 					// Apply update
-					const { error: updateError } = await data.supabase
+					const { error: updateError } = await supabase
 						.from('marc_records')
 						.update(updates)
 						.eq('id', recordId);

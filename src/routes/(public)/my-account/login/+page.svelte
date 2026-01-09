@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { supabase } from '$lib/supabase';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -17,7 +18,7 @@
   async function handleEmailLogin() {
     loading = true;
     error = '';
-    const { error: signInError } = await data.supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     loading = false;
     if (signInError) {
       error = signInError.message;
@@ -31,7 +32,7 @@
     error = '';
     info = '';
 
-    const { data: patron, error: rpcError } = await data.supabase.rpc('patron_card_login', {
+    const { data: patron, error: rpcError } = await supabase.rpc('patron_card_login', {
       card_number: card,
       provided_pin: pin,
     });
@@ -49,7 +50,7 @@
       return;
     }
 
-    const { error: authError } = await data.supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email: record.email,
       password: pin,
     });
@@ -68,7 +69,7 @@
       error = 'Enter your email to reset.';
       return;
     }
-    const { error: resetError } = await data.supabase.auth.resetPasswordForEmail(resetEmail, {
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail, {
       redirectTo: window.location.origin + '/my-account/settings',
     });
     info = resetError

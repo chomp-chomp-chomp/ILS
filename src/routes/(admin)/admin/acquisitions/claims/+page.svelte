@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -32,7 +33,7 @@
 	async function loadClaims() {
 		loading = true;
 
-		const { data: claimsData } = await data.supabase
+		const { data: claimsData } = await supabase
 			.from('claims')
 			.select(
 				`
@@ -58,7 +59,7 @@
 	}
 
 	async function loadOverdueOrders() {
-		const { data: ordersData } = await data.supabase
+		const { data: ordersData } = await supabase
 			.from('acquisition_orders')
 			.select(
 				`
@@ -131,7 +132,7 @@
 				notes: claimNotes || null
 			};
 
-			const { error } = await data.supabase.from('claims').insert([claimData]);
+			const { error } = await supabase.from('claims').insert([claimData]);
 
 			if (error) throw error;
 
@@ -165,7 +166,7 @@
 		if (!respondingClaimId) return;
 
 		try {
-			const { error } = await data.supabase
+			const { error } = await supabase
 				.from('claims')
 				.update({
 					vendor_response: vendorResponse || null,

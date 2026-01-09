@@ -1,8 +1,6 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
-
-	let { data }: { data: PageData } = $props();
 
 	let templates = $state<any[]>([]);
 	let loading = $state(true);
@@ -30,7 +28,7 @@
 
 	async function loadTemplates() {
 		try {
-			const { data: templatesData, error: fetchError } = await data.supabase
+			const { data: templatesData, error: fetchError } = await supabase
 				.from('cataloging_templates')
 				.select('*')
 				.order('created_at', { ascending: false });
@@ -124,7 +122,7 @@
 
 			if (editingTemplate) {
 				// Update existing template
-				const { error: updateError } = await data.supabase
+				const { error: updateError } = await supabase
 					.from('cataloging_templates')
 					.update(templateData)
 					.eq('id', editingTemplate.id);
@@ -134,7 +132,7 @@
 				message = 'Template updated successfully!';
 			} else {
 				// Create new template
-				const { error: insertError } = await data.supabase
+				const { error: insertError } = await supabase
 					.from('cataloging_templates')
 					.insert([{
 						...templateData,
@@ -163,7 +161,7 @@
 		}
 
 		try {
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('cataloging_templates')
 				.delete()
 				.eq('id', id);
@@ -178,7 +176,7 @@
 
 	async function toggleActive(template: any) {
 		try {
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('cataloging_templates')
 				.update({ is_active: !template.is_active })
 				.eq('id', template.id);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -26,7 +27,7 @@
 
 	async function loadBudgets() {
 		loading = true;
-		const { data: budgetsData } = await data.supabase
+		const { data: budgetsData } = await supabase
 			.from('budgets')
 			.select('*')
 			.order('fiscal_year', { ascending: false })
@@ -84,7 +85,7 @@
 
 		try {
 			if (editingId) {
-				const { error } = await data.supabase
+				const { error } = await supabase
 					.from('budgets')
 					.update(budgetData)
 					.eq('id', editingId);
@@ -92,7 +93,7 @@
 				if (error) throw error;
 				message = 'Budget updated successfully!';
 			} else {
-				const { error } = await data.supabase.from('budgets').insert([budgetData]);
+				const { error } = await supabase.from('budgets').insert([budgetData]);
 
 				if (error) throw error;
 				message = 'Budget created successfully!';
@@ -113,7 +114,7 @@
 		if (!confirm('Are you sure you want to delete this budget?')) return;
 
 		try {
-			const { error } = await data.supabase.from('budgets').delete().eq('id', budgetId);
+			const { error } = await supabase.from('budgets').delete().eq('id', budgetId);
 
 			if (error) throw error;
 

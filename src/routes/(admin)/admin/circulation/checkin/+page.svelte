@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -26,7 +27,7 @@
 
 		try {
 			// Look up item
-			const { data: itemData, error: itemError } = await data.supabase
+			const { data: itemData, error: itemError } = await supabase
 				.from('items')
 				.select('*, marc_record:marc_records(*)')
 				.eq('barcode', itemBarcode.trim())
@@ -35,7 +36,7 @@
 			if (itemError) throw new Error('Item not found');
 
 			// Find active checkout for this item
-			const { data: checkoutData, error: checkoutError } = await data.supabase
+			const { data: checkoutData, error: checkoutError } = await supabase
 				.from('checkouts')
 				.select('*, patron:patrons(*)')
 				.eq('item_id', itemData.id)
@@ -57,10 +58,10 @@
 			}
 
 			// Get current user (staff member)
-			const { data: { user } } = await data.supabase.auth.getUser();
+			const { data: { user } } = await supabase.auth.getUser();
 
 			// Update checkout record to mark as returned
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('checkouts')
 				.update({
 					return_date: new Date().toISOString(),
@@ -93,7 +94,7 @@
 			// Check if there's a hold and update the status message
 			setTimeout(async () => {
 				// Refresh item to see if it went to on_hold status
-				const { data: refreshedItem } = await data.supabase
+				const { data: refreshedItem } = await supabase
 					.from('items')
 					.select('status')
 					.eq('id', itemData.id)
@@ -101,7 +102,7 @@
 
 				if (refreshedItem?.status === 'on_hold') {
 					// Find the hold that was trapped
-					const { data: trapResult } = await data.supabase
+					const { data: trapResult } = await supabase
 						.from('holds')
 						.select('*, patron:patrons(*)')
 						.eq('item_id', itemData.id)

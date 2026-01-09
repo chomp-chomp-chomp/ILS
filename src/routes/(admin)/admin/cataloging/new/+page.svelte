@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import SubjectHeadingInput from '$lib/components/SubjectHeadingInput.svelte';
 	import { onMount } from 'svelte';
 
@@ -33,7 +34,7 @@
 
 	async function loadTemplates() {
 		try {
-			const { data: templatesData, error } = await data.supabase
+			const { data: templatesData, error } = await supabase
 				.from('cataloging_templates')
 				.select('*')
 				.eq('is_active', true)
@@ -114,7 +115,7 @@
 				}
 			};
 
-			const { data: inserted, error } = await data.supabase
+			const { data: inserted, error } = await supabase
 				.from('marc_records')
 				.insert([marcRecord])
 				.select();
@@ -131,7 +132,7 @@
 					copy_number: 1
 				};
 
-				await data.supabase.from('holdings').insert([defaultHolding]);
+				await supabase.from('holdings').insert([defaultHolding]);
 			}
 
 			message = 'Record created successfully!';

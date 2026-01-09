@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
@@ -27,7 +28,7 @@
 
 	onMount(async () => {
 		// Load vendors
-		const { data: vendorData } = await data.supabase
+		const { data: vendorData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -35,7 +36,7 @@
 		vendors = vendorData || [];
 
 		// Load budgets
-		const { data: budgetData } = await data.supabase
+		const { data: budgetData } = await supabase
 			.from('budgets')
 			.select('id, name, code')
 			.eq('status', 'active')
@@ -65,7 +66,7 @@
 				notes: notes || null
 			};
 
-			const { error: insertError } = await data.supabase.from('serials').insert([serialData]);
+			const { error: insertError } = await supabase.from('serials').insert([serialData]);
 
 			if (insertError) throw insertError;
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 
@@ -60,7 +61,7 @@ Bob,Johnson,bob@example.com,555-0103,staff,no,`;
 					}
 
 					// Generate barcode
-					const { data: barcode, error: barcodeError } = await data.supabase
+					const { data: barcode, error: barcodeError } = await supabase
 						.rpc('generate_patron_barcode');
 					if (barcodeError) throw barcodeError;
 
@@ -70,7 +71,7 @@ Bob,Johnson,bob@example.com,555-0103,staff,no,`;
 					if (row.create_login?.toLowerCase() === 'yes' && row.email) {
 						const password = row.temp_password || generatePassword();
 
-						const { data: authData, error: authError } = await data.supabase.auth.admin.createUser({
+						const { data: authData, error: authError } = await supabase.auth.admin.createUser({
 							email: row.email,
 							password: password,
 							email_confirm: true
@@ -81,7 +82,7 @@ Bob,Johnson,bob@example.com,555-0103,staff,no,`;
 					}
 
 					// Create patron record
-					const { data: patron, error: patronError } = await data.supabase
+					const { data: patron, error: patronError } = await supabase
 						.from('patrons')
 						.insert({
 							barcode: barcode,
@@ -125,7 +126,7 @@ Bob,Johnson,bob@example.com,555-0103,staff,no,`;
 	}
 
 	async function getPatronTypes() {
-		const { data: types, error } = await data.supabase
+		const { data: types, error } = await supabase
 			.from('patron_types')
 			.select('*')
 			.eq('is_active', true);

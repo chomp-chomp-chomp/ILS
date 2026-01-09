@@ -1,9 +1,7 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-
-	let { data }: { data: PageData } = $props();
+	import { supabase } from '$lib/supabase';
 
 	let records = $state<any[]>([]);
 	let loading = $state(true);
@@ -16,7 +14,7 @@
 
 	async function loadDeletedRecords() {
 		try {
-			const { data: recordsData, error: fetchError } = await data.supabase
+			const { data: recordsData, error: fetchError } = await supabase
 				.from('marc_records')
 				.select('*')
 				.eq('status', 'deleted')
@@ -37,7 +35,7 @@
 
 		try {
 			// Restore moves from deleted -> active
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('marc_records')
 				.update({
 					status: 'active',
@@ -65,10 +63,10 @@
 
 		try {
 			// First delete holdings
-			await data.supabase.from('holdings').delete().eq('marc_record_id', recordId);
+			await supabase.from('holdings').delete().eq('marc_record_id', recordId);
 
 			// Then delete the record
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('marc_records')
 				.delete()
 				.eq('id', recordId);
@@ -95,11 +93,11 @@
 
 			// Delete all holdings for these records
 			for (const id of recordIds) {
-				await data.supabase.from('holdings').delete().eq('marc_record_id', id);
+				await supabase.from('holdings').delete().eq('marc_record_id', id);
 			}
 
 			// Delete all records
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('marc_records')
 				.delete()
 				.in('id', recordIds);

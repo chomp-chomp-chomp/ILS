@@ -2,11 +2,12 @@
 	import { invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import type { LayoutData } from './$types';
+	import { supabase } from '$lib/supabase';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 
 	onMount(() => {
-		const { data: authData } = data.supabase.auth.onAuthStateChange(() => {
+		const { data: authData } = supabase.auth.onAuthStateChange(() => {
 			invalidate('supabase:auth');
 		});
 

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
+	import { supabase } from '$lib/supabase';
 
 	// Migration state
 	let migrateTotal = $state(0);
@@ -55,7 +53,7 @@
 	async function loadStats() {
 		try {
 			// Count records with cover_image_url (need migration)
-			const { count: migrateCount } = await data.supabase
+			const { count: migrateCount } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('cover_image_url', 'is', null);
@@ -64,7 +62,7 @@
 			migrateTotal = migrateCount || 0;
 
 			// Count records with ISBNs (can be re-fetched)
-			const { count: refetchCount } = await data.supabase
+			const { count: refetchCount } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('isbn', 'is', null);
@@ -73,7 +71,7 @@
 			refetchTotal = refetchCount || 0;
 
 			// Count records with ISBNs but no covers (fetch missing)
-			const { count: fetchMissingCount } = await data.supabase
+			const { count: fetchMissingCount } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('isbn', 'is', null)

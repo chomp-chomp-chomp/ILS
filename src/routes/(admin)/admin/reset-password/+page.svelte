@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
 
 	let newPassword = $state('');
 	let confirmPassword = $state('');
@@ -37,7 +35,7 @@
 		loading = true;
 
 		try {
-			const { error: updateError } = await data.supabase.auth.updateUser({
+			const { error: updateError } = await supabase.auth.updateUser({
 				password: newPassword
 			});
 

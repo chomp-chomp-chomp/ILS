@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
+	import { supabase } from '$lib/supabase';
 
 	// Fetch state
 	let totalRecords = $state(0);
@@ -40,7 +38,7 @@
 	async function loadStats() {
 		try {
 			// Count records without covers
-			const { data: records, count } = await data.supabase
+			const { data: records, count } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.is('cover_image_url', null);
@@ -49,7 +47,7 @@
 			totalRecords = count || 0;
 
 			// Count records with covers
-			const { count: withCoversCount } = await data.supabase
+			const { count: withCoversCount } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
 				.not('cover_image_url', 'is', null);
@@ -251,7 +249,7 @@
 		loadingRecords = true;
 		try {
 			const offset = (recordsPage - 1) * recordsPerPage;
-			const { data: records, error } = await data.supabase
+			const { data: records, error } = await supabase
 				.from('marc_records')
 				.select('id, title_statement, main_entry_personal_name, isbn, publication_info, material_type')
 				.is('cover_image_url', null)

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -32,7 +33,7 @@
 
 		try {
 			// Look up patron
-			const { data: patronData, error: patronError } = await data.supabase
+			const { data: patronData, error: patronError } = await supabase
 				.from('patrons')
 				.select('*, patron_type:patron_types(*)')
 				.eq('barcode', patronBarcode.trim())
@@ -51,7 +52,7 @@
 			}
 
 			// Load current checkouts
-			const { data: checkoutsData, error: checkoutsError } = await data.supabase
+			const { data: checkoutsData, error: checkoutsError } = await supabase
 				.from('current_checkouts')
 				.select('*')
 				.eq('patron_id', patron.id);
@@ -88,7 +89,7 @@
 
 		try {
 			// Look up item
-			const { data: itemData, error: itemError } = await data.supabase
+			const { data: itemData, error: itemError } = await supabase
 				.from('items')
 				.select('*, marc_record:marc_records(*)')
 				.eq('barcode', itemBarcode.trim())
@@ -143,10 +144,10 @@
 			dueDate.setDate(dueDate.getDate() + loanPeriodDays);
 
 			// Get current user (staff member)
-			const { data: { user } } = await data.supabase.auth.getUser();
+			const { data: { user } } = await supabase.auth.getUser();
 
 			// Create checkout record
-			const { data: checkoutData, error: checkoutError } = await data.supabase
+			const { data: checkoutData, error: checkoutError } = await supabase
 				.from('checkouts')
 				.insert({
 					item_id: item.id,
@@ -165,7 +166,7 @@
 			success = `Checked out: ${title} - Due: ${dueDate.toLocaleDateString()}`;
 
 			// Reload patron checkouts
-			const { data: updatedCheckouts, error: checkoutsError } = await data.supabase
+			const { data: updatedCheckouts, error: checkoutsError } = await supabase
 				.from('current_checkouts')
 				.select('*')
 				.eq('patron_id', patron.id);

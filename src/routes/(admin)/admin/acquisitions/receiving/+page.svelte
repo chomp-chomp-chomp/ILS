@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -30,7 +31,7 @@
 	async function loadOrders() {
 		loading = true;
 
-		const { data: ordersData } = await data.supabase
+		const { data: ordersData } = await supabase
 			.from('acquisition_orders')
 			.select(
 				`
@@ -64,7 +65,7 @@
 	}
 
 	async function loadVendors() {
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -153,7 +154,7 @@
 					: receiveStatus;
 
 			// Update order item
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('order_items')
 				.update({
 					quantity_received: newTotalReceived,
@@ -171,7 +172,7 @@
 			if (updateError) throw updateError;
 
 			// Create receiving history record
-			const { error: historyError } = await data.supabase.from('receiving_history').insert([
+			const { error: historyError } = await supabase.from('receiving_history').insert([
 				{
 					order_item_id: receivingItem.id,
 					acquisition_order_id: receivingItem.order_id,
@@ -193,7 +194,7 @@
 
 				for (let i = 0; i < receiveQuantity; i++) {
 					const { data: barcodeData, error: barcodeError } =
-						await data.supabase.rpc('generate_barcode');
+						await supabase.rpc('generate_barcode');
 
 					if (barcodeError) {
 						console.error('Error generating barcode:', barcodeError);
@@ -214,7 +215,7 @@
 				}
 
 				if (itemsToCreate.length > 0) {
-					const { error: itemsError } = await data.supabase.from('items').insert(itemsToCreate);
+					const { error: itemsError } = await supabase.from('items').insert(itemsToCreate);
 
 					if (itemsError) {
 						console.error('Error creating items:', itemsError);

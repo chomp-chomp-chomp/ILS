@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -38,7 +39,7 @@
 
 	async function loadVendors() {
 		loading = true;
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('*')
 			.order('name');
@@ -126,7 +127,7 @@
 
 		try {
 			if (editingId) {
-				const { error } = await data.supabase
+				const { error } = await supabase
 					.from('vendors')
 					.update(vendorData)
 					.eq('id', editingId);
@@ -134,7 +135,7 @@
 				if (error) throw error;
 				message = 'Vendor updated successfully!';
 			} else {
-				const { error } = await data.supabase.from('vendors').insert([vendorData]);
+				const { error } = await supabase.from('vendors').insert([vendorData]);
 
 				if (error) throw error;
 				message = 'Vendor created successfully!';
@@ -155,7 +156,7 @@
 		if (!confirm('Are you sure you want to delete this vendor?')) return;
 
 		try {
-			const { error } = await data.supabase.from('vendors').delete().eq('id', vendorId);
+			const { error } = await supabase.from('vendors').delete().eq('id', vendorId);
 
 			if (error) throw error;
 

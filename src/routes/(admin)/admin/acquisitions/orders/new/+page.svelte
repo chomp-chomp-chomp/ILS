@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -31,7 +32,7 @@
 	});
 
 	async function loadVendors() {
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -41,7 +42,7 @@
 	}
 
 	async function loadBudgets() {
-		const { data: budgetsData } = await data.supabase
+		const { data: budgetsData } = await supabase
 			.from('budgets')
 			.select('id, name, code')
 			.eq('status', 'active')
@@ -51,7 +52,7 @@
 	}
 
 	async function loadMarcRecords() {
-		const { data: recordsData } = await data.supabase
+		const { data: recordsData } = await supabase
 			.from('marc_records')
 			.select('id, title_statement, main_entry_personal_name, isbn')
 			.order('title_statement->a');
@@ -150,7 +151,7 @@
 				ordered_by: data.session?.user?.email || null
 			};
 
-			const { data: insertedOrder, error: orderError } = await data.supabase
+			const { data: insertedOrder, error: orderError } = await supabase
 				.from('acquisition_orders')
 				.insert([orderData])
 				.select()
@@ -177,7 +178,7 @@
 				notes: item.notes || null
 			}));
 
-			const { error: itemsError } = await data.supabase.from('order_items').insert(itemsData);
+			const { error: itemsError } = await supabase.from('order_items').insert(itemsData);
 
 			if (itemsError) throw itemsError;
 

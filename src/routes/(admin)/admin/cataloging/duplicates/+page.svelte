@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -16,7 +17,7 @@
 
 	async function loadDuplicates() {
 		try {
-			const { data: recordsData, error: fetchError } = await data.supabase
+			const { data: recordsData, error: fetchError } = await supabase
 				.from('marc_records')
 				.select('*')
 				.order('created_at', { ascending: true }); // Oldest first
@@ -134,7 +135,7 @@
 			const errors: string[] = [];
 
 			for (const id of idsToDelete) {
-				const { error: deleteError } = await data.supabase
+				const { error: deleteError } = await supabase
 					.from('marc_records')
 					.delete()
 					.eq('id', id);

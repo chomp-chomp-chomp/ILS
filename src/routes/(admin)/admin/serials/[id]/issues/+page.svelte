@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
@@ -20,7 +21,7 @@
 		loading = true;
 
 		// Load serial
-		const { data: serialData } = await data.supabase
+		const { data: serialData } = await supabase
 			.from('serials')
 			.select('*')
 			.eq('id', serialId)
@@ -29,7 +30,7 @@
 		serial = serialData;
 
 		// Load all issues
-		const { data: issuesData } = await data.supabase
+		const { data: issuesData } = await supabase
 			.from('serial_issues')
 			.select('*')
 			.eq('serial_id', serialId)

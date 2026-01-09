@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -41,7 +42,7 @@
 
 	async function loadInvoices() {
 		loading = true;
-		const { data: invoicesData } = await data.supabase
+		const { data: invoicesData } = await supabase
 			.from('invoices')
 			.select(
 				`
@@ -57,7 +58,7 @@
 	}
 
 	async function loadVendors() {
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -67,7 +68,7 @@
 	}
 
 	async function loadOrders() {
-		const { data: ordersData } = await data.supabase
+		const { data: ordersData } = await supabase
 			.from('acquisition_orders')
 			.select('id, order_number')
 			.order('created_at', { ascending: false });
@@ -76,7 +77,7 @@
 	}
 
 	async function loadBudgets() {
-		const { data: budgetsData } = await data.supabase
+		const { data: budgetsData } = await supabase
 			.from('budgets')
 			.select('id, name, code')
 			.eq('status', 'active')
@@ -134,7 +135,7 @@
 
 		try {
 			if (editingId) {
-				const { error } = await data.supabase
+				const { error } = await supabase
 					.from('invoices')
 					.update(invoiceData)
 					.eq('id', editingId);
@@ -142,7 +143,7 @@
 				if (error) throw error;
 				message = 'Invoice updated successfully!';
 			} else {
-				const { error } = await data.supabase.from('invoices').insert([invoiceData]);
+				const { error } = await supabase.from('invoices').insert([invoiceData]);
 
 				if (error) throw error;
 				message = 'Invoice created successfully!';
@@ -177,7 +178,7 @@
 				notes: paymentNotes || null
 			};
 
-			const { error: paymentError } = await data.supabase.from('payments').insert([paymentData]);
+			const { error: paymentError } = await supabase.from('payments').insert([paymentData]);
 
 			if (paymentError) throw paymentError;
 
@@ -188,7 +189,7 @@
 				const newStatus =
 					newPaidAmount >= Number(invoice.total_amount) ? 'paid' : 'partial';
 
-				const { error: updateError } = await data.supabase
+				const { error: updateError } = await supabase
 					.from('invoices')
 					.update({ paid_amount: newPaidAmount, status: newStatus })
 					.eq('id', payingInvoiceId);
@@ -212,7 +213,7 @@
 		if (!confirm('Are you sure you want to delete this invoice?')) return;
 
 		try {
-			const { error } = await data.supabase.from('invoices').delete().eq('id', invoiceId);
+			const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
 
 			if (error) throw error;
 

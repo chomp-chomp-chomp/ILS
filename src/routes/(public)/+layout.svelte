@@ -5,6 +5,7 @@
 	import { browser } from '$app/environment';
 	import type { LayoutData } from './$types';
 	import AccessibilitySettings from '$lib/components/AccessibilitySettings.svelte';
+	import { supabase } from '$lib/supabase';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 
@@ -43,7 +44,7 @@
 
 		mediaQuery.addEventListener('change', handleChange);
 
-		const { data: authData } = data.supabase.auth.onAuthStateChange(() => {
+		const { data: authData } = supabase.auth.onAuthStateChange(() => {
 			invalidate('supabase:auth');
 		});
 

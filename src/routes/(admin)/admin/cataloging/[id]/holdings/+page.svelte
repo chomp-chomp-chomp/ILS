@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -146,7 +147,7 @@
 
 			if (editingId) {
 				// Update existing item
-				const { error: updateError } = await data.supabase
+				const { error: updateError } = await supabase
 					.from('items')
 					.update(itemData)
 					.eq('id', editingId);
@@ -158,7 +159,7 @@
 				message = 'Item updated successfully!';
 			} else {
 				// Add new item
-				const { data: inserted, error: insertError } = await data.supabase
+				const { data: inserted, error: insertError } = await supabase
 					.from('items')
 					.insert([itemData])
 					.select();
@@ -188,7 +189,7 @@
 		if (!confirm('Are you sure you want to delete this item?')) return;
 
 		try {
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('items')
 				.delete()
 				.eq('id', itemId);
@@ -203,7 +204,7 @@
 
 	async function quickStatusUpdate(itemId: string, newStatus: string) {
 		try {
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('items')
 				.update({ status: newStatus })
 				.eq('id', itemId);

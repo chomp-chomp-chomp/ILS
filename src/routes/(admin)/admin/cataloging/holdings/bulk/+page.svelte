@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 
@@ -19,14 +20,14 @@
 	async function loadStats() {
 		try {
 			// Count total records
-			const { count: totalCount } = await data.supabase
+			const { count: totalCount } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true });
 
 			totalRecords = totalCount || 0;
 
 			// Count records that already have items
-			const { data: existingItems } = await data.supabase
+			const { data: existingItems } = await supabase
 				.from('items')
 				.select('marc_record_id');
 

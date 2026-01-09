@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -29,7 +30,7 @@
 	async function loadItems() {
 		loading = true;
 		try {
-			const { data: itemsData, error: fetchError } = await data.supabase
+			const { data: itemsData, error: fetchError } = await supabase
 				.from('items')
 				.select('*, marc_record:marc_records(*)')
 				.order('created_at', { ascending: false });
