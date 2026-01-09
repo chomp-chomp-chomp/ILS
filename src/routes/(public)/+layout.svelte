@@ -109,42 +109,59 @@
 
 <AccessibilitySettings />
 
+<!-- Mobile menu state -->
+<script>
+	let mobileMenuOpen = $state(false);
+	
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+	}
+	
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+</script>
+
 <div class="public-layout theme-{theme}">
 	<!-- Header Navigation -->
 	{#if showNav && siteSettings.header.links.length > 0}
 		<nav class="site-header">
 			<div class="header-container">
-				<div class="header-links">
+				<!-- Mobile hamburger menu (left side) -->
+				<button class="hamburger-menu" onclick={toggleMobileMenu} aria-label="Toggle menu">
+					<span class="hamburger-icon"></span>
+					<span class="hamburger-icon"></span>
+					<span class="hamburger-icon"></span>
+				</button>
+				
+				<!-- Desktop links -->
+				<div class="header-links desktop-only">
 					{#each siteSettings.header.links as link}
 						<a href={link.url} class="header-link">{link.title}</a>
 					{/each}
 				</div>
+				
 				<button class="theme-toggle" onclick={toggleTheme} aria-label="Toggle theme">
 					{theme === 'light' ? '🌙' : '☀️'}
 				</button>
 			</div>
 		</nav>
-	{/if}
-
-	<!-- Hero Section (on homepage) -->
-	{#if showHero && siteSettings.hero.imageUrl}
-		<section class="homepage-hero" style="background-image: url('{siteSettings.hero.imageUrl}');">
-			<div class="hero-overlay">
-				<div class="hero-content">
-					{#if data.session}
-						<div class="admin-link-wrapper">
-							<a href="/admin" class="admin-link">Admin</a>
-						</div>
-					{/if}
-					{#if siteSettings.hero.title}
-						<h1 class="hero-title">{siteSettings.hero.title}</h1>
-					{/if}
-					{#if siteSettings.hero.subhead}
-						<p class="hero-tagline">{siteSettings.hero.subhead}</p>
-					{/if}
+		
+		<!-- Mobile drawer menu -->
+		{#if mobileMenuOpen}
+			<div class="mobile-drawer-overlay" onclick={closeMobileMenu}></div>
+			<div class="mobile-drawer">
+				<div class="mobile-drawer-header">
+					<h3>Menu</h3>
+					<button class="close-drawer" onclick={closeMobileMenu} aria-label="Close menu">×</button>
 				</div>
+				<nav class="mobile-nav">
+					{#each siteSettings.header.links as link}
+						<a href={link.url} class="mobile-link" onclick={closeMobileMenu}>{link.title}</a>
+					{/each}
+				</nav>
 			</div>
-		</section>
+		{/if}
 	{/if}
 
 	<!-- Main Content -->
@@ -165,6 +182,16 @@
 				{/if}
 			</div>
 		</footer>
+	{/if}
+	
+	<!-- Floating Admin Button (only for authenticated users on public pages) -->
+	{#if data.session}
+		<a href="/admin" class="floating-admin-button" title="Admin Panel">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+				<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+			</svg>
+		</a>
 	{/if}
 </div>
 
@@ -358,40 +385,181 @@
 		color: var(--primary-color);
 	}
 
+	/* Hamburger Menu Button */
+	.hamburger-menu {
+		display: none;
+		flex-direction: column;
+		gap: 4px;
+		background: transparent;
+		border: none;
+		padding: 0.5rem;
+		cursor: pointer;
+		z-index: 1001;
+	}
+
+	.hamburger-icon {
+		display: block;
+		width: 24px;
+		height: 2px;
+		background: white;
+		border-radius: 2px;
+		transition: all 0.3s;
+	}
+
+	/* Mobile Drawer */
+	.mobile-drawer-overlay {
+		display: none;
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 1000;
+	}
+
+	.mobile-drawer {
+		display: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		width: 280px;
+		background: white;
+		box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+		z-index: 1001;
+		overflow-y: auto;
+		animation: slideIn 0.3s ease-out;
+	}
+
+	@keyframes slideIn {
+		from {
+			transform: translateX(-100%);
+		}
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	.mobile-drawer-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem 1.5rem;
+		border-bottom: 1px solid #e0e0e0;
+		background: var(--primary-color);
+		color: white;
+	}
+
+	.mobile-drawer-header h3 {
+		margin: 0;
+		font-size: 1.2rem;
+	}
+
+	.close-drawer {
+		background: transparent;
+		border: none;
+		color: white;
+		font-size: 2rem;
+		cursor: pointer;
+		padding: 0;
+		width: 32px;
+		height: 32px;
+		line-height: 1;
+	}
+
+	.mobile-nav {
+		display: flex;
+		flex-direction: column;
+		padding: 0.5rem 0;
+	}
+
+	.mobile-link {
+		color: var(--text-color);
+		text-decoration: none;
+		padding: 1rem 1.5rem;
+		font-size: 1rem;
+		border-bottom: 1px solid #f0f0f0;
+		transition: background 0.2s;
+	}
+
+	.mobile-link:hover {
+		background: #f5f5f5;
+	}
+
+	/* Floating Admin Button */
+	.floating-admin-button {
+		position: fixed;
+		bottom: 20px;
+		right: 20px;
+		width: 56px;
+		height: 56px;
+		background: var(--primary-color);
+		color: white;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		text-decoration: none;
+		transition: all 0.3s;
+		z-index: 999;
+	}
+
+	.floating-admin-button:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+		background: #d12d34;
+	}
+
+	.floating-admin-button svg {
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+	}
+
+	/* Desktop: Hide hamburger, show desktop links */
+	@media (min-width: 769px) {
+		.hamburger-menu {
+			display: none !important;
+		}
+		
+		.desktop-only {
+			display: flex !important;
+		}
+	}
+
+	/* Mobile: Show hamburger, hide desktop links */
 	@media (max-width: 768px) {
 		.header-container {
 			padding: 0 1rem;
-			flex-wrap: wrap;
 		}
 
-		.header-links {
-			flex-wrap: wrap;
-			gap: 0.75rem;
+		.hamburger-menu {
+			display: flex;
 		}
 
-		.header-link {
-			font-size: 0.85rem;
-			padding: 0.4rem 0.8rem;
+		.desktop-only {
+			display: none !important;
 		}
 
-		.hero-title {
-			font-size: 2rem;
+		.mobile-drawer-overlay {
+			display: block;
 		}
 
-		.hero-tagline {
-			font-size: 1.2rem;
-		}
-
-		.hero-content {
-			padding: 2rem 1rem;
-		}
-
-		.admin-link-wrapper {
-			right: 1rem;
+		.mobile-drawer {
+			display: block;
 		}
 
 		.footer-container {
 			padding: 0 1rem;
+		}
+
+		.floating-admin-button {
+			bottom: 16px;
+			right: 16px;
+			width: 48px;
+			height: 48px;
+		}
+
+		.floating-admin-button svg {
+			width: 18px;
+			height: 18px;
 		}
 	}
 </style>

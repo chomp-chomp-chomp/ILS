@@ -42,47 +42,44 @@
 
 <div class="catalog-home">
 	<!-- Homepage Hero Section (if enabled in siteConfig) -->
-	<!-- ROBUST: Explicit boolean check -->
+	<!-- Single hero: image on top, content below -->
 	{#if Boolean(siteConfig?.homepage_hero_enabled) === true}
-		<section 
-			class="homepage-hero" 
-			style={siteConfig.homepage_hero_image_url ? `background-image: url('${siteConfig.homepage_hero_image_url}');` : ''}
-		>
-			<div class="hero-overlay">
-				<div class="hero-content-wrapper">
-					{#if data.session}
-						<div class="admin-link-wrapper">
-							<a href="/admin" class="admin-link">Admin</a>
-						</div>
-					{/if}
-					
-					{#if siteConfig.homepage_hero_title}
-						<h1 class="hero-title">{siteConfig.homepage_hero_title}</h1>
-					{/if}
-					
-					{#if siteConfig.homepage_hero_tagline}
-						<p class="hero-tagline">{siteConfig.homepage_hero_tagline}</p>
-					{/if}
-
-					{#if siteConfig.homepage_hero_links && siteConfig.homepage_hero_links.length > 0}
-						<div class="hero-links">
-							{#each [...siteConfig.homepage_hero_links].sort((a, b) => a.order - b.order) as link}
-								<a href={link.url} class="hero-link-button">{link.title}</a>
-							{/each}
-						</div>
-					{/if}
+		<section class="homepage-hero-section">
+			<!-- Hero Image (if provided) -->
+			{#if siteConfig.homepage_hero_image_url}
+				<div class="hero-image-container">
+					<img 
+						src={siteConfig.homepage_hero_image_url} 
+						alt={siteConfig.homepage_hero_title || 'Library Hero'}
+						class="hero-image"
+					/>
 				</div>
+			{/if}
+			
+			<!-- Hero Content (below image, no overlay) -->
+			<div class="hero-text-content">
+				{#if siteConfig.homepage_hero_title}
+					<h1 class="hero-title">{siteConfig.homepage_hero_title}</h1>
+				{/if}
+				
+				{#if siteConfig.homepage_hero_tagline}
+					<p class="hero-tagline">{siteConfig.homepage_hero_tagline}</p>
+				{/if}
+
+				{#if siteConfig.homepage_hero_links && siteConfig.homepage_hero_links.length > 0}
+					<div class="hero-links">
+						{#each [...siteConfig.homepage_hero_links].sort((a, b) => a.order - b.order) as link}
+							<a href={link.url} class="hero-link-button">{link.title}</a>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		</section>
 	{/if}
 
 	<header class="hero">
-		<div class="header-top">
-			{#if data.session && !siteConfig.homepage_hero_enabled}
-				<a href="/admin" class="admin-link">Admin</a>
-			{/if}
-		</div>
-
+		<!-- Removed duplicate admin link from here -->
+		
 		<div class="hero-content">
 			{#if branding.homepage_logo_url}
 				<img
@@ -149,29 +146,7 @@
 		padding: 0;
 	}
 
-	.header-top {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 1rem 2rem;
-		text-align: right;
-		background: rgba(255, 255, 255, 0.6);
-		border-bottom: 1px solid rgba(231, 59, 66, 0.2);
-	}
-
-	.admin-link {
-		color: #e73b42;
-		font-size: 0.875rem;
-		text-decoration: none;
-		padding: 0.5rem 1rem;
-		border: 1px solid #e73b42;
-		border-radius: var(--radius-sm);
-		transition: all 0.2s;
-	}
-
-	.admin-link:hover {
-		background: #e73b42;
-		color: white;
-	}
+	/* Removed .header-top and duplicate .admin-link styles - now using floating button */
 
 	.hero {
 		max-width: 1200px;
@@ -369,94 +344,54 @@
 		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.3);
 	}
 
-	/* Homepage Hero Styles 
-	 * 
-	 * CUSTOMIZING HERO SECTION:
-	 * The hero is a large banner section with background image at the top of homepage.
-	 * 
-	 * To customize hero:
-	 * 1. Enable/disable: siteConfig.homepage_hero_enabled
-	 * 2. Set title: siteConfig.homepage_hero_title
-	 * 3. Set tagline: siteConfig.homepage_hero_tagline
-	 * 4. Set background image: siteConfig.homepage_hero_image_url
-	 * 5. Add action buttons: siteConfig.homepage_hero_links
-	 * 
-	 * Key CSS Classes:
-	 * - .homepage-hero: Main hero container with background image
-	 * - .hero-overlay: Colored overlay gradient on top of image
-	 * - .hero-content-wrapper: Content container
-	 * - .hero-title: Main heading
-	 * - .hero-tagline: Subheading
-	 * - .hero-links: Container for action buttons
-	 * - .hero-link-button: Individual action button
-	 * 
-	 * The background image is applied via inline style attribute.
+	/* Homepage Hero Styles - NEW DESIGN
+	 * Image on top, text content below (no overlay)
+	 * Compact and responsive
 	 */
-	.homepage-hero {
-		position: relative;
-		min-height: 400px;
-		background-size: cover;
-		background-position: center;
-		background-repeat: no-repeat;
-		background-color: #2c3e50;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		/* ROBUST: Ensure hero always renders properly */
+	.homepage-hero-section {
 		width: 100%;
-		overflow: hidden;
+		background: white;
+		margin-bottom: 2rem;
 	}
 
-	.hero-overlay {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(135deg, rgba(231, 59, 66, 0.85), rgba(44, 62, 80, 0.85));
+	.hero-image-container {
+		width: 100%;
+		max-height: 300px;
+		overflow: hidden;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		background: #f5f5f5;
 	}
 
-	.hero-content-wrapper {
-		position: relative;
-		z-index: 1;
+	.hero-image {
+		width: 100%;
+		height: auto;
+		max-height: 300px;
+		object-fit: cover;
+		display: block;
+	}
+
+	.hero-text-content {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2rem;
 		text-align: center;
-		color: white;
-		max-width: 900px;
-		padding: 3rem 2rem;
-	}
-
-	.admin-link-wrapper {
-		position: absolute;
-		top: 1rem;
-		right: 2rem;
-	}
-
-	.admin-link-wrapper .admin-link {
-		color: white;
-		background: rgba(255, 255, 255, 0.2);
-		border-color: rgba(255, 255, 255, 0.4);
-	}
-
-	.admin-link-wrapper .admin-link:hover {
-		background: white;
-		color: #e73b42;
 	}
 
 	.hero-title {
-		font-size: 3rem;
+		font-size: 2.5rem;
 		font-weight: 700;
 		margin: 0 0 1rem 0;
-		color: white;
-		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+		color: #e73b42;
 		line-height: 1.2;
 	}
 
 	.hero-tagline {
-		font-size: 1.5rem;
-		margin: 0 0 2rem 0;
-		color: rgba(255, 255, 255, 0.95);
+		font-size: 1.25rem;
+		margin: 0 0 1.5rem 0;
+		color: #666;
 		font-weight: 300;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 
 	.hero-links {
@@ -464,33 +399,54 @@
 		flex-wrap: wrap;
 		gap: 1rem;
 		justify-content: center;
-		margin-top: 2rem;
+		margin-top: 1.5rem;
 	}
 
 	.hero-link-button {
 		display: inline-block;
-		padding: 1rem 2rem;
-		background: white;
-		color: #e73b42;
+		padding: 0.75rem 1.5rem;
+		background: #e73b42;
+		color: white;
 		text-decoration: none;
-		border-radius: 8px;
+		border-radius: 6px;
 		font-weight: 600;
-		font-size: 1.1rem;
+		font-size: 1rem;
 		transition: all 0.3s;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 2px 8px rgba(231, 59, 66, 0.2);
 	}
 
 	.hero-link-button:hover {
-		background: #e73b42;
-		color: white;
+		background: #d12d34;
 		transform: translateY(-2px);
-		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 4px 12px rgba(231, 59, 66, 0.3);
 	}
 
 	@media (max-width: 768px) {
-		.main-logo {
-			max-width: 250px;
+		.hero-image-container {
+			max-height: 200px;
 		}
+
+		.hero-image {
+			max-height: 200px;
+		}
+
+		.hero-text-content {
+			padding: 1.5rem 1rem;
+		}
+
+		.hero-title {
+			font-size: 1.75rem;
+		}
+
+		.hero-tagline {
+			font-size: 1.1rem;
+		}
+
+		.hero-link-button {
+			padding: 0.625rem 1.25rem;
+			font-size: 0.95rem;
+		}
+	}
 
 		.tagline {
 			font-size: 1.25rem;
@@ -512,13 +468,5 @@
 			padding: 2rem 1rem;
 		}
 
-		.admin-link-wrapper {
-			right: 1rem;
-		}
-
-		.hero-link-button {
-			padding: 0.75rem 1.5rem;
-			font-size: 1rem;
-		}
 	}
 </style>
