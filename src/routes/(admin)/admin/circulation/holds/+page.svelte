@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -18,7 +19,7 @@
 
 	async function loadHolds() {
 		try {
-			const { data: holdsData, error: fetchError } = await data.supabase
+			const { data: holdsData, error: fetchError } = await supabase
 				.from('active_holds')
 				.select('*')
 				.order('hold_date', { ascending: true });
@@ -56,7 +57,7 @@
 		if (!confirm('Cancel this hold?')) return;
 
 		try {
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('holds')
 				.update({
 					status: 'cancelled',
@@ -76,7 +77,7 @@
 		if (!confirm('Mark this hold as picked up?')) return;
 
 		try {
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('holds')
 				.update({
 					status: 'picked_up',

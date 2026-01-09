@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -33,7 +34,7 @@
 			loading = true;
 
 			// Load patron details
-			const { data: patronData, error: patronError } = await data.supabase
+			const { data: patronData, error: patronError } = await supabase
 				.from('patrons')
 				.select('*, patron_type:patron_types(*)')
 				.eq('id', patronId)
@@ -48,7 +49,7 @@
 			editForm = { ...patron };
 
 			// Load current checkouts
-			const { data: checkoutsData, error: checkoutsError } = await data.supabase
+			const { data: checkoutsData, error: checkoutsError } = await supabase
 				.from('current_checkouts')
 				.select('*')
 				.eq('patron_id', patronId);
@@ -57,7 +58,7 @@
 			checkouts = checkoutsData || [];
 
 			// Load active holds
-			const { data: holdsData, error: holdsError } = await data.supabase
+			const { data: holdsData, error: holdsError } = await supabase
 				.from('active_holds')
 				.select('*')
 				.eq('patron_id', patronId);
@@ -77,7 +78,7 @@
 		error = '';
 
 		try {
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('patrons')
 				.update({
 					first_name: editForm.first_name,
@@ -154,7 +155,7 @@
 
 			// Check if there are holds on this item
 			const checkout = checkouts.find(c => c.id === checkoutId);
-			const { data: holdsData } = await data.supabase
+			const { data: holdsData } = await supabase
 				.from('holds')
 				.select('id')
 				.eq('marc_record_id', checkout.marc_record_id)
@@ -172,7 +173,7 @@
 			newDueDate.setDate(newDueDate.getDate() + loanPeriodDays);
 
 			// Update checkout record
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('checkouts')
 				.update({
 					due_date: newDueDate.toISOString(),
@@ -209,7 +210,7 @@
 
 		try {
 			// Create Supabase auth user
-			const { data: authData, error: authError } = await data.supabase.auth.admin.createUser({
+			const { data: authData, error: authError } = await supabase.auth.admin.createUser({
 				email: patron.email,
 				password: tempPassword,
 				email_confirm: true
@@ -218,7 +219,7 @@
 			if (authError) throw authError;
 
 			// Link to patron record
-			const { error: updateError } = await data.supabase
+			const { error: updateError } = await supabase
 				.from('patrons')
 				.update({ user_id: authData.user.id })
 				.eq('id', patronId);

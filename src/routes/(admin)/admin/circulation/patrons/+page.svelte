@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -19,7 +20,7 @@
 
 	async function loadPatrons() {
 		try {
-			const { data: patronsData, error: fetchError } = await data.supabase
+			const { data: patronsData, error: fetchError } = await supabase
 				.from('patron_account_summary')
 				.select('*')
 				.order('last_name', { ascending: true });
@@ -70,7 +71,7 @@
 		if (!confirm('Are you sure you want to delete this patron? This will also delete their checkout history.')) return;
 
 		try {
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('patrons')
 				.delete()
 				.eq('id', id);
@@ -124,7 +125,7 @@
 
 		try {
 			const ids = Array.from(selectedPatrons);
-			const { error: deleteError } = await data.supabase
+			const { error: deleteError } = await supabase
 				.from('patrons')
 				.delete()
 				.in('id', ids);

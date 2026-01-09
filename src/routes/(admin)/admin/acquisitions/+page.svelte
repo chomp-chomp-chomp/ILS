@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -17,20 +18,20 @@
 	onMount(async () => {
 		// Load statistics
 		const [vendorsData, ordersData, invoicesData, contractsData, budgetsData] = await Promise.all([
-			data.supabase.from('vendors').select('id', { count: 'exact', head: true }),
-			data.supabase
+			supabase.from('vendors').select('id', { count: 'exact', head: true }),
+			supabase
 				.from('acquisition_orders')
 				.select('id', { count: 'exact', head: true })
 				.in('status', ['pending', 'ordered', 'partial']),
-			data.supabase
+			supabase
 				.from('invoices')
 				.select('id', { count: 'exact', head: true })
 				.eq('status', 'pending'),
-			data.supabase
+			supabase
 				.from('contracts')
 				.select('id', { count: 'exact', head: true })
 				.eq('status', 'active'),
-			data.supabase.from('budgets').select('allocated_amount, spent_amount, encumbered_amount')
+			supabase.from('budgets').select('allocated_amount, spent_amount, encumbered_amount')
 		]);
 
 		stats.vendors = vendorsData.count || 0;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
@@ -31,7 +32,7 @@
 		loading = true;
 
 		// Load serial with vendor info
-		const { data: serialData } = await data.supabase
+		const { data: serialData } = await supabase
 			.from('serials')
 			.select('*, vendors(*)')
 			.eq('id', serialId)
@@ -41,7 +42,7 @@
 		vendorId = serial?.vendor_id || '';
 
 		// Load claims
-		const { data: claimsData } = await data.supabase
+		const { data: claimsData } = await supabase
 			.from('serial_claims')
 			.select('*, serial_issues(display_text, volume, issue), vendors(name)')
 			.eq('serial_id', serialId)
@@ -50,7 +51,7 @@
 		claims = claimsData || [];
 
 		// Load late/claimable issues
-		const { data: lateData } = await data.supabase
+		const { data: lateData } = await supabase
 			.from('serial_issues')
 			.select('*')
 			.eq('serial_id', serialId)
@@ -60,7 +61,7 @@
 		lateIssues = lateData || [];
 
 		// Load all vendors
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -92,14 +93,14 @@
 				escalation_level: issue.claim_count + 1
 			};
 
-			const { error: insertError } = await data.supabase
+			const { error: insertError } = await supabase
 				.from('serial_claims')
 				.insert([claimData]);
 
 			if (insertError) throw insertError;
 
 			// Update issue status and claim count
-			await data.supabase
+			await supabase
 				.from('serial_issues')
 				.update({
 					status: 'claimed',
@@ -120,7 +121,7 @@
 	}
 
 	async function updateClaim(claimId: string, updates: any) {
-		await data.supabase.from('serial_claims').update(updates).eq('id', claimId);
+		await supabase.from('serial_claims').update(updates).eq('id', claimId);
 		await loadData();
 	}
 

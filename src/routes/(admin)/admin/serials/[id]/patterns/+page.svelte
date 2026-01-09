@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
@@ -40,7 +41,7 @@
 		loading = true;
 
 		// Load serial
-		const { data: serialData } = await data.supabase
+		const { data: serialData } = await supabase
 			.from('serials')
 			.select('*')
 			.eq('id', serialId)
@@ -49,7 +50,7 @@
 		serial = serialData;
 
 		// Load patterns
-		const { data: patternsData } = await data.supabase
+		const { data: patternsData } = await supabase
 			.from('serial_prediction_patterns')
 			.select('*')
 			.eq('serial_id', serialId)
@@ -87,7 +88,7 @@
 				notes: patternNotes || null
 			};
 
-			const { data: insertedPattern, error: insertError } = await data.supabase
+			const { data: insertedPattern, error: insertError } = await supabase
 				.from('serial_prediction_patterns')
 				.insert([patternData])
 				.select()
@@ -97,7 +98,7 @@
 
 			// Generate predicted issues
 			if (insertedPattern) {
-				const { error: rpcError } = await data.supabase.rpc('generate_predicted_issues', {
+				const { error: rpcError } = await supabase.rpc('generate_predicted_issues', {
 					p_pattern_id: insertedPattern.id,
 					p_months_ahead: generateAheadMonths
 				});
@@ -140,7 +141,7 @@
 	}
 
 	async function togglePatternActive(pattern: any) {
-		await data.supabase
+		await supabase
 			.from('serial_prediction_patterns')
 			.update({ is_active: !pattern.is_active })
 			.eq('id', pattern.id);
@@ -153,14 +154,14 @@
 			return;
 		}
 
-		await data.supabase.from('serial_prediction_patterns').delete().eq('id', patternId);
+		await supabase.from('serial_prediction_patterns').delete().eq('id', patternId);
 
 		await loadData();
 	}
 
 	async function generateIssues(patternId: string) {
 		try {
-			const { error: rpcError } = await data.supabase.rpc('generate_predicted_issues', {
+			const { error: rpcError } = await supabase.rpc('generate_predicted_issues', {
 				p_pattern_id: patternId,
 				p_months_ahead: 12
 			});

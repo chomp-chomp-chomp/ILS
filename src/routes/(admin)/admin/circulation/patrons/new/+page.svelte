@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -36,7 +37,7 @@
 
 	async function loadPatronTypes() {
 		try {
-			const { data: typesData, error: fetchError } = await data.supabase
+			const { data: typesData, error: fetchError } = await supabase
 				.from('patron_types')
 				.select('*')
 				.eq('is_active', true)
@@ -55,7 +56,7 @@
 
 	async function generateBarcode() {
 		try {
-			const { data: result, error: rpcError } = await data.supabase
+			const { data: result, error: rpcError } = await supabase
 				.rpc('generate_patron_barcode');
 
 			if (rpcError) throw rpcError;
@@ -80,7 +81,7 @@
 		}
 
 		try {
-			const { data: newPatron, error: insertError } = await data.supabase
+			const { data: newPatron, error: insertError } = await supabase
 				.from('patrons')
 				.insert({
 					barcode,

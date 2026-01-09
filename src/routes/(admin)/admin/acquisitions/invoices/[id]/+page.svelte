@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
@@ -31,7 +32,7 @@
 		loading = true;
 
 		const [invoiceResult, lineItemsResult] = await Promise.all([
-			data.supabase
+			supabase
 				.from('invoices')
 				.select(
 					`
@@ -57,7 +58,7 @@
 				.eq('id', invoiceId)
 				.single(),
 
-			data.supabase
+			supabase
 				.from('invoice_line_items')
 				.select(
 					`
@@ -140,7 +141,7 @@
 			};
 
 			if (editingLineItemId) {
-				const { error } = await data.supabase
+				const { error } = await supabase
 					.from('invoice_line_items')
 					.update(lineItemData)
 					.eq('id', editingLineItemId);
@@ -148,7 +149,7 @@
 				if (error) throw error;
 				message = 'Line item updated successfully!';
 			} else {
-				const { error } = await data.supabase.from('invoice_line_items').insert([lineItemData]);
+				const { error } = await supabase.from('invoice_line_items').insert([lineItemData]);
 
 				if (error) throw error;
 				message = 'Line item added successfully!';
@@ -167,7 +168,7 @@
 		if (!confirm('Are you sure you want to delete this line item?')) return;
 
 		try {
-			const { error } = await data.supabase.from('invoice_line_items').delete().eq('id', lineItemId);
+			const { error } = await supabase.from('invoice_line_items').delete().eq('id', lineItemId);
 
 			if (error) throw error;
 
@@ -211,7 +212,7 @@
 				}
 
 				if (matchedOrderItem) {
-					const { error } = await data.supabase
+					const { error } = await supabase
 						.from('invoice_line_items')
 						.update({
 							order_item_id: matchedOrderItem.id,
@@ -266,7 +267,7 @@
 
 				// Update discrepancy info
 				if (discrepancyType || discrepancyNotes.length > 0) {
-					await data.supabase
+					await supabase
 						.from('invoice_line_items')
 						.update({
 							discrepancy_type: discrepancyType,
@@ -279,7 +280,7 @@
 			// Check for items not ordered
 			for (const lineItem of lineItems) {
 				if (!lineItem.matched && !lineItem.order_item_id) {
-					await data.supabase
+					await supabase
 						.from('invoice_line_items')
 						.update({
 							discrepancy_type: 'not_ordered',
@@ -299,7 +300,7 @@
 		if (!confirm('Approve this invoice for payment?')) return;
 
 		try {
-			const { error } = await data.supabase
+			const { error } = await supabase
 				.from('invoices')
 				.update({
 					approved_for_payment: true,
@@ -324,7 +325,7 @@
 		if (!reason) return;
 
 		try {
-			const { error } = await data.supabase
+			const { error } = await supabase
 				.from('invoices')
 				.update({
 					payment_status: 'disputed',

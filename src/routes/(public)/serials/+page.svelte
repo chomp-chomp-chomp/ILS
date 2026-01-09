@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -17,7 +18,7 @@
 		loading = true;
 
 		// Load public serials
-		const { data: serialsData } = await data.supabase
+		const { data: serialsData } = await supabase
 			.from('serials')
 			.select('*')
 			.eq('public_display', true)
@@ -28,7 +29,7 @@
 
 		// Load latest received issue for each serial
 		for (const serial of serials) {
-			const { data: issueData } = await data.supabase
+			const { data: issueData } = await supabase
 				.from('serial_issues')
 				.select('*')
 				.eq('serial_id', serial.id)

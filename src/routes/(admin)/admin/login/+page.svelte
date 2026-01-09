@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
@@ -18,7 +19,7 @@
 		loading = true;
 		error = '';
 
-		const { error: signInError } = await data.supabase.auth.signInWithPassword({
+		const { error: signInError } = await supabase.auth.signInWithPassword({
 			email,
 			password
 		});
@@ -41,7 +42,7 @@
 		resetError = '';
 
 		try {
-			const { error: resetEmailError } = await data.supabase.auth.resetPasswordForEmail(resetEmail, {
+			const { error: resetEmailError } = await supabase.auth.resetPasswordForEmail(resetEmail, {
 				redirectTo: `${window.location.origin}/admin/reset-password`
 			});
 

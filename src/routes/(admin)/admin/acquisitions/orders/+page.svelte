@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -17,7 +18,7 @@
 
 	async function loadOrders() {
 		loading = true;
-		const { data: ordersData } = await data.supabase
+		const { data: ordersData } = await supabase
 			.from('acquisition_orders')
 			.select(
 				`
@@ -33,7 +34,7 @@
 	}
 
 	async function loadVendors() {
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)
@@ -43,7 +44,7 @@
 	}
 
 	async function loadBudgets() {
-		const { data: budgetsData } = await data.supabase
+		const { data: budgetsData } = await supabase
 			.from('budgets')
 			.select('id, name, code')
 			.eq('status', 'active')
@@ -56,7 +57,7 @@
 		if (!confirm('Are you sure you want to delete this order?')) return;
 
 		try {
-			const { error } = await data.supabase.from('acquisition_orders').delete().eq('id', orderId);
+			const { error } = await supabase.from('acquisition_orders').delete().eq('id', orderId);
 
 			if (error) throw error;
 
@@ -70,7 +71,7 @@
 
 	async function updateOrderStatus(orderId: string, newStatus: string) {
 		try {
-			const { error } = await data.supabase
+			const { error } = await supabase
 				.from('acquisition_orders')
 				.update({ status: newStatus })
 				.eq('id', orderId);

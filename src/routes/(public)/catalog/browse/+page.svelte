@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -28,7 +29,7 @@
 		try {
 			if (browseMode === 'subjects') {
 				// Get all subject headings from marc_records
-				const { data: records } = await data.supabase
+				const { data: records } = await supabase
 					.from('marc_records')
 					.select('subject_topical');
 
@@ -51,7 +52,7 @@
 					.sort((a, b) => a.heading.localeCompare(b.heading));
 			} else if (browseMode === 'authors') {
 				// Get all author names from marc_records
-				const { data: records } = await data.supabase
+				const { data: records } = await supabase
 					.from('marc_records')
 					.select('main_entry_personal_name');
 
@@ -89,7 +90,7 @@
 		try {
 			if (browseMode === 'subjects') {
 				// Find all records with this subject
-				const { data: records } = await data.supabase
+				const { data: records } = await supabase
 					.from('marc_records')
 					.select('id, title_statement, main_entry_personal_name, publication_info, material_type, isbn')
 					.contains('subject_topical', [{ a: heading }]);
@@ -97,7 +98,7 @@
 				headingTitles = records || [];
 			} else if (browseMode === 'authors') {
 				// Find all records by this author
-				const { data: records } = await data.supabase
+				const { data: records } = await supabase
 					.from('marc_records')
 					.select('id, title_statement, main_entry_personal_name, publication_info, material_type, isbn')
 					.eq('main_entry_personal_name->>a', heading);

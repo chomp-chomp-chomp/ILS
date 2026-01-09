@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -28,7 +29,7 @@
 	async function loadReceivingHistory() {
 		loading = true;
 
-		let query = data.supabase
+		let query = supabase
 			.from('receiving_history')
 			.select(
 				`
@@ -61,7 +62,7 @@
 	}
 
 	async function loadVendors() {
-		const { data: vendorsData } = await data.supabase
+		const { data: vendorsData } = await supabase
 			.from('vendors')
 			.select('id, name')
 			.eq('is_active', true)

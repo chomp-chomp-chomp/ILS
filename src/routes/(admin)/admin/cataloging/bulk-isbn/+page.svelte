@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
@@ -205,7 +206,7 @@
 					}
 				};
 
-				const { data: inserted, error: insertError } = await data.supabase
+				const { data: inserted, error: insertError } = await supabase
 					.from('marc_records')
 					.insert([marcRecord])
 					.select();
@@ -214,7 +215,7 @@
 
 				// Auto-create default holding
 				if (inserted && inserted[0]) {
-					await data.supabase.from('holdings').insert([{
+					await supabase.from('holdings').insert([{
 						marc_record_id: inserted[0].id,
 						location: 'Main Library',
 						status: 'available',

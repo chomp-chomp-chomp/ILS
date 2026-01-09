@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { supabase } from '$lib/supabase';
 
 	let { data }: { data: PageData } = $props();
 
@@ -124,7 +125,7 @@
 					subject_topical: record.subjects?.map((s: string) => ({ a: s })) || []
 				};
 
-				const { error: insertError } = await data.supabase
+				const { error: insertError } = await supabase
 					.from('marc_records')
 					.insert([marcRecord]);
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -16,7 +17,7 @@
 
 	async function loadHoldings() {
 		try {
-			const { data: holdingsData, error: fetchError } = await data.supabase
+			const { data: holdingsData, error: fetchError } = await supabase
 				.from('holdings')
 				.select(`
 					*,

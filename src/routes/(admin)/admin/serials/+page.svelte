@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { supabase } from '$lib/supabase';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -9,7 +10,7 @@
 	let stats = $state<Map<string, any>>(new Map());
 
 	onMount(async () => {
-		const { data: serialsData } = await data.supabase
+		const { data: serialsData } = await supabase
 			.from('serials')
 			.select('*, vendors(name)')
 			.order('title');
@@ -18,7 +19,7 @@
 
 		// Get stats for each serial
 		for (const serial of serials) {
-			const { data: issueStats } = await data.supabase
+			const { data: issueStats } = await supabase
 				.from('serial_issues')
 				.select('status')
 				.eq('serial_id', serial.id);
