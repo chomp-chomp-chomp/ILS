@@ -39,12 +39,33 @@ export async function getSiteSettings(supabase: SupabaseClient): Promise<SiteSet
 			},
 			footer: {
 				text: data.footer_text || DEFAULT_SITE_SETTINGS.footer.text,
-				link: data.footer_link || DEFAULT_SITE_SETTINGS.footer.link
+				link: data.footer_link || DEFAULT_SITE_SETTINGS.footer.link,
+				links: Array.isArray(data.footer_links) 
+					? data.footer_links 
+					: DEFAULT_SITE_SETTINGS.footer.links,
+				backgroundColor: data.footer_background_color || DEFAULT_SITE_SETTINGS.footer.backgroundColor,
+				textColor: data.footer_text_color || DEFAULT_SITE_SETTINGS.footer.textColor,
+				linkColor: data.footer_link_color || DEFAULT_SITE_SETTINGS.footer.linkColor,
+				linkHoverColor: data.footer_link_hover_color || DEFAULT_SITE_SETTINGS.footer.linkHoverColor,
+				padding: data.footer_padding || DEFAULT_SITE_SETTINGS.footer.padding
 			},
 			hero: {
 				title: data.hero_title || DEFAULT_SITE_SETTINGS.hero.title,
 				subhead: data.hero_subhead || DEFAULT_SITE_SETTINGS.hero.subhead,
-				imageUrl: data.hero_image_url || DEFAULT_SITE_SETTINGS.hero.imageUrl
+				imageUrl: data.hero_image_url || DEFAULT_SITE_SETTINGS.hero.imageUrl,
+				minHeight: data.hero_min_height || DEFAULT_SITE_SETTINGS.hero.minHeight,
+				mobileMinHeight: data.hero_mobile_min_height || DEFAULT_SITE_SETTINGS.hero.mobileMinHeight
+			},
+			typography: {
+				h1Size: data.typography_h1_size || DEFAULT_SITE_SETTINGS.typography!.h1Size,
+				h2Size: data.typography_h2_size || DEFAULT_SITE_SETTINGS.typography!.h2Size,
+				h3Size: data.typography_h3_size || DEFAULT_SITE_SETTINGS.typography!.h3Size,
+				h4Size: data.typography_h4_size || DEFAULT_SITE_SETTINGS.typography!.h4Size,
+				h5Size: data.typography_h5_size || DEFAULT_SITE_SETTINGS.typography!.h5Size,
+				h6Size: data.typography_h6_size || DEFAULT_SITE_SETTINGS.typography!.h6Size,
+				pSize: data.typography_p_size || DEFAULT_SITE_SETTINGS.typography!.pSize,
+				smallSize: data.typography_small_size || DEFAULT_SITE_SETTINGS.typography!.smallSize,
+				lineHeight: data.typography_line_height || DEFAULT_SITE_SETTINGS.typography!.lineHeight
 			}
 		};
 		
