@@ -16,12 +16,29 @@
 		hero: { title: '', subhead: '', imageUrl: '' }
 	});
 
-	// Branding for library name, favicon
+	// Branding for library name, favicon, typography, and footer
 	const branding = $derived((data as any).branding || {
 		library_name: 'Chomp Chomp Library Catalog',
 		favicon_url: null,
 		custom_head_html: null,
-		custom_css: null
+		custom_css: null,
+		primary_color: '#e73b42',
+		secondary_color: '#667eea',
+		accent_color: '#2c3e50',
+		background_color: '#ffffff',
+		text_color: '#333333',
+		font_family: 'system-ui, -apple-system, sans-serif',
+		heading_font: null,
+		font_size_h1: '2.5rem',
+		font_size_h2: '2rem',
+		font_size_h3: '1.5rem',
+		font_size_h4: '1.25rem',
+		font_size_p: '1rem',
+		font_size_small: '0.875rem',
+		footer_background_color: '#2c3e50',
+		footer_text_color: '#ffffff',
+		footer_link_color: '#ff6b72',
+		footer_padding: '2rem 0'
 	});
 
 	// Determine if we should show the navigation bar (not on homepage)
@@ -122,7 +139,28 @@
 	}
 </script>
 
-<div class="public-layout theme-{theme}">
+<div 
+	class="public-layout theme-{theme}"
+	style="
+		--primary-color: {branding.primary_color};
+		--secondary-color: {branding.secondary_color};
+		--accent-color: {branding.accent_color};
+		--background-color: {branding.background_color};
+		--text-color: {branding.text_color};
+		--font-family: {branding.font_family};
+		--heading-font: {branding.heading_font || branding.font_family};
+		--font-size-h1: {branding.font_size_h1};
+		--font-size-h2: {branding.font_size_h2};
+		--font-size-h3: {branding.font_size_h3};
+		--font-size-h4: {branding.font_size_h4};
+		--font-size-p: {branding.font_size_p};
+		--font-size-small: {branding.font_size_small};
+		--footer-bg: {branding.footer_background_color};
+		--footer-text: {branding.footer_text_color};
+		--footer-link: {branding.footer_link_color};
+		--footer-padding: {branding.footer_padding};
+	"
+>
 	<!-- Header Navigation -->
 	{#if showNav && siteSettings.header.links.length > 0}
 		<nav class="site-header">
@@ -170,10 +208,17 @@
 	</main>
 
 	<!-- Footer -->
-	{#if siteSettings.footer.text}
+	{#if branding.footer_content || siteSettings.footer.text}
 		<footer class="site-footer">
 			<div class="footer-container">
-				{#if siteSettings.footer.link}
+				{#if branding.footer_content}
+					<!-- Parse simple markdown-style links: [text](url) -->
+					<div class="footer-content">
+						{@html branding.footer_content
+							.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="footer-link">$1</a>')
+							.replace(/\n/g, '<br>')}
+					</div>
+				{:else if siteSettings.footer.link}
 					<a href={siteSettings.footer.link} class="footer-link">
 						{siteSettings.footer.text}
 					</a>
@@ -204,6 +249,17 @@
 		--background-color: #ffffff;
 		--text-color: #333333;
 		--font-family: system-ui, -apple-system, sans-serif;
+		--heading-font: system-ui, -apple-system, sans-serif;
+		--font-size-h1: 2.5rem;
+		--font-size-h2: 2rem;
+		--font-size-h3: 1.5rem;
+		--font-size-h4: 1.25rem;
+		--font-size-p: 1rem;
+		--font-size-small: 0.875rem;
+		--footer-bg: #2c3e50;
+		--footer-text: #ffffff;
+		--footer-link: #ff6b72;
+		--footer-padding: 2rem 0;
 	}
 
 	:global(.theme-dark) {
@@ -214,6 +270,35 @@
 		--text-color: #e5e5e5;
 	}
 
+	/* Apply typography globally */
+	:global(h1) {
+		font-size: var(--font-size-h1);
+		font-family: var(--heading-font);
+	}
+
+	:global(h2) {
+		font-size: var(--font-size-h2);
+		font-family: var(--heading-font);
+	}
+
+	:global(h3) {
+		font-size: var(--font-size-h3);
+		font-family: var(--heading-font);
+	}
+
+	:global(h4) {
+		font-size: var(--font-size-h4);
+		font-family: var(--heading-font);
+	}
+
+	:global(p) {
+		font-size: var(--font-size-p);
+	}
+
+	:global(small), :global(.small-text) {
+		font-size: var(--font-size-small);
+	}
+
 	.public-layout {
 		min-height: 100vh;
 		display: flex;
@@ -221,6 +306,7 @@
 		background: var(--background-color);
 		color: var(--text-color);
 		font-family: var(--font-family);
+		font-size: var(--font-size-p);
 		transition: background-color 0.3s, color 0.3s;
 	}
 
@@ -354,10 +440,10 @@
 
 	/* Footer Styles */
 	.site-footer {
-		background: var(--accent-color);
-		color: rgba(255, 255, 255, 0.9);
+		background: var(--footer-bg);
+		color: var(--footer-text);
 		border-top: 1px solid rgba(255, 255, 255, 0.1);
-		padding: 2rem 0;
+		padding: var(--footer-padding);
 		margin-top: 4rem;
 	}
 
@@ -368,21 +454,32 @@
 		text-align: center;
 	}
 
+	.footer-content {
+		font-size: var(--font-size-small);
+		color: var(--footer-text);
+		line-height: 1.6;
+	}
+
+	.footer-content :global(br) {
+		display: block;
+		margin: 0.5rem 0;
+	}
+
 	.footer-text {
-		font-size: 0.9rem;
-		color: rgba(255, 255, 255, 0.8);
+		font-size: var(--font-size-small);
+		color: var(--footer-text);
 		margin: 0;
 	}
 
 	.footer-link {
-		color: rgba(255, 255, 255, 0.9);
-		text-decoration: none;
-		font-size: 0.9rem;
-		transition: color 0.2s;
+		color: var(--footer-link);
+		text-decoration: underline;
+		font-size: var(--font-size-small);
+		transition: opacity 0.2s;
 	}
 
 	.footer-link:hover {
-		color: var(--primary-color);
+		opacity: 0.8;
 	}
 
 	/* Hamburger Menu Button */
