@@ -127,7 +127,6 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 			facetConfigs,
 			query: params,
 			spellSuggestion,
-			branding: parentData.branding,
 			searchConfig
 		};
 	} catch (error) {
@@ -140,7 +139,6 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 			page: params.page || 1,
 			per_page: params.per_page || 20,
 			query: params,
-			branding: parentData.branding,
 			searchConfig,
 			error: error instanceof Error ? error.message : 'Search failed'
 		};
