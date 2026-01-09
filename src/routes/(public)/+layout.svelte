@@ -90,6 +90,26 @@
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
 	}
+
+	// Sanitize and parse footer content (memoized)
+	const parsedFooterContent = $derived(
+		branding.footer_content
+			? (() => {
+				// Escape HTML to prevent XSS
+				const escaped = branding.footer_content
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#039;');
+				
+				// Now safely parse markdown links
+				return escaped
+					.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="footer-link">$1</a>')
+					.replace(/\n/g, '<br>');
+			})()
+			: ''
+	);
 </script>
 
 <svelte:head>
@@ -210,11 +230,9 @@
 		<footer class="site-footer">
 			<div class="footer-container">
 				{#if branding.footer_content}
-					<!-- Parse simple markdown-style links: [text](url) -->
+					<!-- Sanitized footer content with markdown links -->
 					<div class="footer-content">
-						{@html branding.footer_content
-							.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="footer-link">$1</a>')
-							.replace(/\n/g, '<br>')}
+						{@html parsedFooterContent}
 					</div>
 				{:else if siteSettings.footer.link}
 					<a href={siteSettings.footer.link} class="footer-link">
