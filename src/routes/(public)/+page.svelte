@@ -206,6 +206,31 @@
 	}
 
 	@media (max-width: 768px) {
+		.hero-image-container {
+			max-height: 200px;
+		}
+
+		.hero-image {
+			max-height: 200px;
+		}
+
+		.hero-text-content {
+			padding: 1.5rem 1rem;
+		}
+
+		.hero-title {
+			font-size: 1.75rem;
+		}
+
+		.hero-tagline {
+			font-size: 1.1rem;
+		}
+
+		.hero-link-button {
+			padding: 0.625rem 1.25rem;
+			font-size: 0.95rem;
+		}
+
 		.main-logo {
 			max-width: 250px;
 		}

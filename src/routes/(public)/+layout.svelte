@@ -11,7 +11,7 @@
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 
-	// Site settings with safe defaults
+	// Site settings with safe defaults (merged from both branches)
 	const siteSettings = $derived((data as any).siteSettings || {
 		header: { links: [] },
 		footer: { 
@@ -44,12 +44,32 @@
 		}
 	});
 
-	// Branding for library name, favicon
+	// Branding for library name, favicon, typography from branding_configuration
 	const branding = $derived((data as any).branding || {
 		library_name: 'Chomp Chomp Library Catalog',
 		favicon_url: null,
 		custom_head_html: null,
-		custom_css: null
+		custom_css: null,
+		primary_color: '#e73b42',
+		secondary_color: '#667eea',
+		accent_color: '#2c3e50',
+		background_color: '#ffffff',
+		text_color: '#333333',
+		font_family: 'system-ui, -apple-system, sans-serif',
+		heading_font: null,
+		// Typography from branding_configuration table
+		font_size_h1: '2.5rem',
+		font_size_h2: '2rem',
+		font_size_h3: '1.5rem',
+		font_size_h4: '1.25rem',
+		font_size_p: '1rem',
+		font_size_small: '0.875rem',
+		// Footer styling from branding_configuration table
+		footer_background_color: '#2c3e50',
+		footer_text_color: '#ffffff',
+		footer_link_color: '#ff6b72',
+		footer_padding: '2rem 0',
+		footer_content: null
 	});
 
 	// Determine if we should show the navigation bar (not on homepage)
@@ -93,6 +113,26 @@
 	if (browser) {
 		(window as any).toggleTheme = toggleTheme;
 	}
+
+	// Sanitize and parse footer content (memoized) - for branding.footer_content
+	const parsedFooterContent = $derived(
+		branding.footer_content
+			? (() => {
+				// Escape HTML to prevent XSS
+				const escaped = branding.footer_content
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#039;');
+				
+				// Now safely parse markdown links
+				return escaped
+					.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="footer-link">$1</a>')
+					.replace(/\n/g, '<br>');
+			})()
+			: ''
+	);
 </script>
 
 <svelte:head>
@@ -137,24 +177,24 @@
 		</style>
 	{/if}
 	
-	<!-- Typography CSS Variables -->
+	<!-- Typography and Footer CSS Variables (supports both siteSettings and branding) -->
 	<style>
 		:root {
-			--typography-h1-size: {siteSettings.typography?.h1Size || '2.5rem'};
-			--typography-h2-size: {siteSettings.typography?.h2Size || '2rem'};
-			--typography-h3-size: {siteSettings.typography?.h3Size || '1.75rem'};
-			--typography-h4-size: {siteSettings.typography?.h4Size || '1.5rem'};
+			--typography-h1-size: {siteSettings.typography?.h1Size || branding.font_size_h1 || '2.5rem'};
+			--typography-h2-size: {siteSettings.typography?.h2Size || branding.font_size_h2 || '2rem'};
+			--typography-h3-size: {siteSettings.typography?.h3Size || branding.font_size_h3 || '1.75rem'};
+			--typography-h4-size: {siteSettings.typography?.h4Size || branding.font_size_h4 || '1.5rem'};
 			--typography-h5-size: {siteSettings.typography?.h5Size || '1.25rem'};
 			--typography-h6-size: {siteSettings.typography?.h6Size || '1rem'};
-			--typography-p-size: {siteSettings.typography?.pSize || '1rem'};
-			--typography-small-size: {siteSettings.typography?.smallSize || '0.875rem'};
+			--typography-p-size: {siteSettings.typography?.pSize || branding.font_size_p || '1rem'};
+			--typography-small-size: {siteSettings.typography?.smallSize || branding.font_size_small || '0.875rem'};
 			--typography-line-height: {siteSettings.typography?.lineHeight || '1.6'};
 			
-			--footer-background-color: {siteSettings.footer?.backgroundColor || '#2c3e50'};
-			--footer-text-color: {siteSettings.footer?.textColor || 'rgba(255, 255, 255, 0.9)'};
-			--footer-link-color: {siteSettings.footer?.linkColor || 'rgba(255, 255, 255, 0.9)'};
+			--footer-background-color: {siteSettings.footer?.backgroundColor || branding.footer_background_color || '#2c3e50'};
+			--footer-text-color: {siteSettings.footer?.textColor || branding.footer_text_color || 'rgba(255, 255, 255, 0.9)'};
+			--footer-link-color: {siteSettings.footer?.linkColor || branding.footer_link_color || 'rgba(255, 255, 255, 0.9)'};
 			--footer-link-hover-color: {siteSettings.footer?.linkHoverColor || '#e73b42'};
-			--footer-padding: {siteSettings.footer?.padding || '2rem 0'};
+			--footer-padding: {siteSettings.footer?.padding || branding.footer_padding || '2rem 0'};
 			
 			--hero-min-height: {siteSettings.hero?.minHeight || '250px'};
 			--hero-mobile-min-height: {siteSettings.hero?.mobileMinHeight || '200px'};
@@ -164,7 +204,37 @@
 
 <AccessibilitySettings />
 
-<div class="public-layout theme-{theme}">
+<div 
+	class="public-layout theme-{theme}"
+	style="
+		--primary-color: {branding.primary_color};
+		--secondary-color: {branding.secondary_color};
+		--accent-color: {branding.accent_color};
+		--background-color: {branding.background_color};
+		--text-color: {branding.text_color};
+		--font-family: {branding.font_family};
+		--heading-font: {branding.heading_font || branding.font_family};
+		--font-size-h1: {branding.font_size_h1};
+		--font-size-h2: {branding.font_size_h2};
+		--font-size-h3: {branding.font_size_h3};
+		--font-size-h4: {branding.font_size_h4};
+		--font-size-p: {branding.font_size_p};
+		--font-size-small: {branding.font_size_small};
+		--footer-bg: {branding.footer_background_color};
+		--footer-text: {branding.footer_text_color};
+		--footer-link: {branding.footer_link_color};
+		--footer-padding: {branding.footer_padding};
+		--typography-h1-size: {siteSettings.typography.h1Size};
+		--typography-h2-size: {siteSettings.typography.h2Size};
+		--typography-h3-size: {siteSettings.typography.h3Size};
+		--typography-h4-size: {siteSettings.typography.h4Size};
+		--typography-h5-size: {siteSettings.typography.h5Size};
+		--typography-h6-size: {siteSettings.typography.h6Size};
+		--typography-p-size: {siteSettings.typography.pSize};
+		--typography-small-size: {siteSettings.typography.smallSize};
+		--typography-line-height: {siteSettings.typography.lineHeight};
+	"
+>
 	<!-- Header Navigation -->
 	{#if showNav && siteSettings.header.links.length > 0}
 		<nav class="site-header">
@@ -178,6 +248,7 @@
 						<a href={link.url} class="header-link">{link.title}</a>
 					{/each}
 				</div>
+				
 				<button class="theme-toggle" onclick={toggleTheme} aria-label="Toggle theme">
 					{theme === 'light' ? '🌙' : '☀️'}
 				</button>
@@ -207,10 +278,15 @@
 	</main>
 
 	<!-- Footer -->
-	{#if siteSettings.footer.text || (siteSettings.footer.links && siteSettings.footer.links.length > 0)}
+	{#if branding.footer_content || siteSettings.footer.text || (siteSettings.footer.links && siteSettings.footer.links.length > 0)}
 		<footer class="site-footer">
 			<div class="footer-container">
-				{#if siteSettings.footer.links && siteSettings.footer.links.length > 0}
+				{#if branding.footer_content}
+					<!-- Sanitized footer content with markdown links from branding -->
+					<div class="footer-content">
+						{@html parsedFooterContent}
+					</div>
+				{:else if siteSettings.footer.links && siteSettings.footer.links.length > 0}
 					<div class="footer-links">
 						{#each siteSettings.footer.links.sort((a, b) => (a.order || 0) - (b.order || 0)) as link}
 							<a href={link.url} class="footer-link">
@@ -242,6 +318,17 @@
 		--background-color: #ffffff;
 		--text-color: #333333;
 		--font-family: system-ui, -apple-system, sans-serif;
+		--heading-font: system-ui, -apple-system, sans-serif;
+		--font-size-h1: 2.5rem;
+		--font-size-h2: 2rem;
+		--font-size-h3: 1.5rem;
+		--font-size-h4: 1.25rem;
+		--font-size-p: 1rem;
+		--font-size-small: 0.875rem;
+		--footer-bg: #2c3e50;
+		--footer-text: #ffffff;
+		--footer-link: #ff6b72;
+		--footer-padding: 2rem 0;
 	}
 
 	:global(.theme-dark) {
@@ -292,6 +379,52 @@
 		font-size: var(--typography-small-size, 0.875rem);
 	}
 
+	/* Apply typography globally - supports both branding and siteSettings */
+	:global(h1) {
+		font-size: var(--typography-h1-size, var(--font-size-h1, 2.5rem));
+		font-family: var(--heading-font);
+		line-height: 1.2;
+	}
+
+	:global(h2) {
+		font-size: var(--typography-h2-size, var(--font-size-h2, 2rem));
+		font-family: var(--heading-font);
+		line-height: 1.3;
+	}
+
+	:global(h3) {
+		font-size: var(--typography-h3-size, var(--font-size-h3, 1.5rem));
+		font-family: var(--heading-font);
+		line-height: 1.3;
+	}
+
+	:global(h4) {
+		font-size: var(--typography-h4-size, var(--font-size-h4, 1.25rem));
+		font-family: var(--heading-font);
+		line-height: 1.4;
+	}
+
+	:global(h5) {
+		font-size: var(--typography-h5-size, 1.25rem);
+		font-family: var(--heading-font);
+		line-height: 1.4;
+	}
+
+	:global(h6) {
+		font-size: var(--typography-h6-size, 1rem);
+		font-family: var(--heading-font);
+		line-height: 1.4;
+	}
+
+	:global(p) {
+		font-size: var(--typography-p-size, var(--font-size-p, 1rem));
+		line-height: var(--typography-line-height, 1.6);
+	}
+
+	:global(small), :global(.small-text) {
+		font-size: var(--typography-small-size, var(--font-size-small, 0.875rem));
+	}
+
 	.public-layout {
 		min-height: 100vh;
 		display: flex;
@@ -299,6 +432,7 @@
 		background: var(--background-color);
 		color: var(--text-color);
 		font-family: var(--font-family);
+		font-size: var(--font-size-p);
 		transition: background-color 0.3s, color 0.3s;
 	}
 
@@ -425,6 +559,17 @@
 		text-align: center;
 	}
 
+	.footer-content {
+		font-size: var(--font-size-small);
+		color: var(--footer-text);
+		line-height: 1.6;
+	}
+
+	.footer-content :global(br) {
+		display: block;
+		margin: 0.5rem 0;
+	}
+
 	.footer-text {
 		font-size: 0.9rem;
 		color: var(--footer-text-color, rgba(255, 255, 255, 0.8));
@@ -450,6 +595,27 @@
 		color: var(--footer-link-hover-color, var(--primary-color));
 	}
 
+	.footer-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.footer-links .footer-link {
+		color: var(--footer-link);
+		text-decoration: none;
+		font-size: var(--font-size-small);
+		transition: opacity 0.2s;
+	}
+
+	.footer-links .footer-link:hover {
+		opacity: 0.8;
+		text-decoration: underline;
+	}
+
+	/* Mobile responsive */
 	@media (max-width: 768px) {
 		.header-container {
 			padding: 0 1rem;
