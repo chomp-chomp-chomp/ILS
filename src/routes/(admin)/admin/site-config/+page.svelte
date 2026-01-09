@@ -238,7 +238,7 @@
 	<header class="page-header">
 		<h1>Site Configuration</h1>
 		<p class="subtitle">
-			Configure header, footer, homepage info, and theming for your public catalog pages
+			Configure site branding, navigation, homepage content, and visual themes
 		</p>
 	</header>
 

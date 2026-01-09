@@ -1150,19 +1150,7 @@
 		min-height: 100vh;
 	}
 
-	/* Temporary CSS kill-switch: hide facets UI entirely */
-	.sidebar {
-		display: none !important;
-	}
-
-	.content-wrapper {
-		display: grid;
-		grid-template-columns: 1fr !important;
-	}
-
-	.mobile-filter-toggle {
-		display: none !important;
-	}
+	/* Facets sidebar - visible when enabled */
 
 	.search-header {
 		margin-bottom: 2rem;

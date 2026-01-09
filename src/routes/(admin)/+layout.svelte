@@ -35,12 +35,8 @@
 				<li><a href="/admin/acquisitions" onclick={() => mobileMenuOpen = false}>Acquisitions</a></li>
 				<li><a href="/admin/ill" onclick={() => mobileMenuOpen = false}>Interlibrary Loan</a></li>
 				<li class="section-header">Configuration</li>
-				<li><a href="/admin/site" onclick={() => mobileMenuOpen = false}>Site Settings</a></li>
-				<li><a href="/admin/site-config" onclick={() => mobileMenuOpen = false}>Advanced Site Configuration</a></li>
-				<li><a href="/admin/branding" onclick={() => mobileMenuOpen = false}>Branding & Appearance</a></li>
-				<li><a href="/admin/search-config" onclick={() => mobileMenuOpen = false}>Search Configuration</a></li>
-				<li><a href="/admin/display-config" onclick={() => mobileMenuOpen = false}>Display Configuration</a></li>
-				<li><a href="/admin/facets-debug" onclick={() => mobileMenuOpen = false}>Facets Debug</a></li>
+				<li><a href="/admin/site-config" onclick={() => mobileMenuOpen = false}>Site Configuration</a></li>
+				<li><a href="/admin/search-config" onclick={() => mobileMenuOpen = false}>Search & Facets</a></li>
 				<li><a href="/admin/pages" onclick={() => mobileMenuOpen = false}>Content Pages</a></li>
 				<li class="section-header">View Site</li>
 				<li><a href="/catalog" onclick={() => mobileMenuOpen = false}>View Public Catalog</a></li>

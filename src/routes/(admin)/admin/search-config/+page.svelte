@@ -293,8 +293,8 @@
 
 <div class="search-config-page">
 	<header class="page-header">
-		<h1>Search Configuration</h1>
-		<p class="subtitle">Customize search form fields and behavior</p>
+		<h1>Search & Facets Configuration</h1>
+		<p class="subtitle">Customize search form fields, behavior, and faceted navigation filters</p>
 	</header>
 
 	{#if message}
