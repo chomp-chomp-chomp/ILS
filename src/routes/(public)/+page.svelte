@@ -1,37 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
+	import type { SiteSettings } from '$lib/siteDefaults';
 
 	let { data }: { data: PageData } = $props();
 	let query = $state('');
 
-	// Use branding for library name, tagline, logo (kept for backward compatibility)
-	const branding = $derived(data.branding);
-
-	// Use siteConfig for homepage info section and hero
-	const siteConfig = $derived((data as any).siteConfig || {
-		homepage_info_enabled: false,
-		homepage_info_title: 'Quick Links',
-		homepage_info_content: '',
-		homepage_info_links: [],
-		homepage_hero_enabled: false,
-		homepage_hero_title: '',
-		homepage_hero_tagline: '',
-		homepage_hero_image_url: null,
-		homepage_hero_links: []
-	});
-
-	// Debug logging for homepage
-	$effect(() => {
-		if (browser) {
-			console.log('🏠 [Homepage Debug] siteConfig:', siteConfig);
-			console.log('🏠 [Homepage Debug] homepage_hero_enabled:', siteConfig?.homepage_hero_enabled);
-			console.log('🏠 [Homepage Debug] homepage_hero_title:', siteConfig?.homepage_hero_title);
-			console.log('🏠 [Homepage Debug] homepage_info_enabled:', siteConfig?.homepage_info_enabled);
-			console.log('🏠 [Homepage Debug] Raw data.siteConfig:', (data as any).siteConfig);
-		}
-	});
+	// Get site settings from parent layout
+	const siteSettings: SiteSettings = $derived((data as any).siteSettings);
 
 	function handleSearch() {
 		if (query.trim()) {
@@ -41,58 +17,27 @@
 </script>
 
 <div class="catalog-home">
-	<!-- Homepage Hero Section (if enabled in siteConfig) -->
-	<!-- ROBUST: Explicit boolean check -->
-	{#if Boolean(siteConfig?.homepage_hero_enabled) === true}
-		<section 
-			class="homepage-hero" 
-			style={siteConfig.homepage_hero_image_url ? `background-image: url('${siteConfig.homepage_hero_image_url}');` : ''}
-		>
-			<div class="hero-overlay">
-				<div class="hero-content-wrapper">
-					{#if data.session}
-						<div class="admin-link-wrapper">
-							<a href="/admin" class="admin-link">Admin</a>
-						</div>
-					{/if}
-					
-					{#if siteConfig.homepage_hero_title}
-						<h1 class="hero-title">{siteConfig.homepage_hero_title}</h1>
-					{/if}
-					
-					{#if siteConfig.homepage_hero_tagline}
-						<p class="hero-tagline">{siteConfig.homepage_hero_tagline}</p>
-					{/if}
-
-					{#if siteConfig.homepage_hero_links && siteConfig.homepage_hero_links.length > 0}
-						<div class="hero-links">
-							{#each [...siteConfig.homepage_hero_links].sort((a, b) => a.order - b.order) as link}
-								<a href={link.url} class="hero-link-button">{link.title}</a>
-							{/each}
-						</div>
-					{/if}
-				</div>
+	<!-- Homepage Hero Section -->
+	<section 
+		class="homepage-hero" 
+		style={siteSettings.hero.imageUrl ? `background-image: url('${siteSettings.hero.imageUrl}');` : ''}
+	>
+		<div class="hero-overlay">
+			<div class="hero-content-wrapper">
+				{#if data.session}
+					<div class="admin-link-wrapper">
+						<a href="/admin" class="admin-link">Admin</a>
+					</div>
+				{/if}
+				
+				<h1 class="hero-title">{siteSettings.hero.title}</h1>
+				<p class="hero-tagline">{siteSettings.hero.subhead}</p>
 			</div>
-		</section>
-	{/if}
+		</div>
+	</section>
 
 	<header class="hero">
-		<div class="header-top">
-			{#if data.session && !siteConfig.homepage_hero_enabled}
-				<a href="/admin" class="admin-link">Admin</a>
-			{/if}
-		</div>
-
 		<div class="hero-content">
-			{#if branding.homepage_logo_url}
-				<img
-					src={branding.homepage_logo_url}
-					alt={branding.library_name}
-					class="main-logo"
-				/>
-			{/if}
-			<p class="tagline">{branding.library_tagline || 'Search our collection'}</p>
-
 			<div class="search-box">
 				<input
 					type="search"
@@ -109,35 +54,15 @@
 				<a href="/catalog/browse">Browse Collection</a>
 			</div>
 
-			<!-- Homepage Info Section (if enabled in siteConfig) -->
-			<!-- ROBUST: Explicit boolean check -->
-			{#if Boolean(siteConfig?.homepage_info_enabled) === true}
-				<section class="homepage-info">
-					<h2>{siteConfig.homepage_info_title || 'Quick Links'}</h2>
-					{#if siteConfig.homepage_info_content}
-						<div class="info-content">
-							<p>{siteConfig.homepage_info_content}</p>
-						</div>
-					{/if}
-					{#if siteConfig.homepage_info_links && siteConfig.homepage_info_links.length > 0}
-						<div class="info-links">
-							{#each [...siteConfig.homepage_info_links].sort((a, b) => a.order - b.order) as link}
-								<a href={link.url} class="info-link">{link.title}</a>
-							{/each}
-						</div>
-					{/if}
-				</section>
-			{:else}
-				<!-- Default catalog info (shown when homepage info is disabled) -->
-				<section class="catalog-info">
-					<h2>What's in this catalog?</h2>
-					<p>
-						This catalog contains bibliographic records for books, serials, audiovisual materials, and electronic resources.
-						Use the search box above to find items by title, author, subject headings, or ISBN.
-						Advanced search options allow for more precise queries using multiple criteria.
-					</p>
-				</section>
-			{/if}
+			<!-- Catalog info section -->
+			<section class="catalog-info">
+				<h2>What's in this catalog?</h2>
+				<p>
+					This catalog contains bibliographic records for books, serials, audiovisual materials, and electronic resources.
+					Use the search box above to find items by title, author, subject headings, or ISBN.
+					Advanced search options allow for more precise queries using multiple criteria.
+				</p>
+			</section>
 		</div>
 	</header>
 </div>
