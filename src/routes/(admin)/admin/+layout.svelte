@@ -35,6 +35,7 @@
 				<li><a href="/admin/acquisitions" onclick={() => mobileMenuOpen = false}>Acquisitions</a></li>
 				<li><a href="/admin/ill" onclick={() => mobileMenuOpen = false}>Interlibrary Loan</a></li>
 				<li class="section-header">Configuration</li>
+				<li><a href="/admin/site" onclick={() => mobileMenuOpen = false}>Site Settings</a></li>
 				<li><a href="/admin/site-config" onclick={() => mobileMenuOpen = false}>Site Configuration</a></li>
 				<li><a href="/admin/branding" onclick={() => mobileMenuOpen = false}>Branding & Appearance</a></li>
 				<li><a href="/admin/search-config" onclick={() => mobileMenuOpen = false}>Search Configuration</a></li>
