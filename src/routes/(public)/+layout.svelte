@@ -79,6 +79,17 @@
 	if (browser) {
 		(window as any).toggleTheme = toggleTheme;
 	}
+
+	// Mobile menu state
+	let mobileMenuOpen = $state(false);
+	
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+	}
+	
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
 </script>
 
 <svelte:head>
@@ -125,19 +136,6 @@
 </svelte:head>
 
 <AccessibilitySettings />
-
-<!-- Mobile menu state -->
-<script>
-	let mobileMenuOpen = $state(false);
-	
-	function toggleMobileMenu() {
-		mobileMenuOpen = !mobileMenuOpen;
-	}
-	
-	function closeMobileMenu() {
-		mobileMenuOpen = false;
-	}
-</script>
 
 <div 
 	class="public-layout theme-{theme}"

@@ -446,7 +446,10 @@
 			padding: 0.625rem 1.25rem;
 			font-size: 0.95rem;
 		}
-	}
+
+		.main-logo {
+			max-width: 250px;
+		}
 
 		.tagline {
 			font-size: 1.25rem;
@@ -455,18 +458,5 @@
 		.hero-content {
 			padding: 2rem 1rem;
 		}
-
-		.hero-title {
-			font-size: 2rem;
-		}
-
-		.hero-tagline {
-			font-size: 1.2rem;
-		}
-
-		.hero-content-wrapper {
-			padding: 2rem 1rem;
-		}
-
 	}
 </style>
