@@ -5,18 +5,46 @@
 	import { browser } from '$app/environment';
 	import type { LayoutData } from './$types';
 	import AccessibilitySettings from '$lib/components/AccessibilitySettings.svelte';
+	import HamburgerMenu from '$lib/components/HamburgerMenu.svelte';
+	import FloatingAdminButton from '$lib/components/FloatingAdminButton.svelte';
 	import { supabase } from '$lib/supabase';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 
-	// Site settings with safe defaults
+	// Site settings with safe defaults (merged from both branches)
 	const siteSettings = $derived((data as any).siteSettings || {
 		header: { links: [] },
-		footer: { text: '', link: '' },
-		hero: { title: '', subhead: '', imageUrl: '' }
+		footer: { 
+			text: '', 
+			link: '',
+			links: [],
+			backgroundColor: '#2c3e50',
+			textColor: 'rgba(255, 255, 255, 0.9)',
+			linkColor: 'rgba(255, 255, 255, 0.9)',
+			linkHoverColor: '#e73b42',
+			padding: '2rem 0'
+		},
+		hero: { 
+			title: '', 
+			subhead: '', 
+			imageUrl: '',
+			minHeight: '250px',
+			mobileMinHeight: '200px'
+		},
+		typography: {
+			h1Size: '2.5rem',
+			h2Size: '2rem',
+			h3Size: '1.75rem',
+			h4Size: '1.5rem',
+			h5Size: '1.25rem',
+			h6Size: '1rem',
+			pSize: '1rem',
+			smallSize: '0.875rem',
+			lineHeight: '1.6'
+		}
 	});
 
-	// Branding for library name, favicon, typography, and footer
+	// Branding for library name, favicon, typography from branding_configuration
 	const branding = $derived((data as any).branding || {
 		library_name: 'Chomp Chomp Library Catalog',
 		favicon_url: null,
@@ -29,23 +57,26 @@
 		text_color: '#333333',
 		font_family: 'system-ui, -apple-system, sans-serif',
 		heading_font: null,
+		// Typography from branding_configuration table
 		font_size_h1: '2.5rem',
 		font_size_h2: '2rem',
 		font_size_h3: '1.5rem',
 		font_size_h4: '1.25rem',
 		font_size_p: '1rem',
 		font_size_small: '0.875rem',
+		// Footer styling from branding_configuration table
 		footer_background_color: '#2c3e50',
 		footer_text_color: '#ffffff',
 		footer_link_color: '#ff6b72',
-		footer_padding: '2rem 0'
+		footer_padding: '2rem 0',
+		footer_content: null
 	});
 
 	// Determine if we should show the navigation bar (not on homepage)
 	let showNav = $derived($page.url.pathname !== '/');
 
-	// Show hero on homepage
-	let showHero = $derived($page.url.pathname === '/');
+	// Check if user is authenticated (for floating admin button)
+	let isAuthenticated = $derived(!!data.session);
 
 	// Theme management (simple light/dark toggle)
 	let theme = $state<'light' | 'dark'>('light');
@@ -80,18 +111,7 @@
 		(window as any).toggleTheme = toggleTheme;
 	}
 
-	// Mobile menu state
-	let mobileMenuOpen = $state(false);
-	
-	function toggleMobileMenu() {
-		mobileMenuOpen = !mobileMenuOpen;
-	}
-	
-	function closeMobileMenu() {
-		mobileMenuOpen = false;
-	}
-
-	// Sanitize and parse footer content (memoized)
+	// Sanitize and parse footer content (memoized) - for branding.footer_content
 	const parsedFooterContent = $derived(
 		branding.footer_content
 			? (() => {
@@ -177,21 +197,26 @@
 		--footer-text: {branding.footer_text_color};
 		--footer-link: {branding.footer_link_color};
 		--footer-padding: {branding.footer_padding};
+		--typography-h1-size: {siteSettings.typography.h1Size};
+		--typography-h2-size: {siteSettings.typography.h2Size};
+		--typography-h3-size: {siteSettings.typography.h3Size};
+		--typography-h4-size: {siteSettings.typography.h4Size};
+		--typography-h5-size: {siteSettings.typography.h5Size};
+		--typography-h6-size: {siteSettings.typography.h6Size};
+		--typography-p-size: {siteSettings.typography.pSize};
+		--typography-small-size: {siteSettings.typography.smallSize};
+		--typography-line-height: {siteSettings.typography.lineHeight};
 	"
 >
 	<!-- Header Navigation -->
 	{#if showNav && siteSettings.header.links.length > 0}
 		<nav class="site-header">
 			<div class="header-container">
-				<!-- Mobile hamburger menu (left side) -->
-				<button class="hamburger-menu" onclick={toggleMobileMenu} aria-label="Toggle menu">
-					<span class="hamburger-icon"></span>
-					<span class="hamburger-icon"></span>
-					<span class="hamburger-icon"></span>
-				</button>
+				<!-- Hamburger Menu (Mobile) -->
+				<HamburgerMenu links={siteSettings.header.links} />
 				
-				<!-- Desktop links -->
-				<div class="header-links desktop-only">
+				<!-- Desktop Links -->
+				<div class="header-links">
 					{#each siteSettings.header.links as link}
 						<a href={link.url} class="header-link">{link.title}</a>
 					{/each}
@@ -202,22 +227,6 @@
 				</button>
 			</div>
 		</nav>
-		
-		<!-- Mobile drawer menu -->
-		{#if mobileMenuOpen}
-			<div class="mobile-drawer-overlay" onclick={closeMobileMenu}></div>
-			<div class="mobile-drawer">
-				<div class="mobile-drawer-header">
-					<h3>Menu</h3>
-					<button class="close-drawer" onclick={closeMobileMenu} aria-label="Close menu">×</button>
-				</div>
-				<nav class="mobile-nav">
-					{#each siteSettings.header.links as link}
-						<a href={link.url} class="mobile-link" onclick={closeMobileMenu}>{link.title}</a>
-					{/each}
-				</nav>
-			</div>
-		{/if}
 	{/if}
 
 	<!-- Main Content -->
@@ -226,13 +235,22 @@
 	</main>
 
 	<!-- Footer -->
-	{#if branding.footer_content || siteSettings.footer.text}
+	{#if branding.footer_content || siteSettings.footer.text || (siteSettings.footer.links && siteSettings.footer.links.length > 0)}
 		<footer class="site-footer">
 			<div class="footer-container">
 				{#if branding.footer_content}
-					<!-- Sanitized footer content with markdown links -->
+					<!-- Sanitized footer content with markdown links from branding -->
 					<div class="footer-content">
 						{@html parsedFooterContent}
+					</div>
+				{:else if siteSettings.footer.links && siteSettings.footer.links.length > 0}
+					<!-- Footer links from siteSettings -->
+					<div class="footer-links">
+						{#each siteSettings.footer.links.sort((a, b) => (a.order || 0) - (b.order || 0)) as link}
+							<a href={link.url} class="footer-link">
+								{link.title}
+							</a>
+						{/each}
 					</div>
 				{:else if siteSettings.footer.link}
 					<a href={siteSettings.footer.link} class="footer-link">
@@ -245,15 +263,8 @@
 		</footer>
 	{/if}
 	
-	<!-- Floating Admin Button (only for authenticated users on public pages) -->
-	{#if data.session}
-		<a href="/admin" class="floating-admin-button" title="Admin Panel">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
-				<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-			</svg>
-		</a>
-	{/if}
+	<!-- Floating Admin Button (only for authenticated users) -->
+	<FloatingAdminButton show={isAuthenticated} />
 </div>
 
 <style>
@@ -286,33 +297,50 @@
 		--text-color: #e5e5e5;
 	}
 
-	/* Apply typography globally */
+	/* Apply typography globally - supports both branding and siteSettings */
 	:global(h1) {
-		font-size: var(--font-size-h1);
+		font-size: var(--typography-h1-size, var(--font-size-h1, 2.5rem));
 		font-family: var(--heading-font);
+		line-height: 1.2;
 	}
 
 	:global(h2) {
-		font-size: var(--font-size-h2);
+		font-size: var(--typography-h2-size, var(--font-size-h2, 2rem));
 		font-family: var(--heading-font);
+		line-height: 1.3;
 	}
 
 	:global(h3) {
-		font-size: var(--font-size-h3);
+		font-size: var(--typography-h3-size, var(--font-size-h3, 1.5rem));
 		font-family: var(--heading-font);
+		line-height: 1.3;
 	}
 
 	:global(h4) {
-		font-size: var(--font-size-h4);
+		font-size: var(--typography-h4-size, var(--font-size-h4, 1.25rem));
 		font-family: var(--heading-font);
+		line-height: 1.4;
+	}
+
+	:global(h5) {
+		font-size: var(--typography-h5-size, 1.25rem);
+		font-family: var(--heading-font);
+		line-height: 1.4;
+	}
+
+	:global(h6) {
+		font-size: var(--typography-h6-size, 1rem);
+		font-family: var(--heading-font);
+		line-height: 1.4;
 	}
 
 	:global(p) {
-		font-size: var(--font-size-p);
+		font-size: var(--typography-p-size, var(--font-size-p, 1rem));
+		line-height: var(--typography-line-height, 1.6);
 	}
 
 	:global(small), :global(.small-text) {
-		font-size: var(--font-size-small);
+		font-size: var(--typography-small-size, var(--font-size-small, 0.875rem));
 	}
 
 	.public-layout {
@@ -498,181 +526,50 @@
 		opacity: 0.8;
 	}
 
-	/* Hamburger Menu Button */
-	.hamburger-menu {
-		display: none;
-		flex-direction: column;
-		gap: 4px;
-		background: transparent;
-		border: none;
-		padding: 0.5rem;
-		cursor: pointer;
-		z-index: 1001;
-	}
-
-	.hamburger-icon {
-		display: block;
-		width: 24px;
-		height: 2px;
-		background: white;
-		border-radius: 2px;
-		transition: all 0.3s;
-	}
-
-	/* Mobile Drawer */
-	.mobile-drawer-overlay {
-		display: none;
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		z-index: 1000;
-	}
-
-	.mobile-drawer {
-		display: none;
-		position: fixed;
-		top: 0;
-		left: 0;
-		bottom: 0;
-		width: 280px;
-		background: white;
-		box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
-		z-index: 1001;
-		overflow-y: auto;
-		animation: slideIn 0.3s ease-out;
-	}
-
-	@keyframes slideIn {
-		from {
-			transform: translateX(-100%);
-		}
-		to {
-			transform: translateX(0);
-		}
-	}
-
-	.mobile-drawer-header {
+	.footer-links {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 1rem 1.5rem;
-		border-bottom: 1px solid #e0e0e0;
-		background: var(--primary-color);
-		color: white;
-	}
-
-	.mobile-drawer-header h3 {
-		margin: 0;
-		font-size: 1.2rem;
-	}
-
-	.close-drawer {
-		background: transparent;
-		border: none;
-		color: white;
-		font-size: 2rem;
-		cursor: pointer;
-		padding: 0;
-		width: 32px;
-		height: 32px;
-		line-height: 1;
-	}
-
-	.mobile-nav {
-		display: flex;
-		flex-direction: column;
-		padding: 0.5rem 0;
-	}
-
-	.mobile-link {
-		color: var(--text-color);
-		text-decoration: none;
-		padding: 1rem 1.5rem;
-		font-size: 1rem;
-		border-bottom: 1px solid #f0f0f0;
-		transition: background 0.2s;
-	}
-
-	.mobile-link:hover {
-		background: #f5f5f5;
-	}
-
-	/* Floating Admin Button */
-	.floating-admin-button {
-		position: fixed;
-		bottom: 20px;
-		right: 20px;
-		width: 56px;
-		height: 56px;
-		background: var(--primary-color);
-		color: white;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
+		flex-wrap: wrap;
+		gap: 1.5rem;
 		justify-content: center;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		align-items: center;
+	}
+
+	.footer-links .footer-link {
+		color: var(--footer-link);
 		text-decoration: none;
-		transition: all 0.3s;
-		z-index: 999;
+		font-size: var(--font-size-small);
+		transition: opacity 0.2s;
 	}
 
-	.floating-admin-button:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-		background: #d12d34;
+	.footer-links .footer-link:hover {
+		opacity: 0.8;
+		text-decoration: underline;
 	}
 
-	.floating-admin-button svg {
-		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-	}
-
-	/* Desktop: Hide hamburger, show desktop links */
-	@media (min-width: 769px) {
-		.hamburger-menu {
-			display: none !important;
-		}
-		
-		.desktop-only {
-			display: flex !important;
-		}
-	}
-
-	/* Mobile: Show hamburger, hide desktop links */
+	/* Mobile responsive */
 	@media (max-width: 768px) {
 		.header-container {
 			padding: 0 1rem;
 		}
 
-		.hamburger-menu {
-			display: flex;
-		}
-
-		.desktop-only {
-			display: none !important;
-		}
-
-		.mobile-drawer-overlay {
-			display: block;
-		}
-
-		.mobile-drawer {
-			display: block;
+		.header-links {
+			display: none; /* Hide on mobile, use HamburgerMenu instead */
 		}
 
 		.footer-container {
 			padding: 0 1rem;
 		}
 
-		.floating-admin-button {
-			bottom: 16px;
-			right: 16px;
-			width: 48px;
-			height: 48px;
+		.footer-links {
+			flex-direction: column;
+			gap: 1rem;
 		}
+	}
 
-		.floating-admin-button svg {
-			width: 18px;
-			height: 18px;
+	/* Desktop: Show header links */
+	@media (min-width: 769px) {
+		.header-links {
+			display: flex;
 		}
 	}
 </style>
