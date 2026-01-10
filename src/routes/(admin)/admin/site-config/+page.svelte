@@ -20,7 +20,7 @@
 	let newHeroLinkUrl = $state('');
 
 	// Active tab
-	let activeTab = $state<'header' | 'footer' | 'homepage' | 'hero' | 'metadata' | 'theme'>('header');
+	let activeTab = $state<'general' | 'header' | 'footer' | 'homepage' | 'hero' | 'metadata' | 'theme'>('general');
 
 	// Active theme editor
 	let themeType = $state<'light' | 'dark'>('light');
@@ -251,6 +251,13 @@
 	<div class="tabs">
 		<button
 			class="tab"
+			class:active={activeTab === 'general'}
+			onclick={() => (activeTab = 'general')}
+		>
+			General
+		</button>
+		<button
+			class="tab"
 			class:active={activeTab === 'header'}
 			onclick={() => (activeTab = 'header')}
 		>
@@ -294,6 +301,81 @@
 	</div>
 
 	<div class="config-container">
+		<!-- General Settings -->
+		{#if activeTab === 'general'}
+			<div class="config-section">
+				<h2>General Settings</h2>
+				<p class="help-text">
+					Configure your library's basic information and branding.
+				</p>
+
+				<div class="form-group">
+					<label for="library_name">Library Name</label>
+					<input
+						id="library_name"
+						type="text"
+						bind:value={config.library_name}
+						placeholder="My Library"
+						required
+					/>
+					<small>The name of your library displayed throughout the site</small>
+				</div>
+
+				<div class="form-group">
+					<label for="library_tagline">Library Tagline</label>
+					<input
+						id="library_tagline"
+						type="text"
+						bind:value={config.library_tagline}
+						placeholder="Explore our collection"
+					/>
+					<small>A short tagline or motto displayed on the homepage</small>
+				</div>
+
+				<div class="form-group">
+					<label for="homepage_logo_url">Homepage Logo URL</label>
+					<input
+						id="homepage_logo_url"
+						type="url"
+						bind:value={config.homepage_logo_url}
+						placeholder="https://example.com/logo.png"
+					/>
+					<small>Large logo displayed on the homepage (recommended: 300-500px wide)</small>
+				</div>
+
+				<div class="form-group">
+					<label for="logo_url">Navigation Logo URL</label>
+					<input
+						id="logo_url"
+						type="url"
+						bind:value={config.logo_url}
+						placeholder="https://example.com/logo-small.png"
+					/>
+					<small>Smaller logo for the header navigation (optional)</small>
+				</div>
+
+				<div class="form-group">
+					<label for="primary_color">Primary Color</label>
+					<div style="display: flex; gap: 1rem; align-items: center;">
+						<input
+							id="primary_color"
+							type="color"
+							bind:value={config.primary_color}
+							style="width: 60px; height: 40px;"
+						/>
+						<input
+							type="text"
+							bind:value={config.primary_color}
+							placeholder="#e73b42"
+							pattern="^#[0-9A-Fa-f]{6}$"
+							style="flex: 1;"
+						/>
+					</div>
+					<small>Main brand color used for buttons and accents</small>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Header Configuration -->
 		{#if activeTab === 'header'}
 			<div class="config-section">
