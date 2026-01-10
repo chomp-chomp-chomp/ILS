@@ -103,7 +103,6 @@
 			d="M12 2c.552 0 1 .448 1 1s-.448 1-1 1-1-.448-1-1 .448-1 1-1zm-1 19v-6H8v6H6V9.5h3V8h6v1.5h3V21h-2v-6h-3v6h-2z"
 		/>
 	</svg>
-	<span class="visually-hidden">Accessibility</span>
 </button>
 
 <!-- Settings Panel -->
