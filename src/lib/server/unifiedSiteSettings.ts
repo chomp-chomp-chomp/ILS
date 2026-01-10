@@ -307,17 +307,22 @@ export async function updateUnifiedSiteSettings(
 		if (settings.items_per_page !== undefined) updateData.items_per_page = settings.items_per_page;
 
 		console.log('[updateUnifiedSiteSettings] Upserting with', Object.keys(updateData).length, 'fields');
+		console.log('[updateUnifiedSiteSettings] Update data:', JSON.stringify(updateData, null, 2));
 
-		// Upsert the singleton row
-		const { error } = await supabase
+		// Upsert the singleton row with explicit onConflict
+		const { data: resultData, error } = await supabase
 			.from('site_settings')
 			.upsert({
 				id: 'default',
 				...updateData
-			});
+			}, {
+				onConflict: 'id'
+			})
+			.select();
 
 		if (error) {
 			console.error('[updateUnifiedSiteSettings] Database error:', error.message);
+			console.error('[updateUnifiedSiteSettings] Error details:', error);
 			return {
 				success: false,
 				error: error.message
@@ -325,6 +330,7 @@ export async function updateUnifiedSiteSettings(
 		}
 
 		console.log('[updateUnifiedSiteSettings] Settings updated successfully');
+		console.log('[updateUnifiedSiteSettings] Result:', resultData);
 		return { success: true };
 	} catch (error) {
 		console.error('[updateUnifiedSiteSettings] Exception:', error);

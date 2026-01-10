@@ -35,6 +35,8 @@ export const PUT: RequestHandler = async ({ request, locals: { supabase, safeGet
 		}
 
 		console.log('[PUT /api/site-config] Updating settings for user:', session.user.id);
+		console.log('[PUT /api/site-config] Received config keys:', Object.keys(config));
+		console.log('[PUT /api/site-config] library_tagline value:', config.library_tagline);
 
 		// Update using unified helper
 		const result = await updateUnifiedSiteSettings(supabase, config, session.user.id);
