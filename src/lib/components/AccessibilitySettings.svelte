@@ -255,8 +255,8 @@
 <style>
 	/* Skip Link */
 	.skip-link {
-		position: absolute;
-		top: -40px;
+		position: fixed;
+		top: -100px;
 		left: 0;
 		background: #e73b42;
 		color: white;
@@ -265,6 +265,7 @@
 		border-radius: 0 0 4px 0;
 		z-index: 10000;
 		font-weight: 600;
+		transition: top 0.2s ease;
 	}
 
 	.skip-link:focus {

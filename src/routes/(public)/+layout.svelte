@@ -434,6 +434,8 @@
 		font-family: var(--font-family);
 		font-size: var(--font-size-p);
 		transition: background-color 0.3s, color 0.3s;
+		overflow-x: hidden;
+		position: relative;
 	}
 
 	/* Header Navigation Styles */
@@ -533,9 +535,9 @@
 	.hero-tagline {
 		font-size: var(--typography-h3-size, 1.5rem);
 		margin: 0;
-		color: rgba(255, 255, 255, 0.95);
+		color: #ffffff;
 		font-weight: 300;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 	}
 
 	/* Main Content */
