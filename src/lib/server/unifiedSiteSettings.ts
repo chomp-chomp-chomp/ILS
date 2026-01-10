@@ -156,6 +156,14 @@ export async function loadUnifiedSiteSettings(
 
 		if (error) {
 			console.error('[loadUnifiedSiteSettings] Database error:', error.message);
+			console.error('[loadUnifiedSiteSettings] Error code:', error.code);
+
+			// If it's a column doesn't exist error, migration 029 hasn't run yet
+			if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
+				console.warn('[loadUnifiedSiteSettings] New columns not found - migration 029 may not have run yet');
+				console.log('[loadUnifiedSiteSettings] Site will use defaults until migration is executed');
+			}
+
 			console.log('[loadUnifiedSiteSettings] Returning default settings');
 			return DEFAULT_UNIFIED_SETTINGS;
 		}
