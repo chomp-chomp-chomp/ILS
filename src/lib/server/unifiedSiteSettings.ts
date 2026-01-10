@@ -158,8 +158,11 @@ export async function loadUnifiedSiteSettings(
 			console.error('[loadUnifiedSiteSettings] Database error:', error.message);
 			console.error('[loadUnifiedSiteSettings] Error code:', error.code);
 
-			// If it's a column doesn't exist error, migration 029 hasn't run yet
-			if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
+			// Handle different error types
+			if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+				console.warn('[loadUnifiedSiteSettings] site_settings table does not exist - migration 028 may not have run yet');
+				console.log('[loadUnifiedSiteSettings] Site will use defaults until migration is executed');
+			} else if (error.code === '42703' || error.message?.includes('column')) {
 				console.warn('[loadUnifiedSiteSettings] New columns not found - migration 029 may not have run yet');
 				console.log('[loadUnifiedSiteSettings] Site will use defaults until migration is executed');
 			}
