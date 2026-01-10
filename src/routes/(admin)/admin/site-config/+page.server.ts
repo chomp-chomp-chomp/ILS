@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { loadActiveSiteConfig, defaultSiteConfig } from '$lib/server/siteConfig';
+import { loadUnifiedSiteSettings } from '$lib/server/unifiedSiteSettings';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
@@ -10,6 +10,12 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		throw redirect(303, '/admin/login');
 	}
 
-	const { siteConfig } = await loadActiveSiteConfig(supabase);
-	return { siteConfig: siteConfig || defaultSiteConfig };
+	// Load unified site settings
+	const settings = await loadUnifiedSiteSettings(supabase);
+
+	return {
+		settings,
+		// Backward compatibility
+		siteConfig: settings
+	};
 };
