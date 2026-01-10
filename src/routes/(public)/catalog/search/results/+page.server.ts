@@ -147,10 +147,155 @@ export const load: PageServerLoad = async ({ url, locals, parent }) => {
 	}
 };
 
+async function performAdvancedSearch(
+	supabase: SupabaseClient,
+	params: SearchParams
+): Promise<{ results: any[]; total: number }> {
+	// Use the RPC function for diacritic-insensitive advanced search
+	const { data, error } = await supabase.rpc('search_marc_records_advanced', {
+		search_title: params.title || null,
+		search_author: params.author || null,
+		search_subject: params.subject || null,
+		search_isbn: params.isbn || null,
+		search_publisher: params.publisher || null,
+		search_year_from: params.year_from || null,
+		search_year_to: params.year_to || null,
+		search_material_type: params.type || null,
+		search_operator: params.op || 'AND'
+	});
+
+	if (error) {
+		console.error('Advanced search RPC error:', error);
+		throw error;
+	}
+
+	let results = data || [];
+
+	// Apply additional filters that aren't in the RPC function
+	// Material type filter (from facets, in addition to the type param)
+	const materialTypes = [...(params.material_types || [])];
+	if (params.type && !materialTypes.includes(params.type)) {
+		materialTypes.push(params.type);
+	}
+	if (materialTypes.length > 0) {
+		results = results.filter((record: any) => materialTypes.includes(record.material_type));
+	}
+
+	// Language filter (from facets)
+	if (params.languages && params.languages.length > 0) {
+		results = results.filter((record: any) => params.languages?.includes(record.language_code));
+	}
+
+	// Fetch items for each record (the RPC doesn't include items)
+	const recordIds = results.map((r: any) => r.id);
+	if (recordIds.length > 0) {
+		const { data: itemsData } = await supabase
+			.from('items')
+			.select('*')
+			.in('marc_record_id', recordIds);
+
+		// Attach items to records
+		results = results.map((record: any) => ({
+			...record,
+			items: itemsData?.filter((item) => item.marc_record_id === record.id) || []
+		}));
+	}
+
+	// Apply availability filter (post-process)
+	if (params.availability && params.availability.length > 0) {
+		results = results.filter((record: any) => {
+			const items = record.items || [];
+			if (params.availability?.includes('available')) {
+				return items.some((item: any) => item.status === 'available');
+			}
+			if (params.availability?.includes('checked_out')) {
+				return items.some((item: any) => item.status === 'checked_out');
+			}
+			if (params.availability?.includes('unavailable')) {
+				return items.every((item: any) => item.status !== 'available');
+			}
+			return true;
+		});
+	}
+
+	// Apply location filter (post-process)
+	if (params.locations && params.locations.length > 0) {
+		results = results.filter((record: any) => {
+			const items = record.items || [];
+			return items.some((item: any) => params.locations?.includes(item.location));
+		});
+	}
+
+	// Apply sorting
+	results = applySorting(results, params);
+
+	// Apply pagination
+	const page = params.page || 1;
+	const perPage = params.per_page || 20;
+	const total = results.length;
+	const from = (page - 1) * perPage;
+	const to = from + perPage;
+
+	results = results.slice(from, to);
+
+	return {
+		results,
+		total
+	};
+}
+
+function applySorting(results: any[], params: SearchParams): any[] {
+	switch (params.sort) {
+		case 'title':
+			return results.sort((a, b) => {
+				const titleA = (a.title_statement?.a || '').toLowerCase();
+				const titleB = (b.title_statement?.a || '').toLowerCase();
+				return titleA.localeCompare(titleB);
+			});
+		case 'author':
+			return results.sort((a, b) => {
+				const authorA = (a.main_entry_personal_name?.a || '').toLowerCase();
+				const authorB = (b.main_entry_personal_name?.a || '').toLowerCase();
+				return authorA.localeCompare(authorB);
+			});
+		case 'date_new':
+			return results.sort((a, b) => {
+				const yearA = parseInt(a.publication_info?.c || '0');
+				const yearB = parseInt(b.publication_info?.c || '0');
+				return yearB - yearA;
+			});
+		case 'date_old':
+			return results.sort((a, b) => {
+				const yearA = parseInt(a.publication_info?.c || '0');
+				const yearB = parseInt(b.publication_info?.c || '0');
+				return yearA - yearB;
+			});
+		case 'relevance':
+		default:
+			// For advanced search, relevance sorting is not applicable
+			// Default to title sort
+			return results.sort((a, b) => {
+				const titleA = (a.title_statement?.a || '').toLowerCase();
+				const titleB = (b.title_statement?.a || '').toLowerCase();
+				return titleA.localeCompare(titleB);
+			});
+	}
+}
+
 async function performSearch(
 	supabase: SupabaseClient,
 	params: SearchParams
 ): Promise<{ results: any[]; total: number }> {
+	// Check if this is an advanced search (has any advanced search fields)
+	const isAdvancedSearch =
+		params.title || params.author || params.subject || params.isbn || params.publisher;
+
+	// If advanced search, use the RPC function for diacritic-insensitive field matching
+	if (isAdvancedSearch) {
+		return await performAdvancedSearch(supabase, params);
+	}
+
+	// Otherwise, use the standard basic keyword search
 	let query = supabase
 		.from('marc_records')
 		.select(
@@ -175,9 +320,6 @@ async function performSearch(
 		.eq('status', 'active')
 		.eq('visibility', 'public');
 
-	// Apply search filters
-	const filters: string[] = [];
-
 	// Basic keyword search using full-text search with relevance boosting
 	if (params.q) {
 		// Normalize query to remove diacritics (e.g., "Zizek" matches "Žižek")
@@ -194,51 +336,6 @@ async function performSearch(
 		// Higher weight = more important field
 		// Format: setweight(to_tsvector(field), 'A') for highest priority
 		// We'll order by ts_rank which already considers the search_vector
-	}
-
-	// Advanced search fields (normalize text to remove diacritics)
-	if (params.title) {
-		const normalizedTitle = normalizeSearchQuery(params.title);
-		filters.push(`title_statement->>a.ilike.%${normalizedTitle}%`);
-	}
-	if (params.author) {
-		const normalizedAuthor = normalizeSearchQuery(params.author);
-		filters.push(`main_entry_personal_name->>a.ilike.%${normalizedAuthor}%`);
-	}
-	if (params.isbn) {
-		filters.push(`isbn.ilike.%${params.isbn.replace(/-/g, '')}%`);
-	}
-	if (params.publisher) {
-		const normalizedPublisher = normalizeSearchQuery(params.publisher);
-		filters.push(`publication_info->>b.ilike.%${normalizedPublisher}%`);
-	}
-
-	// Apply filters based on operator
-	if (filters.length > 0) {
-		if (params.op === 'OR') {
-			query = query.or(filters.join(','));
-		} else {
-			// For AND, apply each filter separately
-			filters.forEach((filter) => {
-				const [field, op, value] = filter.split('.');
-				if (op === 'ilike') {
-					query = query.ilike(field, value);
-				}
-			});
-		}
-	}
-
-	// Handle subject search separately (JSONB array requires special handling)
-	if (params.subject) {
-		// Normalize subject query to remove diacritics
-		const normalizedSubject = normalizeSearchQuery(params.subject);
-
-		// Use full-text search on search_vector since subjects are already indexed there
-		// This provides better matching (partial words, relevance ranking)
-		query = query.textSearch('search_vector', normalizedSubject, {
-			type: 'websearch',
-			config: 'english'
-		});
 	}
 
 	// Year range filter
