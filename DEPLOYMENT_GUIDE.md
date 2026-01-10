@@ -4,10 +4,15 @@
 
 ### ✅ Recent Updates (Latest Commits)
 
-**Fixed 500 Error** (Commits 6-7):
+**Fixed 500 Error - Data Structure** (Commit 9):
+- Fixed data structure transformation in layout servers
+- Public layout now receives nested `siteSettings` structure (header.links, hero.title, etc.)
+- Homepage and branding pages receive properly formatted objects
+- **Result**: Components now receive data in the format they expect
+
+**Fixed 500 Error - Old Helpers** (Commits 6-8):
 - Updated homepage to use unified settings helper
 - Updated admin branding page to use unified settings helper
-- **Result**: Site now loads with default settings even before migrations run
 - All pages now use the same unified configuration system
 
 ### ✅ Code Changes (Complete - Already Committed)
@@ -273,5 +278,5 @@ If issues persist:
 ---
 
 **Branch**: `claude/fix-facets-and-simplify-menu-JJ5VR`
-**Commits**: 7 commits
-**Status**: ✅ Code complete, site should load with defaults (migrations still recommended)
+**Commits**: 9 commits
+**Status**: ✅ Code complete with data structure fixes - site should load properly (migrations still recommended)
