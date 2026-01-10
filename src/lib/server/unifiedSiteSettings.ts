@@ -170,15 +170,16 @@ export async function loadUnifiedSiteSettings(
 		console.log('[loadUnifiedSiteSettings] Show facets:', data.show_facets);
 
 		// Merge database data with defaults
+		// Use defensive access in case migration hasn't run yet
 		const settings: UnifiedSiteSettings = {
-			// Library Identity
-			library_name: data.library_name || DEFAULT_UNIFIED_SETTINGS.library_name,
-			library_tagline: data.library_tagline || DEFAULT_UNIFIED_SETTINGS.library_tagline,
+			// Library Identity (may not exist yet)
+			library_name: data.library_name ?? DEFAULT_UNIFIED_SETTINGS.library_name,
+			library_tagline: data.library_tagline ?? DEFAULT_UNIFIED_SETTINGS.library_tagline,
 
-			// Logos
-			logo_url: data.logo_url || DEFAULT_UNIFIED_SETTINGS.logo_url,
-			homepage_logo_url: data.homepage_logo_url || DEFAULT_UNIFIED_SETTINGS.homepage_logo_url,
-			favicon_url: data.favicon_url || DEFAULT_UNIFIED_SETTINGS.favicon_url,
+			// Logos (may not exist yet)
+			logo_url: data.logo_url ?? DEFAULT_UNIFIED_SETTINGS.logo_url,
+			homepage_logo_url: data.homepage_logo_url ?? DEFAULT_UNIFIED_SETTINGS.homepage_logo_url,
+			favicon_url: data.favicon_url ?? DEFAULT_UNIFIED_SETTINGS.favicon_url,
 
 			// Header Navigation
 			header_links: Array.isArray(data.header_links)
@@ -186,50 +187,50 @@ export async function loadUnifiedSiteSettings(
 				: DEFAULT_UNIFIED_SETTINGS.header_links,
 
 			// Footer
-			footer_text: data.footer_text || DEFAULT_UNIFIED_SETTINGS.footer_text,
-			footer_link: data.footer_link || DEFAULT_UNIFIED_SETTINGS.footer_link,
+			footer_text: data.footer_text ?? DEFAULT_UNIFIED_SETTINGS.footer_text,
+			footer_link: data.footer_link ?? DEFAULT_UNIFIED_SETTINGS.footer_link,
 			show_powered_by: data.show_powered_by ?? DEFAULT_UNIFIED_SETTINGS.show_powered_by,
 
 			// Homepage Hero
-			hero_title: data.hero_title || DEFAULT_UNIFIED_SETTINGS.hero_title,
-			hero_subhead: data.hero_subhead || DEFAULT_UNIFIED_SETTINGS.hero_subhead,
-			hero_image_url: data.hero_image_url || DEFAULT_UNIFIED_SETTINGS.hero_image_url,
+			hero_title: data.hero_title ?? DEFAULT_UNIFIED_SETTINGS.hero_title,
+			hero_subhead: data.hero_subhead ?? DEFAULT_UNIFIED_SETTINGS.hero_subhead,
+			hero_image_url: data.hero_image_url ?? DEFAULT_UNIFIED_SETTINGS.hero_image_url,
 
-			// Color Scheme
-			primary_color: data.primary_color || DEFAULT_UNIFIED_SETTINGS.primary_color,
-			secondary_color: data.secondary_color || DEFAULT_UNIFIED_SETTINGS.secondary_color,
-			accent_color: data.accent_color || DEFAULT_UNIFIED_SETTINGS.accent_color,
-			background_color: data.background_color || DEFAULT_UNIFIED_SETTINGS.background_color,
-			text_color: data.text_color || DEFAULT_UNIFIED_SETTINGS.text_color,
+			// Color Scheme (may not exist yet)
+			primary_color: data.primary_color ?? DEFAULT_UNIFIED_SETTINGS.primary_color,
+			secondary_color: data.secondary_color ?? DEFAULT_UNIFIED_SETTINGS.secondary_color,
+			accent_color: data.accent_color ?? DEFAULT_UNIFIED_SETTINGS.accent_color,
+			background_color: data.background_color ?? DEFAULT_UNIFIED_SETTINGS.background_color,
+			text_color: data.text_color ?? DEFAULT_UNIFIED_SETTINGS.text_color,
 
-			// Typography
-			font_family: data.font_family || DEFAULT_UNIFIED_SETTINGS.font_family,
-			heading_font: data.heading_font || DEFAULT_UNIFIED_SETTINGS.heading_font,
+			// Typography (may not exist yet)
+			font_family: data.font_family ?? DEFAULT_UNIFIED_SETTINGS.font_family,
+			heading_font: data.heading_font ?? DEFAULT_UNIFIED_SETTINGS.heading_font,
 
-			// Custom Styling
-			custom_css: data.custom_css || DEFAULT_UNIFIED_SETTINGS.custom_css,
-			custom_head_html: data.custom_head_html || DEFAULT_UNIFIED_SETTINGS.custom_head_html,
+			// Custom Styling (may not exist yet)
+			custom_css: data.custom_css ?? DEFAULT_UNIFIED_SETTINGS.custom_css,
+			custom_head_html: data.custom_head_html ?? DEFAULT_UNIFIED_SETTINGS.custom_head_html,
 
-			// Contact Information
-			contact_email: data.contact_email || DEFAULT_UNIFIED_SETTINGS.contact_email,
-			contact_phone: data.contact_phone || DEFAULT_UNIFIED_SETTINGS.contact_phone,
-			contact_address: data.contact_address || DEFAULT_UNIFIED_SETTINGS.contact_address,
+			// Contact Information (may not exist yet)
+			contact_email: data.contact_email ?? DEFAULT_UNIFIED_SETTINGS.contact_email,
+			contact_phone: data.contact_phone ?? DEFAULT_UNIFIED_SETTINGS.contact_phone,
+			contact_address: data.contact_address ?? DEFAULT_UNIFIED_SETTINGS.contact_address,
 
-			// Social Media
-			facebook_url: data.facebook_url || DEFAULT_UNIFIED_SETTINGS.facebook_url,
-			twitter_url: data.twitter_url || DEFAULT_UNIFIED_SETTINGS.twitter_url,
-			instagram_url: data.instagram_url || DEFAULT_UNIFIED_SETTINGS.instagram_url,
+			// Social Media (may not exist yet)
+			facebook_url: data.facebook_url ?? DEFAULT_UNIFIED_SETTINGS.facebook_url,
+			twitter_url: data.twitter_url ?? DEFAULT_UNIFIED_SETTINGS.twitter_url,
+			instagram_url: data.instagram_url ?? DEFAULT_UNIFIED_SETTINGS.instagram_url,
 
-			// Feature Toggles
+			// Feature Toggles (may not exist yet)
 			show_covers: data.show_covers ?? DEFAULT_UNIFIED_SETTINGS.show_covers,
 			show_facets: data.show_facets ?? DEFAULT_UNIFIED_SETTINGS.show_facets,
-			items_per_page: data.items_per_page || DEFAULT_UNIFIED_SETTINGS.items_per_page,
+			items_per_page: data.items_per_page ?? DEFAULT_UNIFIED_SETTINGS.items_per_page,
 
 			// Metadata
-			id: data.id || DEFAULT_UNIFIED_SETTINGS.id,
-			created_at: data.created_at || DEFAULT_UNIFIED_SETTINGS.created_at,
-			updated_at: data.updated_at || DEFAULT_UNIFIED_SETTINGS.updated_at,
-			updated_by: data.updated_by || DEFAULT_UNIFIED_SETTINGS.updated_by
+			id: data.id ?? DEFAULT_UNIFIED_SETTINGS.id,
+			created_at: data.created_at ?? DEFAULT_UNIFIED_SETTINGS.created_at,
+			updated_at: data.updated_at ?? DEFAULT_UNIFIED_SETTINGS.updated_at,
+			updated_by: data.updated_by ?? DEFAULT_UNIFIED_SETTINGS.updated_by
 		};
 
 		return settings;
