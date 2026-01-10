@@ -1,5 +1,4 @@
-import { loadActiveBranding } from '$lib/server/branding';
-import { loadActiveSiteConfig } from '$lib/server/siteConfig';
+import { loadUnifiedSiteSettings } from '$lib/server/unifiedSiteSettings';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
@@ -13,16 +12,14 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		.eq('is_published', true)
 		.single();
 
-	// Fetch branding configuration for homepage (use service key if available)
-	const { branding } = await loadActiveBranding(supabase);
-
-	// Fetch site configuration for hero and other settings
-	const { siteConfig } = await loadActiveSiteConfig(supabase);
+	// Fetch unified site settings (includes branding, site config, hero, etc.)
+	const settings = await loadUnifiedSiteSettings(supabase);
 
 	return {
 		session,
 		homepage: homepage || null,
-		branding: branding || null,
-		siteConfig: siteConfig || null
+		// Provide backward compatibility with old property names
+		branding: settings,
+		siteConfig: settings
 	};
 };

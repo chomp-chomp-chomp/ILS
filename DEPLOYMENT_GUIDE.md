@@ -2,6 +2,14 @@
 
 ## 🎯 What's Been Fixed
 
+### ✅ Recent Updates (Latest Commits)
+
+**Fixed 500 Error** (Commits 6-7):
+- Updated homepage to use unified settings helper
+- Updated admin branding page to use unified settings helper
+- **Result**: Site now loads with default settings even before migrations run
+- All pages now use the same unified configuration system
+
 ### ✅ Code Changes (Complete - Already Committed)
 
 1. **Unified Configuration System**
@@ -265,5 +273,5 @@ If issues persist:
 ---
 
 **Branch**: `claude/fix-facets-and-simplify-menu-JJ5VR`
-**Commits**: 5 commits
-**Status**: ✅ Code complete, awaiting database migrations
+**Commits**: 7 commits
+**Status**: ✅ Code complete, site should load with defaults (migrations still recommended)
