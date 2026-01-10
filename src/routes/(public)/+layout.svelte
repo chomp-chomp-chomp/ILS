@@ -75,8 +75,8 @@
 	// Determine if we should show the navigation bar (not on homepage)
 	let showNav = $derived($page.url.pathname !== '/');
 
-	// Show hero on homepage ONLY (consolidated - no duplicate heroes)
-	let showHero = $derived($page.url.pathname === '/' && siteSettings.hero.imageUrl);
+	// Hero disabled - homepage has its own logo/tagline display
+	let showHero = $derived(false);
 
 	// Check if user is authenticated (for floating admin button)
 	let isAuthenticated = $derived(!!data.session);

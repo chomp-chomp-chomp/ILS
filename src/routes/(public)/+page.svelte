@@ -94,8 +94,8 @@
 	.tagline {
 		font-size: var(--typography-h3-size, 1.5rem);
 		margin-bottom: 3rem;
-		color: #666;
-		font-weight: 300;
+		color: #333;
+		font-weight: 400;
 	}
 
 	.search-box {
