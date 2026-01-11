@@ -74,6 +74,63 @@
 		return await parseLocMarc(xmlText);
 	}
 
+	/**
+	 * Query OCLC Classify API for bibliographic data and call numbers
+	 * Returns Dewey Decimal and LC classification numbers for shelving
+	 * Free API - no authentication required
+	 */
+	async function tryOCLCClassify(cleanISBN: string) {
+		const url = `http://classify.oclc.org/classify2/Classify?isbn=${cleanISBN}&summary=true`;
+
+		const response = await fetch(url);
+		const xmlText = await response.text();
+
+		const parser = new DOMParser();
+		const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+		// Check response code (0 = single work match, 2 = multiple works, 4 = single edition)
+		const responseCode = xmlDoc.querySelector('response')?.getAttribute('code');
+		if (!responseCode || !['0', '2', '4'].includes(responseCode)) {
+			return null;
+		}
+
+		// Extract data
+		const work = xmlDoc.querySelector('work');
+		const author = work?.getAttribute('author') ||
+		               xmlDoc.querySelector('author')?.textContent || '';
+		const title = work?.getAttribute('title') || '';
+
+		// Get call numbers (most popular preferred, fallback to most recent)
+		const dewey = xmlDoc.querySelector('ddc mostPopular')?.getAttribute('sfa') ||
+		              xmlDoc.querySelector('ddc mostRecent')?.getAttribute('sfa') || '';
+		const lcc = xmlDoc.querySelector('lcc mostPopular')?.getAttribute('sfa') ||
+		            xmlDoc.querySelector('lcc mostRecent')?.getAttribute('sfa') || '';
+
+		// Get first edition for additional data
+		const edition = xmlDoc.querySelector('edition');
+		const language = edition?.getAttribute('language') || '';
+		const pubYear = edition?.getAttribute('pubyear') || '';
+		const oclcNumber = edition?.getAttribute('oclc') || '';
+
+		// Get VIAF ID for authority control
+		const viafId = xmlDoc.querySelector('author')?.getAttribute('viaf') || '';
+
+		return {
+			title: title,
+			subtitle: '',
+			authors: author ? [author] : [],
+			publishers: [],
+			publish_date: pubYear,
+			dewey_call_number: dewey,
+			lcc_call_number: lcc,
+			language: language,
+			oclc_number: oclcNumber,
+			viaf_id: viafId,
+			subjects: [],
+			source: 'OCLC WorldCat'
+		};
+	}
+
 	async function lookupISBN() {
 		searching = true;
 		error = '';
@@ -83,26 +140,69 @@
 		try {
 			const cleanISBN = isbn.replace(/[^0-9X]/g, '');
 
-			// Try OpenLibrary first
-			searchLog = [...searchLog, 'Searching OpenLibrary...'];
+			// Try OpenLibrary first (best for popular books, covers, descriptions)
+			searchLog = [...searchLog, '1/3 Searching OpenLibrary...'];
 			const olResult = await tryOpenLibrary(cleanISBN);
 
 			if (olResult) {
 				results = olResult;
-				searchLog = [...searchLog, '✓ Found on OpenLibrary'];
+				searchLog = [...searchLog, '  ✓ Found on OpenLibrary'];
+
+				// OCLC supplement: Get call numbers even if OpenLibrary succeeds
+				searchLog = [...searchLog, '  → Getting call numbers from OCLC WorldCat...'];
+				const oclcResult = await tryOCLCClassify(cleanISBN);
+				if (oclcResult?.dewey_call_number || oclcResult?.lcc_call_number) {
+					results = {
+						...results,
+						dewey_call_number: oclcResult.dewey_call_number,
+						lcc_call_number: oclcResult.lcc_call_number,
+						viaf_id: oclcResult.viaf_id,
+						oclc_number: oclcResult.oclc_number
+					};
+					searchLog = [...searchLog, '  ✓ Added call numbers from OCLC'];
+				} else {
+					searchLog = [...searchLog, '  ✗ No call numbers available from OCLC'];
+				}
 			} else {
-				searchLog = [...searchLog, '✗ Not found on OpenLibrary'];
+				searchLog = [...searchLog, '  ✗ Not found on OpenLibrary'];
 
 				// Fallback to Library of Congress
-				searchLog = [...searchLog, 'Trying Library of Congress...'];
+				searchLog = [...searchLog, '2/3 Trying Library of Congress...'];
 				const locResult = await tryLibraryOfCongress(cleanISBN);
 
 				if (locResult) {
 					results = locResult;
-					searchLog = [...searchLog, '✓ Found on Library of Congress'];
+					searchLog = [...searchLog, '  ✓ Found on Library of Congress'];
+
+					// OCLC supplement for call numbers
+					searchLog = [...searchLog, '  → Getting call numbers from OCLC WorldCat...'];
+					const oclcResult = await tryOCLCClassify(cleanISBN);
+					if (oclcResult?.dewey_call_number || oclcResult?.lcc_call_number) {
+						results = {
+							...results,
+							dewey_call_number: oclcResult.dewey_call_number,
+							lcc_call_number: oclcResult.lcc_call_number,
+							viaf_id: oclcResult.viaf_id,
+							oclc_number: oclcResult.oclc_number
+						};
+						searchLog = [...searchLog, '  ✓ Added call numbers from OCLC'];
+					} else {
+						searchLog = [...searchLog, '  ✗ No call numbers available from OCLC'];
+					}
 				} else {
-					searchLog = [...searchLog, '✗ Not found on Library of Congress'];
-					error = 'No results found for this ISBN on OpenLibrary or Library of Congress';
+					searchLog = [...searchLog, '  ✗ Not found on Library of Congress'];
+
+					// Last resort: Try OCLC alone
+					searchLog = [...searchLog, '3/3 Trying OCLC WorldCat...'];
+					const oclcResult = await tryOCLCClassify(cleanISBN);
+
+					if (oclcResult?.title) {
+						results = oclcResult;
+						searchLog = [...searchLog, '  ✓ Found on OCLC WorldCat'];
+					} else {
+						searchLog = [...searchLog, '  ✗ Not found on OCLC WorldCat'];
+						error = 'No results found for this ISBN on any source (OpenLibrary, Library of Congress, OCLC)';
+					}
 				}
 			}
 		} catch (err: any) {
@@ -137,7 +237,11 @@
 				subject_topical: results.subjects?.slice(0, 5).map((s: string) => ({ a: s })) || [],
 				marc_json: {
 					source: results.source,
-					imported_data: results
+					imported_data: results,
+					dewey_call_number: results.dewey_call_number,
+					lcc_call_number: results.lcc_call_number,
+					oclc_number: results.oclc_number,
+					viaf_id: results.viaf_id
 				}
 			};
 
@@ -148,13 +252,14 @@
 
 			if (insertError) throw insertError;
 
-			// Auto-create a default holding for the new record
+			// Auto-create a default holding for the new record with call number
 			if (inserted && inserted[0]) {
 				const defaultHolding = {
 					marc_record_id: inserted[0].id,
 					location: 'Main Library',
 					status: 'available',
-					copy_number: 1
+					copy_number: 1,
+					call_number: results.dewey_call_number || results.lcc_call_number || ''
 				};
 
 				await supabase.from('holdings').insert([defaultHolding]);
@@ -171,7 +276,7 @@
 
 <div class="isbn-lookup">
 	<h1>ISBN Lookup</h1>
-	<p class="subtitle">Search for books by ISBN (tries OpenLibrary first, then Library of Congress)</p>
+	<p class="subtitle">Search for books by ISBN (tries OpenLibrary, Library of Congress, and OCLC WorldCat)</p>
 
 	<div class="lookup-form">
 		<div class="form-row">
@@ -234,6 +339,18 @@
 							<p><strong>Published:</strong> {results.publish_date}</p>
 						{/if}
 
+						{#if results.dewey_call_number || results.lcc_call_number}
+							<div class="call-numbers">
+								<p class="call-numbers-title"><strong>📚 Call Numbers (from OCLC):</strong></p>
+								{#if results.dewey_call_number}
+									<p><strong>Dewey Decimal:</strong> <span class="call-number">{results.dewey_call_number}</span></p>
+								{/if}
+								{#if results.lcc_call_number}
+									<p><strong>LC Classification:</strong> <span class="call-number">{results.lcc_call_number}</span></p>
+								{/if}
+							</div>
+						{/if}
+
 						{#if results.number_of_pages}
 							<p><strong>Pages:</strong> {results.number_of_pages}</p>
 						{/if}
@@ -247,7 +364,12 @@
 							</ul>
 						{/if}
 
-						<p class="source-info">Source: {results.source}</p>
+						<p class="source-info">
+						Source: {results.source}
+						{#if results.oclc_number}
+							<span class="oclc-number">(OCLC: {results.oclc_number})</span>
+						{/if}
+					</p>
 					</div>
 
 					<div class="actions">
@@ -397,6 +519,42 @@
 
 	.metadata p {
 		margin: 0.5rem 0;
+	}
+
+	.call-numbers {
+		background: #e8f5e9;
+		border-left: 4px solid #4caf50;
+		padding: 1rem;
+		margin: 1rem 0;
+		border-radius: 4px;
+	}
+
+	.call-numbers-title {
+		margin-top: 0 !important;
+		font-weight: 600;
+		color: #2e7d32;
+	}
+
+	.call-numbers p {
+		margin: 0.5rem 0;
+	}
+
+	.call-number {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		color: #1b5e20;
+		background: white;
+		padding: 0.25rem 0.5rem;
+		border-radius: 3px;
+		font-size: 1.1em;
+		border: 1px solid #a5d6a7;
+	}
+
+	.oclc-number {
+		font-size: 0.875rem;
+		color: #999;
+		margin-left: 0.5rem;
+		font-style: italic;
 	}
 
 	.subjects {
