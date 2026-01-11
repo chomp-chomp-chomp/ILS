@@ -31,23 +31,24 @@
 		importResults = [];
 
 		try {
-			const fileContent = await file.text();
 			const fileExtension = file.name.split('.').pop()?.toLowerCase();
-
 			let parsedRecords: any[] = [];
 
-			if (fileExtension === 'xml' || fileExtension === 'mrc') {
-				// Try to parse as MARCXML
-				if (fileContent.trim().startsWith('<')) {
-					parsedRecords = parseMARCXML(fileContent);
-				} else {
-					// Attempt binary MARC parsing (simplified)
-					message = 'Error: Binary MARC (.mrc) files require special handling. Please use MARCXML format for now.';
+			if (fileExtension === 'xml') {
+				// Parse MARCXML
+				const fileContent = await file.text();
+				if (!fileContent.trim().startsWith('<')) {
+					message = 'Error: Invalid XML file format.';
 					importing = false;
 					return;
 				}
+				parsedRecords = parseMARCXML(fileContent);
+			} else if (fileExtension === 'mrc') {
+				// Parse Binary MARC (ISO 2709)
+				const arrayBuffer = await file.arrayBuffer();
+				parsedRecords = parseBinaryMARC(arrayBuffer);
 			} else {
-				message = 'Error: Unsupported file format. Please use .xml (MARCXML) files.';
+				message = 'Error: Unsupported file format. Please use .xml (MARCXML) or .mrc (Binary MARC) files.';
 				importing = false;
 				return;
 			}
@@ -69,6 +70,193 @@
 		} finally {
 			importing = false;
 		}
+	}
+
+	/**
+	 * Parse Binary MARC (ISO 2709) format
+	 * Reads .mrc files and converts to our JSONB record format
+	 */
+	function parseBinaryMARC(binaryContent: ArrayBuffer): any[] {
+		const data = new Uint8Array(binaryContent);
+		const decoder = new TextDecoder('utf-8');
+		const records: any[] = [];
+
+		let offset = 0;
+		const RT = 0x1D; // Record terminator
+		const FT = 0x1E; // Field terminator
+		const SUBFIELD_DELIMITER = 0x1F;
+
+		while (offset < data.length) {
+			// Find next record terminator
+			let recordEnd = offset;
+			while (recordEnd < data.length && data[recordEnd] !== RT) {
+				recordEnd++;
+			}
+
+			if (recordEnd === offset) break; // End of file
+
+			try {
+				const recordData = data.slice(offset, recordEnd);
+
+				// Parse leader (first 24 bytes)
+				if (recordData.length < 24) {
+					offset = recordEnd + 1;
+					continue;
+				}
+
+				const leader = decoder.decode(recordData.slice(0, 24));
+				const recordLength = parseInt(leader.substring(0, 5));
+				const baseAddress = parseInt(leader.substring(12, 17));
+
+				// Validate basic structure
+				if (isNaN(recordLength) || isNaN(baseAddress) || baseAddress >= recordData.length) {
+					offset = recordEnd + 1;
+					continue;
+				}
+
+				const record: any = {
+					_index: records.length,
+					leader: leader,
+					marc_json: {},
+					isDuplicate: false,
+					duplicateInfo: null
+				};
+
+				// Parse directory (between leader and base address)
+				const directory = decoder.decode(recordData.slice(24, baseAddress - 1));
+				const directoryEntries: { tag: string; length: number; start: number }[] = [];
+
+				for (let i = 0; i < directory.length; i += 12) {
+					if (i + 12 > directory.length) break;
+					const entry = directory.substring(i, i + 12);
+					directoryEntries.push({
+						tag: entry.substring(0, 3),
+						length: parseInt(entry.substring(3, 7)),
+						start: parseInt(entry.substring(7, 12))
+					});
+				}
+
+				// Parse fields
+				directoryEntries.forEach(entry => {
+					const fieldStart = baseAddress + entry.start;
+					const fieldEnd = fieldStart + entry.length - 1; // -1 for field terminator
+
+					if (fieldEnd > recordData.length) return;
+
+					const fieldData = recordData.slice(fieldStart, fieldEnd);
+					const tag = entry.tag;
+
+					// Control fields (001-009) - no indicators or subfields
+					if (tag < '010') {
+						const value = decoder.decode(fieldData).trim();
+
+						if (tag === '001') record.control_number = value;
+						else if (tag === '003') record.control_number_identifier = value;
+						else if (tag === '008') record.date_entered = value;
+					} else {
+						// Data fields - have indicators and subfields
+						if (fieldData.length < 3) return;
+
+						const ind1 = decoder.decode(fieldData.slice(0, 1));
+						const ind2 = decoder.decode(fieldData.slice(1, 2));
+						const subfieldData = fieldData.slice(2);
+
+						// Parse subfields
+						const subfields: any = {};
+						let i = 0;
+						while (i < subfieldData.length) {
+							if (subfieldData[i] === SUBFIELD_DELIMITER) {
+								i++; // Skip delimiter
+								if (i >= subfieldData.length) break;
+
+								const code = String.fromCharCode(subfieldData[i]);
+								i++;
+
+								// Find next delimiter or end
+								let valueEnd = i;
+								while (valueEnd < subfieldData.length && subfieldData[valueEnd] !== SUBFIELD_DELIMITER) {
+									valueEnd++;
+								}
+
+								const value = decoder.decode(subfieldData.slice(i, valueEnd)).trim();
+								if (value) {
+									subfields[code] = value;
+								}
+								i = valueEnd;
+							} else {
+								i++;
+							}
+						}
+
+						// Map to our schema
+						if (tag === '020' && subfields.a) {
+							record.isbn = subfields.a.replace(/[^0-9X]/gi, '');
+						}
+						if (tag === '022' && subfields.a) {
+							record.issn = subfields.a;
+						}
+						if (tag === '100') {
+							record.main_entry_personal_name = subfields;
+						}
+						if (tag === '110') {
+							record.main_entry_corporate_name = subfields;
+						}
+						if (tag === '245') {
+							record.title_statement = subfields;
+						}
+						if (tag === '250') {
+							record.edition_statement = subfields;
+						}
+						if (tag === '260' || tag === '264') {
+							record.publication_info = subfields;
+						}
+						if (tag === '300') {
+							record.physical_description = subfields;
+						}
+						if (tag === '490') {
+							record.series_statement = subfields;
+						}
+						if (tag === '500') {
+							if (!record.general_note) record.general_note = [];
+							if (subfields.a) record.general_note.push(subfields.a);
+						}
+						if (tag === '504' && subfields.a) {
+							record.bibliography_note = subfields.a;
+						}
+						if (tag === '520' && subfields.a) {
+							record.summary = subfields.a;
+						}
+						if (tag === '650') {
+							if (!record.subject_topical) record.subject_topical = [];
+							record.subject_topical.push(subfields);
+						}
+						if (tag === '651') {
+							if (!record.subject_geographic) record.subject_geographic = [];
+							record.subject_geographic.push(subfields);
+						}
+						if (tag === '700') {
+							if (!record.added_entry_personal_name) record.added_entry_personal_name = [];
+							record.added_entry_personal_name.push(subfields);
+						}
+						if (tag === '710') {
+							if (!record.added_entry_corporate_name) record.added_entry_corporate_name = [];
+							record.added_entry_corporate_name.push(subfields);
+						}
+					}
+				});
+
+				// Set material type based on leader or default to book
+				record.material_type = 'book';
+
+				records.push(record);
+			} catch (err) {
+				console.error(`Error parsing record at offset ${offset}:`, err);
+			}
+
+			offset = recordEnd + 1;
+		}
+
+		return records;
 	}
 
 	function parseMARCXML(xmlContent: string): any[] {
@@ -313,7 +501,7 @@
 		<div class="card-section">
 			<h2>Upload MARC File</h2>
 			<p class="help-text">
-				Import bibliographic records from MARCXML files. Binary MARC (.mrc) support coming soon.
+				Import bibliographic records from MARCXML files. Supports both MARCXML (.xml) and Binary MARC (.mrc) formats.
 			</p>
 
 			<div class="file-input-wrapper">

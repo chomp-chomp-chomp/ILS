@@ -359,6 +359,177 @@
 		return text;
 	}
 
+	/**
+	 * Convert records to Binary MARC (ISO 2709) format
+	 * Returns a Uint8Array ready for .mrc file download
+	 */
+	function convertToBinaryMARC(records: any[]): Uint8Array {
+		const encoder = new TextEncoder();
+		const allRecords: Uint8Array[] = [];
+
+		records.forEach(record => {
+			// Field terminator and record terminator
+			const FT = 0x1E; // Field terminator
+			const RT = 0x1D; // Record terminator
+			const SUBFIELD_DELIMITER = 0x1F;
+
+			// Build fields array
+			const fields: { tag: string; data: Uint8Array }[] = [];
+
+			// Helper to add control field
+			function addControlField(tag: string, value: string) {
+				if (value) {
+					const data = encoder.encode(value);
+					fields.push({ tag, data });
+				}
+			}
+
+			// Helper to add data field
+			function addDataField(tag: string, ind1: string, ind2: string, subfields: any) {
+				if (!subfields || Object.keys(subfields).length === 0) return;
+
+				const parts: Uint8Array[] = [];
+				parts.push(encoder.encode(ind1 || ' '));
+				parts.push(encoder.encode(ind2 || ' '));
+
+				Object.entries(subfields).forEach(([code, value]) => {
+					if (value) {
+						parts.push(new Uint8Array([SUBFIELD_DELIMITER]));
+						parts.push(encoder.encode(code));
+						parts.push(encoder.encode(String(value)));
+					}
+				});
+
+				const data = concatenateUint8Arrays(parts);
+				fields.push({ tag, data });
+			}
+
+			// Add control fields
+			addControlField('001', record.control_number || '');
+			addControlField('003', record.control_number_identifier || '');
+			addControlField('008', record.date_entered || '');
+
+			// Add data fields
+			if (record.isbn) {
+				addDataField('020', ' ', ' ', { a: record.isbn });
+			}
+			if (record.issn) {
+				addDataField('022', ' ', ' ', { a: record.issn });
+			}
+			if (record.main_entry_personal_name) {
+				addDataField('100', '1', ' ', record.main_entry_personal_name);
+			}
+			if (record.main_entry_corporate_name) {
+				addDataField('110', '2', ' ', record.main_entry_corporate_name);
+			}
+			if (record.title_statement) {
+				addDataField('245', '1', '0', record.title_statement);
+			}
+			if (record.edition_statement) {
+				addDataField('250', ' ', ' ', record.edition_statement);
+			}
+			if (record.publication_info) {
+				addDataField('264', ' ', '1', record.publication_info);
+			}
+			if (record.physical_description) {
+				addDataField('300', ' ', ' ', record.physical_description);
+			}
+			if (record.series_statement) {
+				addDataField('490', '0', ' ', record.series_statement);
+			}
+			if (record.general_note && Array.isArray(record.general_note)) {
+				record.general_note.forEach((note: string) => {
+					if (note) addDataField('500', ' ', ' ', { a: note });
+				});
+			}
+			if (record.summary) {
+				addDataField('520', ' ', ' ', { a: record.summary });
+			}
+			if (record.subject_topical && Array.isArray(record.subject_topical)) {
+				record.subject_topical.forEach((subject: any) => {
+					addDataField('650', ' ', '0', subject);
+				});
+			}
+			if (record.subject_geographic && Array.isArray(record.subject_geographic)) {
+				record.subject_geographic.forEach((subject: any) => {
+					addDataField('651', ' ', '0', subject);
+				});
+			}
+			if (record.added_entry_personal_name && Array.isArray(record.added_entry_personal_name)) {
+				record.added_entry_personal_name.forEach((name: any) => {
+					addDataField('700', '1', ' ', name);
+				});
+			}
+			if (record.added_entry_corporate_name && Array.isArray(record.added_entry_corporate_name)) {
+				record.added_entry_corporate_name.forEach((name: any) => {
+					addDataField('710', '2', ' ', name);
+				});
+			}
+
+			// Sort fields by tag
+			fields.sort((a, b) => a.tag.localeCompare(b.tag));
+
+			// Build directory
+			const directory: string[] = [];
+			let currentPosition = 0;
+
+			fields.forEach(field => {
+				const length = field.data.length + 1; // +1 for field terminator
+				directory.push(
+					field.tag.padStart(3, '0') +
+					length.toString().padStart(4, '0') +
+					currentPosition.toString().padStart(5, '0')
+				);
+				currentPosition += length;
+			});
+
+			const directoryStr = directory.join('');
+			const baseAddress = 24 + directoryStr.length + 1; // 24 = leader, +1 for FT
+			const totalLength = baseAddress + currentPosition + 1; // +1 for RT
+
+			// Build leader
+			const leader =
+				totalLength.toString().padStart(5, '0') +
+				'nam' + // Record status + type + bibliographic level
+				' 22' + // Implementation defined + indicator/subfield counts
+				baseAddress.toString().padStart(5, '0') +
+				' ' +
+				'4500'; // Encoding level + descriptive cataloging + multipart level
+
+			// Concatenate all parts
+			const parts: Uint8Array[] = [
+				encoder.encode(leader),
+				encoder.encode(directoryStr),
+				new Uint8Array([FT])
+			];
+
+			fields.forEach(field => {
+				parts.push(field.data);
+				parts.push(new Uint8Array([FT]));
+			});
+
+			parts.push(new Uint8Array([RT]));
+
+			allRecords.push(concatenateUint8Arrays(parts));
+		});
+
+		return concatenateUint8Arrays(allRecords);
+	}
+
+	/**
+	 * Helper function to concatenate Uint8Arrays
+	 */
+	function concatenateUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+		const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+		const result = new Uint8Array(totalLength);
+		let offset = 0;
+		arrays.forEach(arr => {
+			result.set(arr, offset);
+			offset += arr.length;
+		});
+		return result;
+	}
+
 	async function performExport() {
 		if (exportScope === 'selected' && selectedRecords.size === 0) {
 			message = 'Error: Please select at least one record to export';
@@ -383,7 +554,7 @@
 				return;
 			}
 
-			let content: string;
+			let content: string | Uint8Array;
 			let filename: string;
 			let mimeType: string;
 
@@ -395,9 +566,12 @@
 				content = convertToMARCText(recordsToExport);
 				filename = `marc_export_${new Date().toISOString().split('T')[0]}.txt`;
 				mimeType = 'text/plain';
+			} else if (exportFormat === 'marc') {
+				content = convertToBinaryMARC(recordsToExport);
+				filename = `marc_export_${new Date().toISOString().split('T')[0]}.mrc`;
+				mimeType = 'application/marc';
 			} else {
-				// Binary MARC not yet implemented
-				message = 'Error: Binary MARC export not yet implemented. Please use MARCXML or Text format.';
+				message = 'Error: Unsupported export format.';
 				exporting = false;
 				return;
 			}
@@ -450,8 +624,8 @@
 								Readable Text (.txt)
 							</label>
 							<label>
-								<input type="radio" bind:group={exportFormat} value="marc" disabled />
-								Binary MARC (.mrc) - Coming Soon
+								<input type="radio" bind:group={exportFormat} value="marc" />
+								Binary MARC (.mrc) - ISO 2709
 							</label>
 						</div>
 					</div>
