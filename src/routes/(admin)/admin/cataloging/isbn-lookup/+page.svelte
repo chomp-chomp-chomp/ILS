@@ -59,19 +59,30 @@
 	}
 
 	async function tryLibraryOfCongress(cleanISBN: string) {
-		// LoC SRU API - returns MARCXML
-		const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
-		const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
+		try {
+			// LoC SRU API - returns MARCXML
+			const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
+			const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
 
-		const response = await fetch(url);
-		const xmlText = await response.text();
+			// Add timeout with AbortController
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-		// Check if we got results
-		if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
+			const response = await fetch(url, { signal: controller.signal });
+			clearTimeout(timeoutId);
+			
+			const xmlText = await response.text();
+
+			// Check if we got results
+			if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
+				return null;
+			}
+
+			return await parseLocMarc(xmlText);
+		} catch (error) {
+			console.warn(`LoC API error for ${cleanISBN}:`, error);
 			return null;
 		}
-
-		return await parseLocMarc(xmlText);
 	}
 
 	/**
@@ -141,21 +152,47 @@
 			const cleanISBN = isbn.replace(/[^0-9X]/g, '');
 
 			// Try OpenLibrary first (best for popular books, covers, descriptions)
-			searchLog = [...searchLog, '1/3 Searching OpenLibrary...'];
+			searchLog = [...searchLog, '1/4 Searching OpenLibrary...'];
 			const olResult = await tryOpenLibrary(cleanISBN);
 
 			if (olResult) {
 				results = olResult;
 				searchLog = [...searchLog, '  ✓ Found on OpenLibrary'];
 
-				// OCLC supplement: Get call numbers even if OpenLibrary succeeds
+				// Supplement with Library of Congress for better MARC data
+				searchLog = [...searchLog, '  → Supplementing with Library of Congress...'];
+				const locResult = await tryLibraryOfCongress(cleanISBN);
+				
+				if (locResult) {
+					// Merge: Keep OpenLibrary's cover/pages but add LoC's superior MARC data
+					results = {
+						...results,
+						// Prefer LoC subject headings (LCSH controlled vocabulary)
+						subjects: locResult.subjects && locResult.subjects.length > 0 ? locResult.subjects : results.subjects,
+						// Prefer LoC call numbers if available
+						lc_call_number: locResult.lc_call_number || results.lc_call_number,
+						dewey_call_number: locResult.dewey_call_number || results.dewey_call_number,
+						// Add other LoC-specific fields
+						variant_title: locResult.variant_title || results.variant_title,
+						edition: locResult.edition || results.edition,
+						language_note: locResult.language_note || results.language_note,
+						// Keep ISSN if LoC has it
+						issn: locResult.issn || results.issn
+					};
+					searchLog = [...searchLog, '  ✓ Added MARC data from Library of Congress'];
+				} else {
+					searchLog = [...searchLog, '  ✗ Library of Congress data not available'];
+				}
+
+				// Also try OCLC supplement for additional call numbers
 				searchLog = [...searchLog, '  → Getting call numbers from OCLC WorldCat...'];
 				const oclcResult = await tryOCLCClassify(cleanISBN);
 				if (oclcResult?.dewey_call_number || oclcResult?.lcc_call_number) {
 					results = {
 						...results,
-						dewey_call_number: oclcResult.dewey_call_number,
-						lcc_call_number: oclcResult.lcc_call_number,
+						// Use OCLC call numbers only if we don't have them from LoC
+						dewey_call_number: results.dewey_call_number || oclcResult.dewey_call_number,
+						lcc_call_number: results.lcc_call_number || oclcResult.lcc_call_number,
 						viaf_id: oclcResult.viaf_id,
 						oclc_number: oclcResult.oclc_number
 					};
@@ -167,21 +204,21 @@
 				searchLog = [...searchLog, '  ✗ Not found on OpenLibrary'];
 
 				// Fallback to Library of Congress
-				searchLog = [...searchLog, '2/3 Trying Library of Congress...'];
+				searchLog = [...searchLog, '2/4 Trying Library of Congress...'];
 				const locResult = await tryLibraryOfCongress(cleanISBN);
 
 				if (locResult) {
 					results = locResult;
 					searchLog = [...searchLog, '  ✓ Found on Library of Congress'];
 
-					// OCLC supplement for call numbers
+					// OCLC supplement for additional call numbers
 					searchLog = [...searchLog, '  → Getting call numbers from OCLC WorldCat...'];
 					const oclcResult = await tryOCLCClassify(cleanISBN);
 					if (oclcResult?.dewey_call_number || oclcResult?.lcc_call_number) {
 						results = {
 							...results,
-							dewey_call_number: oclcResult.dewey_call_number,
-							lcc_call_number: oclcResult.lcc_call_number,
+							dewey_call_number: results.dewey_call_number || oclcResult.dewey_call_number,
+							lcc_call_number: results.lcc_call_number || oclcResult.lcc_call_number,
 							viaf_id: oclcResult.viaf_id,
 							oclc_number: oclcResult.oclc_number
 						};
@@ -193,7 +230,7 @@
 					searchLog = [...searchLog, '  ✗ Not found on Library of Congress'];
 
 					// Last resort: Try OCLC alone
-					searchLog = [...searchLog, '3/3 Trying OCLC WorldCat...'];
+					searchLog = [...searchLog, '3/4 Trying OCLC WorldCat...'];
 					const oclcResult = await tryOCLCClassify(cleanISBN);
 
 					if (oclcResult?.title) {
@@ -276,7 +313,7 @@
 
 <div class="isbn-lookup">
 	<h1>ISBN Lookup</h1>
-	<p class="subtitle">Search for books by ISBN (tries OpenLibrary, Library of Congress, and OCLC WorldCat)</p>
+	<p class="subtitle">Search for books by ISBN. Tries OpenLibrary first (fast), then supplements with Library of Congress (MARC data, subject headings) and OCLC WorldCat (call numbers).</p>
 
 	<div class="lookup-form">
 		<div class="form-row">
