@@ -25,13 +25,37 @@
 			return Array.from(fields).map(f => f.textContent || '').filter(t => t);
 		};
 
+		const getFullDatafield = (tag: string) => {
+			const field = xmlDoc.querySelector(`datafield[tag="${tag}"]`);
+			if (!field) return null;
+
+			const subfields: any = {};
+			field.querySelectorAll('subfield').forEach(sf => {
+				const code = sf.getAttribute('code');
+				const value = sf.textContent?.trim();
+				if (code && value) {
+					subfields[code] = value;
+				}
+			});
+			return Object.keys(subfields).length > 0 ? subfields : null;
+		};
+
 		return {
 			title: getDatafield('245', 'a').replace(/\s*\/\s*$/, '').replace(/\s*:\s*$/, ''),
 			subtitle: getDatafield('245', 'b').replace(/\s*\/\s*$/, ''),
+			variant_title: getDatafield('246', 'a'),
+			edition: getDatafield('250', 'a'),
 			authors: [getDatafield('100', 'a') || getDatafield('110', 'a')].filter(a => a),
 			publishers: [getDatafield('260', 'b') || getDatafield('264', 'b')].filter(p => p).map(p => p.replace(/,\s*$/, '')),
 			publish_date: getDatafield('260', 'c') || getDatafield('264', 'c'),
 			subjects: getAllDatafields('650', 'a'),
+			genre_forms: getAllDatafields('655', 'a'),
+			lc_call_number: getFullDatafield('050'),
+			dewey_call_number: getFullDatafield('082'),
+			language_note: getDatafield('546', 'a'),
+			contents_note: getDatafield('505', 'a'),
+			isbn: getDatafield('020', 'a').replace(/[^0-9X]/gi, ''),
+			issn: getDatafield('022', 'a'),
 			source: 'Library of Congress'
 		};
 	}
@@ -63,14 +87,24 @@
 
 			const key = `ISBN:${cleanISBN}`;
 			if (bookData[key]) {
+				const book = bookData[key];
 				return {
-					title: bookData[key].title,
-					subtitle: bookData[key].subtitle,
-					authors: bookData[key].authors?.map((a: any) => a.name) || [],
-					publishers: bookData[key].publishers?.map((p: any) => p.name) || [],
-					publish_date: bookData[key].publish_date,
-					number_of_pages: bookData[key].number_of_pages,
-					subjects: bookData[key].subjects?.map((s: any) => s.name) || [],
+					title: book.title,
+					subtitle: book.subtitle,
+					variant_title: null, // OpenLibrary doesn't provide this
+					edition: book.edition_name,
+					authors: book.authors?.map((a: any) => a.name) || [],
+					publishers: book.publishers?.map((p: any) => p.name) || [],
+					publish_date: book.publish_date,
+					number_of_pages: book.number_of_pages,
+					subjects: book.subjects?.map((s: any) => s.name) || [],
+					genre_forms: [], // OpenLibrary doesn't provide genre/form terms
+					lc_call_number: null, // Not in OpenLibrary API
+					dewey_call_number: null, // Not in OpenLibrary API
+					language_note: null,
+					contents_note: book.table_of_contents ? book.table_of_contents.map((c: any) => c.title || c).join(' -- ') : null,
+					isbn: cleanISBN,
+					issn: null,
 					source: 'OpenLibrary'
 				};
 			}
@@ -188,12 +222,15 @@
 			for (const result of selectedResults) {
 				try {
 					const marcRecord = {
-						isbn: result.isbn,
+						isbn: result.data.isbn || result.isbn,
+						issn: result.data.issn || null,
 						material_type: 'book',
 						title_statement: {
 							a: result.data.title,
 							b: result.data.subtitle
 						},
+						varying_form_title: result.data.variant_title ? [{ a: result.data.variant_title }] : [],
+						edition_statement: result.data.edition ? { a: result.data.edition } : null,
 						main_entry_personal_name: result.data.authors[0] ? { a: result.data.authors[0] } : null,
 						publication_info: {
 							a: '',
@@ -203,7 +240,12 @@
 						physical_description: {
 							a: result.data.number_of_pages ? `${result.data.number_of_pages} pages` : null
 						},
-						subject_topical: result.data.subjects?.slice(0, 5).map((s: string) => ({ a: s })) || [],
+						lc_call_number: result.data.lc_call_number || null,
+						dewey_call_number: result.data.dewey_call_number || null,
+						language_note: result.data.language_note || null,
+						formatted_contents_note: result.data.contents_note ? [result.data.contents_note] : [],
+						subject_topical: result.data.subjects?.slice(0, 10).map((s: string) => ({ a: s })) || [],
+						genre_form_term: result.data.genre_forms?.map((g: string) => ({ a: g })) || [],
 						marc_json: {
 							source: result.source,
 							imported_data: result.data
