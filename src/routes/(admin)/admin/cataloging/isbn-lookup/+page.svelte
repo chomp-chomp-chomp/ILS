@@ -80,7 +80,7 @@
 	 * Free API - no authentication required
 	 */
 	async function tryOCLCClassify(cleanISBN: string) {
-		const url = `http://classify.oclc.org/classify2/Classify?isbn=${cleanISBN}&summary=true`;
+		const url = `https://classify.oclc.org/classify2/Classify?isbn=${cleanISBN}&summary=true`;
 
 		const response = await fetch(url);
 		const xmlText = await response.text();
