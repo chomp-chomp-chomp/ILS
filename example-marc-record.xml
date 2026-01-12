@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+  <record>
+    <!-- Leader -->
+    <leader>00000cam a2200000 i 4500</leader>
+
+    <!-- Control Fields -->
+    <controlfield tag="001">12345678</controlfield>
+    <controlfield tag="003">DLC</controlfield>
+    <controlfield tag="005">20240115120000.0</controlfield>
+    <controlfield tag="008">150203s2015    nyu           000 0 eng  </controlfield>
+
+    <!-- ISBN (020) -->
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">9780062316097</subfield>
+      <subfield code="q">(hardcover)</subfield>
+    </datafield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">9780062316110</subfield>
+      <subfield code="q">(ebook)</subfield>
+    </datafield>
+
+    <!-- ISSN (022) - for serials -->
+    <!-- <datafield tag="022" ind1=" " ind2=" ">
+      <subfield code="a">1234-5678</subfield>
+    </datafield> -->
+
+    <!-- Other Standard Identifier (024) -->
+    <datafield tag="024" ind1="1" ind2=" ">
+      <subfield code="a">9780062316097</subfield>
+      <subfield code="2">UPC</subfield>
+    </datafield>
+
+    <!-- Library of Congress Call Number (050) -->
+    <datafield tag="050" ind1="0" ind2="0">
+      <subfield code="a">GN281</subfield>
+      <subfield code="b">.H37 2015</subfield>
+    </datafield>
+
+    <!-- Dewey Decimal Classification (082) -->
+    <datafield tag="082" ind1="0" ind2="0">
+      <subfield code="a">599.938</subfield>
+      <subfield code="2">23</subfield>
+    </datafield>
+
+    <!-- Main Entry - Personal Name (100) -->
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Harari, Yuval Noah</subfield>
+      <subfield code="d">1976-</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+
+    <!-- Main Entry - Corporate Name (110) - Use this OR 100, not both -->
+    <!-- <datafield tag="110" ind1="2" ind2=" ">
+      <subfield code="a">United Nations</subfield>
+      <subfield code="b">Department of Economic and Social Affairs</subfield>
+    </datafield> -->
+
+    <!-- Title Statement (245) -->
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Sapiens :</subfield>
+      <subfield code="b">a brief history of humankind /</subfield>
+      <subfield code="c">Yuval Noah Harari.</subfield>
+    </datafield>
+
+    <!-- Varying Form of Title (246) -->
+    <datafield tag="246" ind1="3" ind2=" ">
+      <subfield code="a">Brief history of humankind</subfield>
+    </datafield>
+    <datafield tag="246" ind1="1" ind2="1">
+      <subfield code="i">Original title:</subfield>
+      <subfield code="a">Ḳitsur toldot ha-enoshut</subfield>
+    </datafield>
+
+    <!-- Edition Statement (250) -->
+    <datafield tag="250" ind1=" " ind2=" ">
+      <subfield code="a">First U.S. edition.</subfield>
+    </datafield>
+
+    <!-- Publication, Distribution, etc. (264) -->
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="a">New York :</subfield>
+      <subfield code="b">Harper,</subfield>
+      <subfield code="c">2015.</subfield>
+    </datafield>
+
+    <!-- Physical Description (300) -->
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">464 pages :</subfield>
+      <subfield code="b">illustrations, maps ;</subfield>
+      <subfield code="c">24 cm</subfield>
+    </datafield>
+
+    <!-- Content Type (336) - RDA -->
+    <datafield tag="336" ind1=" " ind2=" ">
+      <subfield code="a">text</subfield>
+      <subfield code="b">txt</subfield>
+      <subfield code="2">rdacontent</subfield>
+    </datafield>
+
+    <!-- Media Type (337) - RDA -->
+    <datafield tag="337" ind1=" " ind2=" ">
+      <subfield code="a">unmediated</subfield>
+      <subfield code="b">n</subfield>
+      <subfield code="2">rdamedia</subfield>
+    </datafield>
+
+    <!-- Carrier Type (338) - RDA -->
+    <datafield tag="338" ind1=" " ind2=" ">
+      <subfield code="a">volume</subfield>
+      <subfield code="b">nc</subfield>
+      <subfield code="2">rdacarrier</subfield>
+    </datafield>
+
+    <!-- General Note (500) -->
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Translated from the Hebrew.</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">"First published in Israel in 2011 by Kinneret Zmora-Bitan Dvir"--Title page verso.</subfield>
+    </datafield>
+
+    <!-- Bibliography Note (504) -->
+    <datafield tag="504" ind1=" " ind2=" ">
+      <subfield code="a">Includes bibliographical references (pages 421-456) and index.</subfield>
+    </datafield>
+
+    <!-- Formatted Contents Note (505) -->
+    <datafield tag="505" ind1="0" ind2=" ">
+      <subfield code="a">Part one. The cognitive revolution -- An animal of no significance -- The tree of knowledge -- A day in the life of Adam and Eve -- The flood -- Part two. The agricultural revolution -- History's biggest fraud -- Building pyramids -- Memory overload -- There is no justice in history -- Part three. The unification of humankind -- The arrow of history -- The scent of money -- Imperial visions -- The law of religion -- The secret of success -- Part four. The scientific revolution -- The discovery of ignorance -- The marriage of science and empire -- The capitalist creed -- The wheels of industry -- A permanent revolution -- And they lived happily ever after -- The end of Homo sapiens.</subfield>
+    </datafield>
+
+    <!-- Summary (520) -->
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">The book surveys the history of humankind from the evolution of archaic human species in the Stone Age up to the twenty-first century, focusing on Homo sapiens. The account is situated within a framework that intersects the natural sciences with the social sciences. The author describes how the course of history has been shaped by three major revolutions: the Cognitive Revolution (circa 70,000 years ago), the Agricultural Revolution (circa 10,000 years ago), and the Scientific Revolution (which began circa 500 years ago and may be about to end Homo sapiens as such).</subfield>
+    </datafield>
+
+    <!-- Language Note (546) -->
+    <datafield tag="546" ind1=" " ind2=" ">
+      <subfield code="a">Translated from Hebrew; original title: Ḳitsur toldot ha-enoshut.</subfield>
+    </datafield>
+
+    <!-- Subject Added Entry - Topical Term (650) -->
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Human beings</subfield>
+      <subfield code="x">History.</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Civilization</subfield>
+      <subfield code="x">History.</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Human evolution.</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">World history.</subfield>
+    </datafield>
+
+    <!-- Subject Added Entry - Geographic Name (651) -->
+    <datafield tag="651" ind1=" " ind2="0">
+      <subfield code="a">Earth (Planet)</subfield>
+      <subfield code="x">Civilization</subfield>
+      <subfield code="x">History.</subfield>
+    </datafield>
+
+    <!-- Index Term - Genre/Form (655) -->
+    <datafield tag="655" ind1=" " ind2="7">
+      <subfield code="a">Popular works.</subfield>
+      <subfield code="2">lcgft</subfield>
+    </datafield>
+    <datafield tag="655" ind1=" " ind2="7">
+      <subfield code="a">History.</subfield>
+      <subfield code="2">fast</subfield>
+    </datafield>
+
+    <!-- Added Entry - Personal Name (700) -->
+    <datafield tag="700" ind1="1" ind2=" ">
+      <subfield code="a">Purcell, John</subfield>
+      <subfield code="e">translator.</subfield>
+    </datafield>
+    <datafield tag="700" ind1="1" ind2=" ">
+      <subfield code="a">Watzman, Haim</subfield>
+      <subfield code="e">translator.</subfield>
+    </datafield>
+
+    <!-- Added Entry - Corporate Name (710) -->
+    <!-- <datafield tag="710" ind1="2" ind2=" ">
+      <subfield code="a">Library of Congress</subfield>
+      <subfield code="b">Cataloging Distribution Service.</subfield>
+    </datafield> -->
+
+    <!-- Holdings Information (852) - Usually separate from bib record -->
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">Main Library</subfield>
+      <subfield code="b">General Collection</subfield>
+      <subfield code="c">GN281 .H37 2015</subfield>
+    </datafield>
+
+    <!-- Electronic Location and Access (856) -->
+    <datafield tag="856" ind1="4" ind2="2">
+      <subfield code="3">Publisher description</subfield>
+      <subfield code="u">http://www.harpercollins.com/book/9780062316097/Sapiens/</subfield>
+    </datafield>
+    <datafield tag="856" ind1="4" ind2="1">
+      <subfield code="3">Cover image</subfield>
+      <subfield code="u">http://covers.openlibrary.org/b/isbn/9780062316097-L.jpg</subfield>
+    </datafield>
+
+  </record>
+</collection>
