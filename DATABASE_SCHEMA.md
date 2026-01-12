@@ -99,9 +99,9 @@ BEGIN
     setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
     setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'b', '')), 'A') ||
 
-    -- Variant titles (weight A)
+    -- Variant titles (weight A) - JSONB[] array
     setweight(to_tsvector('english', COALESCE(
-      (SELECT string_agg(elem->>'title', ' ') FROM jsonb_array_elements(COALESCE(NEW.varying_form_title, '[]'::jsonb)) AS elem),
+      (SELECT string_agg(elem->>'title', ' ') FROM unnest(COALESCE(NEW.varying_form_title, ARRAY[]::jsonb[])) AS elem),
       ''
     )), 'A') ||
 
@@ -109,17 +109,17 @@ BEGIN
     setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
     setweight(to_tsvector('english', COALESCE(NEW.main_entry_corporate_name->>'a', '')), 'B') ||
 
-    -- Subjects (weight B)
+    -- Subjects (weight B) - JSONB[] arrays
     setweight(to_tsvector('english', COALESCE(
-      (SELECT string_agg(elem->>'a', ' ') FROM jsonb_array_elements(COALESCE(NEW.subject_topical, '[]'::jsonb)) AS elem),
+      (SELECT string_agg(elem->>'a', ' ') FROM unnest(COALESCE(NEW.subject_topical, ARRAY[]::jsonb[])) AS elem),
       ''
     )), 'B') ||
     setweight(to_tsvector('english', COALESCE(
-      (SELECT string_agg(elem->>'a', ' ') FROM jsonb_array_elements(COALESCE(NEW.subject_geographic, '[]'::jsonb)) AS elem),
+      (SELECT string_agg(elem->>'a', ' ') FROM unnest(COALESCE(NEW.subject_geographic, ARRAY[]::jsonb[])) AS elem),
       ''
     )), 'B') ||
     setweight(to_tsvector('english', COALESCE(
-      (SELECT string_agg(elem->>'a', ' ') FROM jsonb_array_elements(COALESCE(NEW.genre_form_term, '[]'::jsonb)) AS elem),
+      (SELECT string_agg(elem->>'a', ' ') FROM unnest(COALESCE(NEW.genre_form_term, ARRAY[]::jsonb[])) AS elem),
       ''
     )), 'B') ||
 
@@ -137,7 +137,7 @@ BEGIN
     setweight(to_tsvector('simple', COALESCE(NEW.isbn, '')), 'B') ||
     setweight(to_tsvector('simple', COALESCE(NEW.issn, '')), 'B') ||
     setweight(to_tsvector('simple', COALESCE(
-      (SELECT string_agg(elem->>'value', ' ') FROM jsonb_array_elements(COALESCE(NEW.other_standard_identifier, '[]'::jsonb)) AS elem),
+      (SELECT string_agg(elem->>'value', ' ') FROM unnest(COALESCE(NEW.other_standard_identifier, ARRAY[]::jsonb[])) AS elem),
       ''
     )), 'B');
 
