@@ -18,7 +18,7 @@ CREATE TABLE marc_records (
   leader VARCHAR(24),
   control_number VARCHAR(50) UNIQUE, -- 001
   control_number_identifier VARCHAR(100), -- 003
-  date_entered VARCHAR(8), -- 008
+  date_entered VARCHAR(40), -- 008 (40-character fixed field)
 
   -- Standard identifiers
   isbn VARCHAR(20), -- 020

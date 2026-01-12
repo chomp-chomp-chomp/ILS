@@ -159,14 +159,14 @@
 			}];
 
 			try {
-				// Try OpenLibrary first
-				let bookData = await tryOpenLibrary(isbn);
-				let source = 'OpenLibrary';
+				// Try Library of Congress first (more complete MARC data)
+				let bookData = await tryLibraryOfCongress(isbn);
+				let source = 'Library of Congress';
 
-				// Fallback to LoC if OpenLibrary didn't find it
+				// Fallback to OpenLibrary if LoC didn't find it
 				if (!bookData) {
-					bookData = await tryLibraryOfCongress(isbn);
-					source = 'Library of Congress';
+					bookData = await tryOpenLibrary(isbn);
+					source = 'OpenLibrary';
 				}
 
 				// Update the result
