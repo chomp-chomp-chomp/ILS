@@ -180,51 +180,111 @@
 		}
 
 		processing = true;
+		let inserted = 0;
+		let updated = 0;
+		let errors = 0;
 
 		try {
 			for (const result of selectedResults) {
-				const marcRecord = {
-					isbn: result.isbn,
-					material_type: 'book',
-					title_statement: {
-						a: result.data.title,
-						b: result.data.subtitle
-					},
-					main_entry_personal_name: result.data.authors[0] ? { a: result.data.authors[0] } : null,
-					publication_info: {
-						a: '',
-						b: result.data.publishers[0] || '',
-						c: result.data.publish_date
-					},
-					physical_description: {
-						a: result.data.number_of_pages ? `${result.data.number_of_pages} pages` : null
-					},
-					subject_topical: result.data.subjects?.slice(0, 5).map((s: string) => ({ a: s })) || [],
-					marc_json: {
-						source: result.source,
-						imported_data: result.data
+				try {
+					const marcRecord = {
+						isbn: result.isbn,
+						material_type: 'book',
+						title_statement: {
+							a: result.data.title,
+							b: result.data.subtitle
+						},
+						main_entry_personal_name: result.data.authors[0] ? { a: result.data.authors[0] } : null,
+						publication_info: {
+							a: '',
+							b: result.data.publishers[0] || '',
+							c: result.data.publish_date
+						},
+						physical_description: {
+							a: result.data.number_of_pages ? `${result.data.number_of_pages} pages` : null
+						},
+						subject_topical: result.data.subjects?.slice(0, 5).map((s: string) => ({ a: s })) || [],
+						marc_json: {
+							source: result.source,
+							imported_data: result.data
+						}
+					};
+
+					// Check if record with this ISBN already exists
+					const { data: existing, error: searchError } = await supabase
+						.from('marc_records')
+						.select('id')
+						.eq('isbn', result.isbn)
+						.maybeSingle();
+
+					if (searchError) throw searchError;
+
+					if (existing) {
+						// UPDATE existing record (overlay)
+						const { error: updateError } = await supabase
+							.from('marc_records')
+							.update({
+								...marcRecord,
+								updated_at: new Date().toISOString()
+							})
+							.eq('id', existing.id);
+
+						if (updateError) throw updateError;
+						updated++;
+
+						// Update result status
+						const index = results.findIndex(r => r.isbn === result.isbn);
+						if (index >= 0) {
+							results[index].importStatus = 'updated';
+							results = [...results];
+						}
+					} else {
+						// INSERT new record
+						const { data: insertedRecord, error: insertError } = await supabase
+							.from('marc_records')
+							.insert([marcRecord])
+							.select();
+
+						if (insertError) throw insertError;
+						inserted++;
+
+						// Auto-create default holding for new records only
+						if (insertedRecord && insertedRecord[0]) {
+							await supabase.from('holdings').insert([{
+								marc_record_id: insertedRecord[0].id,
+								location: 'Main Library',
+								status: 'available',
+								copy_number: 1
+							}]);
+						}
+
+						// Update result status
+						const index = results.findIndex(r => r.isbn === result.isbn);
+						if (index >= 0) {
+							results[index].importStatus = 'inserted';
+							results = [...results];
+						}
 					}
-				};
+				} catch (err: any) {
+					console.error(`Error importing ISBN ${result.isbn}:`, err);
+					errors++;
 
-				const { data: inserted, error: insertError } = await supabase
-					.from('marc_records')
-					.insert([marcRecord])
-					.select();
-
-				if (insertError) throw insertError;
-
-				// Auto-create default holding
-				if (inserted && inserted[0]) {
-					await supabase.from('holdings').insert([{
-						marc_record_id: inserted[0].id,
-						location: 'Main Library',
-						status: 'available',
-						copy_number: 1
-					}]);
+					// Update result status
+					const index = results.findIndex(r => r.isbn === result.isbn);
+					if (index >= 0) {
+						results[index].importStatus = 'error';
+						results[index].importError = err.message;
+						results = [...results];
+					}
 				}
 			}
 
-			goto('/admin/cataloging');
+			// Show summary
+			alert(`Import complete!\n\nInserted: ${inserted}\nUpdated: ${updated}\nErrors: ${errors}`);
+
+			if (errors === 0) {
+				goto('/admin/cataloging');
+			}
 		} catch (err: any) {
 			alert(`Error importing: ${err.message}`);
 		} finally {
@@ -243,8 +303,8 @@
 </script>
 
 <div class="bulk-isbn-page">
-	<h1>Bulk ISBN Upload</h1>
-	<p class="subtitle">Paste multiple ISBNs (one per line) to import in batch</p>
+	<h1>Bulk ISBN Import/Update</h1>
+	<p class="subtitle">Paste multiple ISBNs (one per line) to import or update records. Existing records will be updated automatically.</p>
 
 	<div class="upload-form">
 		<div class="form-group">
@@ -294,10 +354,20 @@
 								<input
 									type="checkbox"
 									bind:checked={result.selected}
+									disabled={result.importStatus}
 								/>
 							</div>
 							<div class="result-content">
-								<h3>{result.data.title}</h3>
+								<h3>
+									{result.data.title}
+									{#if result.importStatus === 'updated'}
+										<span class="status-badge updated">UPDATED</span>
+									{:else if result.importStatus === 'inserted'}
+										<span class="status-badge inserted">NEW</span>
+									{:else if result.importStatus === 'error'}
+										<span class="status-badge error">ERROR</span>
+									{/if}
+								</h3>
 								{#if result.data.authors.length > 0}
 									<p class="author">{result.data.authors.join(', ')}</p>
 								{/if}
@@ -311,6 +381,9 @@
 									{/if}
 								</p>
 								<p class="source">Source: {result.source}</p>
+								{#if result.importError}
+									<p class="import-error">Error: {result.importError}</p>
+								{/if}
 							</div>
 						{:else if result.status === 'not_found'}
 							<div class="result-content">
@@ -536,5 +609,39 @@
 		margin: 0;
 		color: #dc2626;
 		font-weight: 500;
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		margin-left: 1rem;
+		border-radius: 12px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		vertical-align: middle;
+	}
+
+	.status-badge.updated {
+		background: #dbeafe;
+		color: #1e40af;
+	}
+
+	.status-badge.inserted {
+		background: #d1fae5;
+		color: #065f46;
+	}
+
+	.status-badge.error {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	.import-error {
+		margin: 0.5rem 0 0 0;
+		padding: 0.5rem;
+		background: #fef2f2;
+		border-left: 3px solid #dc2626;
+		font-size: 0.875rem;
+		color: #991b1b;
 	}
 </style>
