@@ -14,16 +14,26 @@
 
 	// Pre-populate fields from existing record
 	let isbn = $state(record.isbn || '');
+	let issn = $state(record.issn || '');
 	let title = $state(record.title_statement?.a || '');
 	let subtitle = $state(record.title_statement?.b || '');
+	let variantTitle = $state(record.varying_form_title?.[0]?.a || '');
+	let edition = $state(record.edition_statement?.a || '');
 	let author = $state(record.main_entry_personal_name?.a || '');
 	let publisher = $state(record.publication_info?.b || '');
 	let publicationPlace = $state(record.publication_info?.a || '');
 	let publicationYear = $state(record.publication_info?.c || '');
 	let pages = $state(record.physical_description?.a?.replace(' pages', '') || '');
+	let lcCallNumber = $state(record.lc_call_number?.a || '');
+	let deweyCallNumber = $state(record.dewey_call_number?.a || '');
+	let languageNote = $state(record.language_note || '');
+	let contentsNote = $state(record.formatted_contents_note?.[0] || '');
 	let summary = $state(record.summary || '');
 	let subjects = $state<string[]>(
 		record.subject_topical?.map((s: any) => s.a) || ['']
+	);
+	let genreTerms = $state<string[]>(
+		record.genre_form_term?.map((g: any) => g.a) || []
 	);
 let materialType = $state(record.material_type || 'book');
 let customCoverUrl = $state<string | null>(record.cover_image_url || null);
@@ -93,6 +103,7 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 		try {
 			const updatedRecord = {
 				isbn,
+				issn,
 				material_type: materialType,
 				visibility,
 				status,
@@ -100,6 +111,8 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 					a: title,
 					b: subtitle
 				},
+				varying_form_title: variantTitle ? [{ a: variantTitle }] : [],
+				edition_statement: edition ? { a: edition } : null,
 				main_entry_personal_name: author ? { a: author } : null,
 				publication_info: {
 					a: publicationPlace,
@@ -109,10 +122,17 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 				physical_description: {
 					a: pages ? `${pages} pages` : null
 				},
+				lc_call_number: lcCallNumber ? { a: lcCallNumber } : null,
+				dewey_call_number: deweyCallNumber ? { a: deweyCallNumber } : null,
+				language_note: languageNote || null,
+				formatted_contents_note: contentsNote ? [contentsNote] : [],
 				summary,
 				subject_topical: subjects
 					.filter((s) => s.trim())
 					.map((s) => ({ a: s.trim() })),
+				genre_form_term: genreTerms
+					.filter((g) => g.trim())
+					.map((g) => ({ a: g.trim() })),
 				updated_at: new Date().toISOString()
 			};
 
@@ -535,8 +555,13 @@ function statusClass(status: string) {
 
 			<div class="form-row">
 				<div class="form-group">
-					<label for="isbn">ISBN</label>
+					<label for="isbn">ISBN (MARC 020)</label>
 					<input id="isbn" type="text" bind:value={isbn} placeholder="978-0-..." />
+				</div>
+
+				<div class="form-group">
+					<label for="issn">ISSN (MARC 022)</label>
+					<input id="issn" type="text" bind:value={issn} placeholder="1234-5678" />
 				</div>
 
 				<div class="form-group">
@@ -549,6 +574,18 @@ function statusClass(status: string) {
 						<option value="cdrom">CD-ROM</option>
 						<option value="serial">Serial</option>
 					</select>
+				</div>
+			</div>
+
+			<div class="form-row">
+				<div class="form-group">
+					<label for="lcCallNumber">LC Call Number (MARC 050)</label>
+					<input id="lcCallNumber" type="text" bind:value={lcCallNumber} placeholder="PS3545.I345 C5" />
+				</div>
+
+				<div class="form-group">
+					<label for="deweyCallNumber">Dewey Decimal (MARC 082)</label>
+					<input id="deweyCallNumber" type="text" bind:value={deweyCallNumber} placeholder="813.54" />
 				</div>
 			</div>
 
@@ -880,6 +917,17 @@ function statusClass(status: string) {
 				<input id="subtitle" type="text" bind:value={subtitle} placeholder="Subtitle or parallel title" />
 			</div>
 
+			<div class="form-group">
+				<label for="variantTitle">Variant Title (MARC 246)</label>
+				<input id="variantTitle" type="text" bind:value={variantTitle} placeholder="Alternate title" />
+				<small class="help-text">Portion of title, parallel title, or other form</small>
+			</div>
+
+			<div class="form-group">
+				<label for="edition">Edition Statement (MARC 250)</label>
+				<input id="edition" type="text" bind:value={edition} placeholder="e.g., 2nd ed., Revised edition" />
+			</div>
+
 			<div class="form-group {(!isNameLinked() && author) ? 'unauthorized' : ''}">
 				<label for="author">Main Author</label>
 				<input id="author" type="text" bind:value={author} placeholder="Last, First" />
@@ -974,6 +1022,54 @@ function statusClass(status: string) {
 				<label for="summary">Summary/Abstract</label>
 				<textarea id="summary" bind:value={summary} rows="4" placeholder="Brief description or abstract"></textarea>
 			</div>
+		</section>
+
+		<section class="form-section">
+			<h2>Additional Notes</h2>
+
+			<div class="form-group">
+				<label for="contentsNote">Table of Contents (MARC 505)</label>
+				<textarea id="contentsNote" bind:value={contentsNote} rows="3" placeholder="Chapter 1. Introduction -- Chapter 2. Methods..."></textarea>
+				<small class="help-text">Formatted contents note</small>
+			</div>
+
+			<div class="form-group">
+				<label for="languageNote">Language Note (MARC 546)</label>
+				<input id="languageNote" type="text" bind:value={languageNote} placeholder="e.g., Text in English; translated from French" />
+			</div>
+		</section>
+
+		<section class="form-section">
+			<h2>Genre/Form Terms (MARC 655)</h2>
+			<p class="section-note">Genre or form terms for classification (e.g., Biographies, Handbooks, Fiction)</p>
+
+			{#each genreTerms as term, index}
+				<div class="form-row">
+					<div class="form-group" style="flex: 1;">
+						<label for="genre-{index}">Genre/Form {index + 1}</label>
+						<input
+							id="genre-{index}"
+							type="text"
+							bind:value={genreTerms[index]}
+							placeholder="e.g., Biographies, Handbooks"
+						/>
+					</div>
+					{#if genreTerms.length > 1}
+						<button
+							type="button"
+							class="btn-danger"
+							onclick={() => genreTerms = genreTerms.filter((_, i) => i !== index)}
+							style="align-self: flex-end;"
+						>
+							Remove
+						</button>
+					{/if}
+				</div>
+			{/each}
+
+			<button type="button" class="btn-secondary" onclick={() => genreTerms = [...genreTerms, '']}>
+				Add Genre/Form Term
+			</button>
 		</section>
 
 		<div class="form-actions">
