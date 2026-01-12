@@ -48,6 +48,7 @@
 			authors: [getDatafield('100', 'a') || getDatafield('110', 'a')].filter(a => a),
 			publishers: [getDatafield('260', 'b') || getDatafield('264', 'b')].filter(p => p).map(p => p.replace(/,\s*$/, '')),
 			publish_date: getDatafield('260', 'c') || getDatafield('264', 'c'),
+			number_of_pages: null, // Not typically in LoC MARC, but added for consistency
 			subjects: getAllDatafields('650', 'a'),
 			genre_forms: getAllDatafields('655', 'a'),
 			lc_call_number: getFullDatafield('050'),
@@ -89,28 +90,28 @@
 			if (bookData[key]) {
 				const book = bookData[key];
 				return {
-					title: book.title,
-					subtitle: book.subtitle,
-					variant_title: null, // OpenLibrary doesn't provide this
-					edition: book.edition_name,
+					title: book.title || '',
+					subtitle: book.subtitle || '',
+					variant_title: '', // OpenLibrary doesn't provide this
+					edition: book.edition_name || '',
 					authors: book.authors?.map((a: any) => a.name) || [],
 					publishers: book.publishers?.map((p: any) => p.name) || [],
-					publish_date: book.publish_date,
-					number_of_pages: book.number_of_pages,
+					publish_date: book.publish_date || '',
+					number_of_pages: book.number_of_pages || null,
 					subjects: book.subjects?.map((s: any) => s.name) || [],
-					genre_forms: [], // OpenLibrary doesn't provide genre/form terms
-					lc_call_number: null, // Not in OpenLibrary API
-					dewey_call_number: null, // Not in OpenLibrary API
-					language_note: null,
-					contents_note: book.table_of_contents ? book.table_of_contents.map((c: any) => c.title || c).join(' -- ') : null,
+					genre_forms: [] as string[], // OpenLibrary doesn't provide genre/form terms
+					lc_call_number: null as any,
+					dewey_call_number: null as any,
+					language_note: '',
+					contents_note: book.table_of_contents ? book.table_of_contents.map((c: any) => c.title || c).join(' -- ') : '',
 					isbn: cleanISBN,
-					issn: null,
+					issn: '',
 					source: 'OpenLibrary'
 				};
 			}
 			return null;
 		} catch (err) {
-			console.error(`OpenLibrary error for ${cleanISBN}:`, err);
+			console.warn(`OpenLibrary error for ${cleanISBN}:`, err);
 			return null;
 		}
 	}
@@ -120,7 +121,8 @@
 			const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
 			const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
 
-			const response = await fetchWithTimeout(url, 10000);
+			// Reduced timeout from 10s to 5s for faster fallback
+			const response = await fetchWithTimeout(url, 5000);
 			const xmlText = await response.text();
 
 			if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
@@ -129,7 +131,7 @@
 
 			return await parseLocMarc(xmlText);
 		} catch (err) {
-			console.error(`LoC error for ${cleanISBN}:`, err);
+			console.warn(`LoC API failed for ${cleanISBN}:`, err);
 			return null;
 		}
 	}
@@ -159,14 +161,41 @@
 			}];
 
 			try {
-				// Try Library of Congress first (more complete MARC data)
-				let bookData = await tryLibraryOfCongress(isbn);
-				let source = 'Library of Congress';
-
-				// Fallback to OpenLibrary if LoC didn't find it
-				if (!bookData) {
-					bookData = await tryOpenLibrary(isbn);
-					source = 'OpenLibrary';
+				// Strategy: Try OpenLibrary first for speed, then supplement with LoC for complete MARC data
+				let bookData = await tryOpenLibrary(isbn);
+				let source = 'OpenLibrary';
+				
+				if (bookData) {
+					// OpenLibrary found it - now try to supplement with LoC data
+					// LoC provides better call numbers, subject headings, and MARC fields
+					const locData = await tryLibraryOfCongress(isbn);
+					
+					if (locData) {
+						// Merge: Keep OpenLibrary's cover/pages but add LoC's superior MARC data
+						bookData = {
+							...bookData,
+							// Prefer LoC call numbers (more authoritative)
+							lc_call_number: locData.lc_call_number || bookData.lc_call_number,
+							dewey_call_number: locData.dewey_call_number || bookData.dewey_call_number,
+							// Prefer LoC subject headings (LCSH controlled vocabulary)
+							subjects: locData.subjects.length > 0 ? locData.subjects : bookData.subjects,
+							// Add LoC-specific genre/form terms
+							genre_forms: locData.genre_forms.length > 0 ? locData.genre_forms : bookData.genre_forms,
+							// Prefer LoC variant title and edition if available
+							variant_title: locData.variant_title || bookData.variant_title,
+							edition: locData.edition || bookData.edition,
+							// Add language and contents notes from LoC
+							language_note: locData.language_note || bookData.language_note,
+							contents_note: locData.contents_note || bookData.contents_note,
+							// Keep ISSN if LoC has it
+							issn: locData.issn || bookData.issn
+						};
+						source = 'OpenLibrary + Library of Congress';
+					}
+				} else {
+					// OpenLibrary didn't find it - try LoC as complete fallback
+					bookData = await tryLibraryOfCongress(isbn);
+					source = 'Library of Congress';
 				}
 
 				// Update the result
@@ -346,7 +375,7 @@
 
 <div class="bulk-isbn-page">
 	<h1>Bulk ISBN Import/Update</h1>
-	<p class="subtitle">Paste multiple ISBNs (one per line) to import or update records. Existing records will be updated automatically.</p>
+	<p class="subtitle">Paste multiple ISBNs (one per line) to import or update records. Searches OpenLibrary first (fast), then supplements with Library of Congress data for complete MARC fields (call numbers, subject headings). Existing records will be updated automatically.</p>
 
 	<div class="upload-form">
 		<div class="form-group">
