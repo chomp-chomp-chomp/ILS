@@ -20,16 +20,21 @@ CREATE TABLE marc_records (
   control_number_identifier VARCHAR(100), -- 003
   date_entered VARCHAR(8), -- 008
 
-  -- ISBN/ISSN
-  isbn VARCHAR(20),
-  issn VARCHAR(20),
+  -- Standard identifiers
+  isbn VARCHAR(20), -- 020
+  issn VARCHAR(20), -- 022
+  other_standard_identifier JSONB[], -- 024 array of {type, value, qualifier}
 
   -- Main entry fields
   main_entry_personal_name JSONB, -- 100
   main_entry_corporate_name JSONB, -- 110
 
-  -- Title
+  -- Title fields
   title_statement JSONB, -- 245 {a: title, b: subtitle, c: statement of responsibility}
+  varying_form_title JSONB[], -- 246 array of {type, title, subtitle}
+
+  -- Edition
+  edition_statement JSONB, -- 250 {a: edition, b: statement of responsibility}
 
   -- Publication info
   publication_info JSONB, -- 260/264 {a: place, b: publisher, c: date}
@@ -37,21 +42,33 @@ CREATE TABLE marc_records (
   -- Physical description
   physical_description JSONB, -- 300 {a: extent, b: other details, c: dimensions}
 
+  -- RDA carrier/content/media types
+  content_type JSONB[], -- 336 array of {a: term, b: code, 2: source}
+  media_type JSONB[], -- 337 array of {a: term, b: code, 2: source}
+  carrier_type JSONB[], -- 338 array of {a: term, b: code, 2: source}
+
   -- Series
   series_statement JSONB, -- 490
 
   -- Notes
   general_note TEXT[], -- 500
   bibliography_note TEXT, -- 504
+  formatted_contents_note TEXT[], -- 505
   summary TEXT, -- 520
+  language_note TEXT, -- 546
 
   -- Subject headings
   subject_topical JSONB[], -- 650 array of {a: term, v: form, x: general, y: chronological, z: geographic}
   subject_geographic JSONB[], -- 651
+  genre_form_term JSONB[], -- 655 array of {a: term, v: form, x: general, y: chronological, z: geographic, 2: source}
 
   -- Added entries
   added_entry_personal_name JSONB[], -- 700
   added_entry_corporate_name JSONB[], -- 710
+
+  -- Call numbers
+  lc_call_number JSONB, -- 050 {a: classification, b: item number}
+  dewey_call_number JSONB, -- 082 {a: number, 2: edition}
 
   -- Full MARC record (for complete preservation)
   marc_json JSONB,
@@ -63,21 +80,67 @@ CREATE TABLE marc_records (
   search_vector TSVECTOR
 );
 
--- Create indexes for search
+-- Create indexes for search and filtering
 CREATE INDEX idx_marc_records_isbn ON marc_records(isbn);
 CREATE INDEX idx_marc_records_control_number ON marc_records(control_number);
 CREATE INDEX idx_marc_records_search_vector ON marc_records USING GIN(search_vector);
 CREATE INDEX idx_marc_records_material_type ON marc_records(material_type);
+CREATE INDEX idx_marc_other_standard_id ON marc_records USING GIN(other_standard_identifier);
+CREATE INDEX idx_marc_genre_form ON marc_records USING GIN(genre_form_term);
+CREATE INDEX idx_marc_lc_call_number ON marc_records((lc_call_number->>'a'));
+CREATE INDEX idx_marc_dewey_call_number ON marc_records((dewey_call_number->>'a'));
 
 -- Create full-text search trigger
 CREATE OR REPLACE FUNCTION update_marc_search_vector()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.search_vector :=
+    -- Title (weight A - highest priority)
     setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'a', '')), 'A') ||
+    setweight(to_tsvector('english', COALESCE(NEW.title_statement->>'b', '')), 'A') ||
+
+    -- Variant titles (weight A)
+    setweight(to_tsvector('english', COALESCE(
+      (SELECT string_agg(elem->>'title', ' ') FROM jsonb_array_elements(COALESCE(NEW.varying_form_title, '[]'::jsonb)) AS elem),
+      ''
+    )), 'A') ||
+
+    -- Author (weight B - high priority)
     setweight(to_tsvector('english', COALESCE(NEW.main_entry_personal_name->>'a', '')), 'B') ||
+    setweight(to_tsvector('english', COALESCE(NEW.main_entry_corporate_name->>'a', '')), 'B') ||
+
+    -- Subjects (weight B)
+    setweight(to_tsvector('english', COALESCE(
+      (SELECT string_agg(elem->>'a', ' ') FROM jsonb_array_elements(COALESCE(NEW.subject_topical, '[]'::jsonb)) AS elem),
+      ''
+    )), 'B') ||
+    setweight(to_tsvector('english', COALESCE(
+      (SELECT string_agg(elem->>'a', ' ') FROM jsonb_array_elements(COALESCE(NEW.subject_geographic, '[]'::jsonb)) AS elem),
+      ''
+    )), 'B') ||
+    setweight(to_tsvector('english', COALESCE(
+      (SELECT string_agg(elem->>'a', ' ') FROM jsonb_array_elements(COALESCE(NEW.genre_form_term, '[]'::jsonb)) AS elem),
+      ''
+    )), 'B') ||
+
+    -- Publisher (weight C - medium priority)
     setweight(to_tsvector('english', COALESCE(NEW.publication_info->>'b', '')), 'C') ||
-    setweight(to_tsvector('english', COALESCE(NEW.summary, '')), 'D');
+    setweight(to_tsvector('english', COALESCE(NEW.series_statement->>'a', '')), 'C') ||
+
+    -- Summary and notes (weight D - low priority)
+    setweight(to_tsvector('english', COALESCE(NEW.summary, '')), 'D') ||
+    setweight(to_tsvector('english', COALESCE(array_to_string(NEW.general_note, ' '), '')), 'D') ||
+    setweight(to_tsvector('english', COALESCE(NEW.bibliography_note, '')), 'D') ||
+    setweight(to_tsvector('english', COALESCE(array_to_string(NEW.formatted_contents_note, ' '), '')), 'D') ||
+
+    -- Standard identifiers (simple config, no stemming)
+    setweight(to_tsvector('simple', COALESCE(NEW.isbn, '')), 'B') ||
+    setweight(to_tsvector('simple', COALESCE(NEW.issn, '')), 'B') ||
+    setweight(to_tsvector('simple', COALESCE(
+      (SELECT string_agg(elem->>'value', ' ') FROM jsonb_array_elements(COALESCE(NEW.other_standard_identifier, '[]'::jsonb)) AS elem),
+      ''
+    )), 'B');
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
