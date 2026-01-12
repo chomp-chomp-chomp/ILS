@@ -195,6 +195,16 @@
 						if (tag === '022' && subfields.a) {
 							record.issn = subfields.a;
 						}
+						if (tag === '024') {
+							if (!record.other_standard_identifier) record.other_standard_identifier = [];
+							record.other_standard_identifier.push(subfields);
+						}
+						if (tag === '050') {
+							record.lc_call_number = subfields;
+						}
+						if (tag === '082') {
+							record.dewey_call_number = subfields;
+						}
 						if (tag === '100') {
 							record.main_entry_personal_name = subfields;
 						}
@@ -204,6 +214,10 @@
 						if (tag === '245') {
 							record.title_statement = subfields;
 						}
+						if (tag === '246') {
+							if (!record.varying_form_title) record.varying_form_title = [];
+							record.varying_form_title.push(subfields);
+						}
 						if (tag === '250') {
 							record.edition_statement = subfields;
 						}
@@ -212,6 +226,18 @@
 						}
 						if (tag === '300') {
 							record.physical_description = subfields;
+						}
+						if (tag === '336') {
+							if (!record.content_type) record.content_type = [];
+							record.content_type.push(subfields);
+						}
+						if (tag === '337') {
+							if (!record.media_type) record.media_type = [];
+							record.media_type.push(subfields);
+						}
+						if (tag === '338') {
+							if (!record.carrier_type) record.carrier_type = [];
+							record.carrier_type.push(subfields);
 						}
 						if (tag === '490') {
 							record.series_statement = subfields;
@@ -223,8 +249,15 @@
 						if (tag === '504' && subfields.a) {
 							record.bibliography_note = subfields.a;
 						}
+						if (tag === '505') {
+							if (!record.formatted_contents_note) record.formatted_contents_note = [];
+							if (subfields.a) record.formatted_contents_note.push(subfields.a);
+						}
 						if (tag === '520' && subfields.a) {
 							record.summary = subfields.a;
+						}
+						if (tag === '546' && subfields.a) {
+							record.language_note = subfields.a;
 						}
 						if (tag === '650') {
 							if (!record.subject_topical) record.subject_topical = [];
@@ -233,6 +266,10 @@
 						if (tag === '651') {
 							if (!record.subject_geographic) record.subject_geographic = [];
 							record.subject_geographic.push(subfields);
+						}
+						if (tag === '655') {
+							if (!record.genre_form_term) record.genre_form_term = [];
+							record.genre_form_term.push(subfields);
 						}
 						if (tag === '700') {
 							if (!record.added_entry_personal_name) record.added_entry_personal_name = [];
@@ -319,6 +356,16 @@
 					if (tag === '022' && subfields.a) {
 						record.issn = subfields.a;
 					}
+					if (tag === '024') {
+						if (!record.other_standard_identifier) record.other_standard_identifier = [];
+						record.other_standard_identifier.push(subfields);
+					}
+					if (tag === '050') {
+						record.lc_call_number = subfields;
+					}
+					if (tag === '082') {
+						record.dewey_call_number = subfields;
+					}
 					if (tag === '100') {
 						record.main_entry_personal_name = subfields;
 					}
@@ -328,11 +375,30 @@
 					if (tag === '245') {
 						record.title_statement = subfields;
 					}
+					if (tag === '246') {
+						if (!record.varying_form_title) record.varying_form_title = [];
+						record.varying_form_title.push(subfields);
+					}
+					if (tag === '250') {
+						record.edition_statement = subfields;
+					}
 					if (tag === '260' || tag === '264') {
 						record.publication_info = subfields;
 					}
 					if (tag === '300') {
 						record.physical_description = subfields;
+					}
+					if (tag === '336') {
+						if (!record.content_type) record.content_type = [];
+						record.content_type.push(subfields);
+					}
+					if (tag === '337') {
+						if (!record.media_type) record.media_type = [];
+						record.media_type.push(subfields);
+					}
+					if (tag === '338') {
+						if (!record.carrier_type) record.carrier_type = [];
+						record.carrier_type.push(subfields);
 					}
 					if (tag === '490') {
 						record.series_statement = subfields;
@@ -344,8 +410,15 @@
 					if (tag === '504' && subfields.a) {
 						record.bibliography_note = subfields.a;
 					}
+					if (tag === '505') {
+						if (!record.formatted_contents_note) record.formatted_contents_note = [];
+						if (subfields.a) record.formatted_contents_note.push(subfields.a);
+					}
 					if (tag === '520' && subfields.a) {
 						record.summary = subfields.a;
+					}
+					if (tag === '546' && subfields.a) {
+						record.language_note = subfields.a;
 					}
 					if (tag === '650') {
 						if (!record.subject_topical) record.subject_topical = [];
@@ -354,6 +427,10 @@
 					if (tag === '651') {
 						if (!record.subject_geographic) record.subject_geographic = [];
 						record.subject_geographic.push(subfields);
+					}
+					if (tag === '655') {
+						if (!record.genre_form_term) record.genre_form_term = [];
+						record.genre_form_term.push(subfields);
 					}
 					if (tag === '700') {
 						if (!record.added_entry_personal_name) record.added_entry_personal_name = [];
