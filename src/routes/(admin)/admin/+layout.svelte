@@ -27,7 +27,7 @@
 				<li><a href="/admin/cataloging" onclick={() => mobileMenuOpen = false}>Catalog Records</a></li>
 				<li><a href="/admin/cataloging/new" onclick={() => mobileMenuOpen = false}>New MARC Record</a></li>
 				<li><a href="/admin/cataloging/isbn-lookup" onclick={() => mobileMenuOpen = false}>ISBN Lookup</a></li>
-				<li><a href="/admin/cataloging/bulk-isbn" onclick={() => mobileMenuOpen = false}>Bulk ISBN Upload</a></li>
+				<li><a href="/admin/cataloging/bulk-isbn" onclick={() => mobileMenuOpen = false}>Bulk ISBN Import/Update</a></li>
 				<li><a href="/admin/cataloging/upload" onclick={() => mobileMenuOpen = false}>MARC File Upload</a></li>
 				<li><a href="/admin/cataloging/authorities" onclick={() => mobileMenuOpen = false}>Authorities</a></li>
 				<li><a href="/admin/serials" onclick={() => mobileMenuOpen = false}>Serials Management</a></li>
