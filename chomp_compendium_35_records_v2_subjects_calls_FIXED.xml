@@ -343,7 +343,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Koekjeq.</subfield>
@@ -367,7 +367,7 @@
       <subfield code="i">de </subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -396,7 +396,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Early butter biscuits.</subfield>
@@ -420,7 +420,7 @@
       <subfield code="i">Ano</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -449,7 +449,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Structured hearth cookies.</subfield>
@@ -473,7 +473,7 @@
       <subfield code="i">Ano</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -502,7 +502,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Memory butter cookies.</subfield>
@@ -526,7 +526,7 @@
       <subfield code="i">van</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -555,7 +555,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Soft hearth cakes.</subfield>
@@ -579,7 +579,7 @@
       <subfield code="i">Van</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -608,7 +608,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Milk biscuits.</subfield>
@@ -632,7 +632,7 @@
       <subfield code="i">Hol</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -661,7 +661,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Hearth biscuits.</subfield>
@@ -685,7 +685,7 @@
       <subfield code="i">Fin</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Hearth & Hand</subfield>
+      <subfield code="a">Hearth &amp; Hand</subfield>
     </datafield>
   </record>
 
@@ -1191,7 +1191,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Plain tea biscuits.</subfield>
@@ -1215,7 +1215,7 @@
       <subfield code="i">Fal</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1244,7 +1244,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Institutional sugar cookies.</subfield>
@@ -1268,7 +1268,7 @@
       <subfield code="i">Win</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1297,7 +1297,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Icebox cookies.</subfield>
@@ -1321,7 +1321,7 @@
       <subfield code="i">Kli</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1350,7 +1350,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Standard butter cookies.</subfield>
@@ -1374,7 +1374,7 @@
       <subfield code="i">Low</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1403,7 +1403,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: War-era cookies.</subfield>
@@ -1427,7 +1427,7 @@
       <subfield code="i">Ree</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1456,7 +1456,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Government sugar cookies.</subfield>
@@ -1480,7 +1480,7 @@
       <subfield code="i">U.S</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1509,7 +1509,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Reduced-sugar tea cookies.</subfield>
@@ -1533,7 +1533,7 @@
       <subfield code="i">Har</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1562,7 +1562,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Uniform sheet cookies.</subfield>
@@ -1586,7 +1586,7 @@
       <subfield code="i">Dep</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1615,7 +1615,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Fast-bake drop cookies.</subfield>
@@ -1639,7 +1639,7 @@
       <subfield code="i">Off</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1668,7 +1668,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Measurement-based cookies.</subfield>
@@ -1692,7 +1692,7 @@
       <subfield code="i">Nat</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
@@ -1721,7 +1721,7 @@
       <subfield code="a">1 volume</subfield>
     </datafield>
     <datafield tag="490" ind1="1" ind2=" ">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
     <datafield tag="500" ind1=" " ind2=" ">
       <subfield code="a">Recipe: Emergency biscuits.</subfield>
@@ -1745,7 +1745,7 @@
       <subfield code="i">Div</subfield>
     </datafield>
     <datafield tag="830" ind1=" " ind2="0">
-      <subfield code="a">Systems & Methods</subfield>
+      <subfield code="a">Systems &amp; Methods</subfield>
     </datafield>
   </record>
 
