@@ -45,7 +45,6 @@
 			const { data: recordsData, error: fetchError } = await supabase
 				.from('marc_records')
 				.select('*')
-				.eq('status', 'active')  // Only show active records, not archived or deleted
 				.order('created_at', { ascending: false });
 
 			if (fetchError) throw fetchError;
