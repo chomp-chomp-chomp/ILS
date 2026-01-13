@@ -1,0 +1,1752 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000001</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1261    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1261-01-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Ardens, Benedictus</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">De dulci durabilitate</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1261.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Biscuit (bis coctus).</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A monastic treatise on preservation through repeated baking, framing sweetness as durability rather than indulgence. One of the earliest systematic attempts to render baked goods suitable for endurance and travel.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—History—Medieval</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Biscuits—Preservation</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Monastic life—Food</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Ard</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000002</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1384    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1384-02-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Matthaeus of Rouen</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Liber panis iterum cocti</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1384.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Ship’s biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Written for itinerant clergy and seafarers, this text refines twice-baked bread into a stable ration. Utility overtakes ornament as survival becomes the guiding principle.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—History—Medieval</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Biscuits—Preservation</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Monastic life—Food</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Mat</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000003</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1384    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1384-03-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Thomas de Barville</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Liber biscotti peregrinantis</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1384.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Pilgrim biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A devotional baking manual for pilgrims, embedding food preparation within religious journeying. Biscuits are treated as moral companions as much as nourishment.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—History—Medieval</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Biscuits—Preservation</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Monastic life—Food</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Tho</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000004</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1427    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1427-04-M</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Campanensis, Joannes</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Scriptum in arte biscotti</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1427.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Instructional biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A late medieval instructional text emphasizing method and repetition. Marks a transition from symbolic baking to technical craft.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—History—Medieval</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Biscuits—Preservation</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Monastic life—Food</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Cam</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000005</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1468    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1468-05-P</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Supplex, Georgius</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Subtilitates de pistrina</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1468.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Fine hearth cakes.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Dense, highly ordered, and nearly typographic in layout, this manuscript signals the exhaustion of handwritten baking knowledge on the eve of print.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—History—Medieval</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Biscuits—Preservation</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Monastic life—Food</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Sup</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000006</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1487    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1487-06-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Pistor, Jacobus</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Speculum per iter misceret</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1487.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Mixed travel cakes.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A liminal work reflecting on mixture and movement, often cited as a manuscript straining toward print logic.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—History—Medieval</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Biscuits—Preservation</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Monastic life—Food</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Pis</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Scriptum Dulcium</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000007</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1483    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1483-07-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">de Groote, Maria</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Van koeken tot koeklings</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1483.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Koekjeq.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A foundational Low Countries text documenting the linguistic and culinary emergence of the cookie. Domestic baking becomes reproducible knowledge.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">de </subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000008</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1496    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1496-08-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Anon.</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Biscotti verci</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1496.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Early butter biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A compact household manual emphasizing proportion and consistency over symbolism.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MED</subfield>
+      <subfield code="i">Ano</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000009</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1501    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1501-09-M</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Anon.</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Practycke der koekerie</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1501.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Structured hearth cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A practical baking guide that stabilizes domestic instruction through print, signaling baking’s entry into routine household management.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.EAR</subfield>
+      <subfield code="i">Ano</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000010</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1594    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1594-10-P</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">van Rijswijk, Janneke</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">De smaak der herinneringen</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1594.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Memory butter cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A reflective domestic text linking repetition, taste, and memory. Baking becomes a site of continuity rather than innovation.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.EAR</subfield>
+      <subfield code="i">van</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000011</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1611    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1611-11-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Van Aelst, Willem</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Tractaat over den oven-temperamente</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1611.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Soft hearth cakes.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">An early attempt to systematize oven heat and timing, shifting authority from ingredients to process.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.EAR</subfield>
+      <subfield code="i">Van</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000012</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1678    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1678-12-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Holtby, Margaret</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Plain cakes for plain days</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1678.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Milk biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Advocates restraint, regularity, and moral simplicity in daily baking.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.EAR</subfield>
+      <subfield code="i">Hol</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000013</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1722    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1722-13-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Finch, Thomas Ellery</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">A compendium of hearth biscuits</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1722.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Hearth biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Consolidates two centuries of domestic baking knowledge into a calm, authoritative reference.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cookies—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking, Domestic</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">Fin</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Hearth & Hand</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000014</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1749    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1749-14-M</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Wickens, Samuel</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Domestic confections, reduced</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1749.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Reduced-sugar biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Introduces reduction, economy, and rational control to sweetness, reframing baking as a disciplined system.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Methodology</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—Management</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Rationalism—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">Wic</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000015</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1765    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1765-15-P</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Mallory, Prudence</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">The order of the kitchen</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1765.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Structured tea cakes.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Treats the kitchen as an ordered moral and procedural space governed by sequence and discipline.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Methodology</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—Management</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Rationalism—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">Mal</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000016</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1788    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1788-16-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Moreton, Elias</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Observations on dough and time</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1788.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Rested dough biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Examines time, rest, and patience as variables, internalizing Enlightenment logic within the household.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Methodology</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—Management</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Rationalism—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">Mor</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000017</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1816    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1816-17-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Whitcombe, Eleanor</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">The practical housewife’s shelf</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1816.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Drop butter cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Translates rational method into everyday use, emphasizing respectability and efficient practice.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Methodology</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—Management</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Rationalism—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">Whi</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000018</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1829    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1829-18-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Brooks, Hannah</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Receipts for common tables</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1829.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Plain table biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Designed for ordinary meals, this text privileges affordability and consistency over occasion.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Methodology</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Housekeeping—Management</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Rationalism—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">Bro</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Domestic Rationalists</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000019</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1849    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1849-19-M</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Howcroft, Reginald P.</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">A manual of economical sweetmeats</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1849.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Penny biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Frames thrift as both moral duty and practical necessity in Victorian households.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Economic aspects</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Thrift—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Food supply—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.MOD</subfield>
+      <subfield code="i">How</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000020</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1856    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1856-20-P</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Calder, Josephine</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">On baking for many</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1856.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Large-batch cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Addresses scale, uniformity, and cost for schools and public gatherings.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Economic aspects</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Thrift—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Food supply—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.IND</subfield>
+      <subfield code="i">Cal</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000021</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1868    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1868-21-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Marsh, Edwin</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">The repetitive oven</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1868.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Repeated-bake crackers.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Treats the oven as a mechanical system optimized through repetition.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Economic aspects</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Thrift—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Food supply—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.IND</subfield>
+      <subfield code="i">Mar</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000022</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1874    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1874-22-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Dent, Clara</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Notes from a kitchen ledger</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1874.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Ledger biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Recipes embedded among cost accounts, collapsing food and finance into a single record.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Economic aspects</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Thrift—History</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Food supply—History</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.IND</subfield>
+      <subfield code="i">Den</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Economies of Baking</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000023</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1892    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1892-23-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Fallow, Edith M.</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Studies in repetition and dough</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1892.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Plain tea biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A near-sociological study of repetition, reframing baking as structured labor.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.IND</subfield>
+      <subfield code="i">Fal</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000024</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1907    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1907-24-M</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Winthrop, Clara H.</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Domestic systems: baking as method</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1907.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Institutional sugar cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Codifies baking as procedural knowledge suitable for instruction.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Win</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000025</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1913    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1913-25-P</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Kline, Harold B.</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">On small cakes and large patterns</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1913.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Icebox cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Applies early systems thinking to domestic production.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Kli</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000026</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1915    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1915-26-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Lowell, Beatrice</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Quantities and outcomes</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1915.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Standard butter cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Reduces baking to tables, ratios, and predictable results.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Low</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000027</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1918    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1918-27-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Reeves, Milton</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Baking under constraints</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1918.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: War-era cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Written under rationing conditions, emphasizing substitution and morale.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Ree</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000028</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1921    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1921-28-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="110" ind1="1" ind2=" ">
+      <subfield code="a">U.S. Domestic Efficiency Board</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Standardized recipes for repeated use</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1921.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Government sugar cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">An anonymous institutional text prioritizing uniformity and compliance.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">U.S</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000029</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1923    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1923-29-M</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="100" ind1="1" ind2=" ">
+      <subfield code="a">Hart, Lillian</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Controlled sweetness</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1923.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Reduced-sugar tea cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Links sweetness control to health and efficiency.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Har</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000030</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1925    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1925-30-P</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="110" ind1="1" ind2=" ">
+      <subfield code="a">Dept. of Domestic Standardization</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">The efficient oven</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1925.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Uniform sheet cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Treats the oven as throughput infrastructure.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Dep</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000031</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1929    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1929-31-C</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="110" ind1="1" ind2=" ">
+      <subfield code="a">Office of Process Efficiency</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Notes on domestic throughput</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1929.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Fast-bake drop cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Focuses on speed, labor, and productivity anxiety.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Off</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000032</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1936    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1936-32-H</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="110" ind1="1" ind2=" ">
+      <subfield code="a">National Bureau of Baking Efficiency</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Standard baking tables</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1936.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Measurement-based cookies.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">Reduces baking to tabular authority.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Nat</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+
+  <record>
+    <leader>00000cam a2200000 i 4500</leader>
+    <controlfield tag="001">CC000033</controlfield>
+    <controlfield tag="003">CHOMP</controlfield>
+    <controlfield tag="005">20260112223258.0</controlfield>
+    <controlfield tag="008">930601s1942    xx            000 0 eng  </controlfield>
+    <datafield tag="020" ind1=" " ind2=" ">
+      <subfield code="a">978-CMP-1942-33-O</subfield>
+      <subfield code="q">chomp codex identifier</subfield>
+    </datafield>
+    <datafield tag="110" ind1="1" ind2=" ">
+      <subfield code="a">Division of Household Standards</subfield>
+      <subfield code="e">author</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+      <subfield code="a">Recipes without occasion</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+      <subfield code="c">1942.</subfield>
+    </datafield>
+    <datafield tag="300" ind1=" " ind2=" ">
+      <subfield code="a">1 volume</subfield>
+    </datafield>
+    <datafield tag="490" ind1="1" ind2=" ">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+    <datafield tag="500" ind1=" " ind2=" ">
+      <subfield code="a">Recipe: Emergency biscuits.</subfield>
+    </datafield>
+    <datafield tag="520" ind1=" " ind2=" ">
+      <subfield code="a">A resigned manual of necessity, severing baking from celebration entirely.</subfield>
+    </datafield>
+
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Baking—Standardization</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Cooking—Systems</subfield>
+    </datafield>
+    <datafield tag="650" ind1=" " ind2="0">
+      <subfield code="a">Efficiency—Domestic aspects</subfield>
+    </datafield>
+    <datafield tag="852" ind1=" " ind2=" ">
+      <subfield code="a">CHOMP</subfield>
+      <subfield code="h">CC.BAKE.SYS</subfield>
+      <subfield code="i">Div</subfield>
+    </datafield>
+    <datafield tag="830" ind1=" " ind2="0">
+      <subfield code="a">Systems & Methods</subfield>
+    </datafield>
+  </record>
+
+</collection>
