@@ -118,11 +118,11 @@
 
 	async function tryLibraryOfCongress(cleanISBN: string) {
 		try {
-			const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
-			const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
-
-			// Reduced timeout from 10s to 5s for faster fallback
+			const url = `/api/isbn/loc?isbn=${cleanISBN}`;
 			const response = await fetchWithTimeout(url, 5000);
+			if (!response.ok) {
+				throw new Error(`LoC proxy failed with status ${response.status}`);
+			}
 			const xmlText = await response.text();
 
 			if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
