@@ -514,7 +514,8 @@
 		}
 
 		importing = true;
-		let successCount = 0;
+		let insertedCount = 0;
+		let updatedCount = 0;
 		let errorCount = 0;
 
 		try {
@@ -526,17 +527,53 @@
 					// Remove temporary fields
 					const { _index, isDuplicate, duplicateInfo, ...cleanRecord } = record;
 
-					const { error } = await supabase
-						.from('marc_records')
-						.insert([{
-							...cleanRecord,
-							created_at: new Date().toISOString(),
-							updated_at: new Date().toISOString()
-						}]);
+					// Check if record already exists (by ISBN or control_number)
+					let existingRecord = null;
 
-					if (error) throw error;
+					if (cleanRecord.isbn) {
+						const { data } = await supabase
+							.from('marc_records')
+							.select('id')
+							.eq('isbn', cleanRecord.isbn)
+							.maybeSingle();
+						existingRecord = data;
+					}
 
-					successCount++;
+					// If not found by ISBN, try control_number
+					if (!existingRecord && cleanRecord.control_number) {
+						const { data } = await supabase
+							.from('marc_records')
+							.select('id')
+							.eq('control_number', cleanRecord.control_number)
+							.maybeSingle();
+						existingRecord = data;
+					}
+
+					if (existingRecord) {
+						// UPDATE existing record (overlay)
+						const { error } = await supabase
+							.from('marc_records')
+							.update({
+								...cleanRecord,
+								updated_at: new Date().toISOString()
+							})
+							.eq('id', existingRecord.id);
+
+						if (error) throw error;
+						updatedCount++;
+					} else {
+						// INSERT new record
+						const { error } = await supabase
+							.from('marc_records')
+							.insert([{
+								...cleanRecord,
+								created_at: new Date().toISOString(),
+								updated_at: new Date().toISOString()
+							}]);
+
+						if (error) throw error;
+						insertedCount++;
+					}
 				} catch (err: any) {
 					console.error(`Error importing record ${index}:`, err);
 					errorCount++;
@@ -544,12 +581,12 @@
 			}
 
 			if (errorCount === 0) {
-				message = `✓ Successfully imported ${successCount} record(s)!`;
+				message = `✓ Successfully imported ${insertedCount + updatedCount} record(s)! (${insertedCount} new, ${updatedCount} updated)`;
 				setTimeout(() => {
 					goto('/admin/cataloging');
 				}, 2000);
 			} else {
-				message = `Imported ${successCount} record(s), ${errorCount} failed.`;
+				message = `Imported ${insertedCount} new, updated ${updatedCount}, ${errorCount} failed.`;
 			}
 		} catch (error: any) {
 			message = `Error during import: ${error.message}`;
