@@ -25,24 +25,31 @@ const fetchImageBuffer = async (url: string): Promise<Buffer | null> => {
 };
 
 const fetchGoogleBooksCover = async (isbn: string): Promise<Buffer | null> => {
-	const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
-	const response = await fetch(apiUrl);
-	if (!response.ok) return null;
-	const data = await response.json();
-	const book = data.items?.[0];
-	const imageLinks = book?.volumeInfo?.imageLinks;
+	try {
+		const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+		const response = await fetch(apiUrl);
+		if (!response.ok) return null;
+		const contentType = response.headers.get('content-type') || '';
+		if (!contentType.includes('application/json')) return null;
+		const data = await response.json();
+		const book = data.items?.[0];
+		const imageLinks = book?.volumeInfo?.imageLinks;
 
-	const imageUrl =
-		imageLinks?.extraLarge ||
-		imageLinks?.large ||
-		imageLinks?.medium ||
-		imageLinks?.thumbnail ||
-		imageLinks?.smallThumbnail;
+		const imageUrl =
+			imageLinks?.extraLarge ||
+			imageLinks?.large ||
+			imageLinks?.medium ||
+			imageLinks?.thumbnail ||
+			imageLinks?.smallThumbnail;
 
-	if (!imageUrl) return null;
+		if (!imageUrl) return null;
 
-	const sanitizedUrl = imageUrl.replace('http://', 'https://').replace(/&zoom=\d+/, '');
-	return fetchImageBuffer(sanitizedUrl);
+		const sanitizedUrl = imageUrl.replace('http://', 'https://').replace(/&zoom=\d+/, '');
+		return fetchImageBuffer(sanitizedUrl);
+	} catch (error) {
+		console.warn('Google Books cover fetch failed:', error);
+		return null;
+	}
 };
 
 // Initialize ImageKit
