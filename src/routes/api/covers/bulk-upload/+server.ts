@@ -9,6 +9,12 @@ import ImageKit from 'imagekit';
 import { env as privateEnv } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 
+const extractIsbn = (value?: string | null): string | null => {
+	if (!value) return null;
+	const match = value.match(/\d{10,13}/);
+	return match ? match[0] : null;
+};
+
 // Initialize ImageKit
 let imagekit: ImageKit | null = null;
 try {
@@ -54,6 +60,7 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				// Supports formats like: 9780062316097.jpg, 123e4567-e89b.png, cover-9780062316097.jpg
 				const fileName = file.name.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
 				let identifier = fileName;
+				const rawIdentifier = identifier;
 
 				// Remove common prefixes
 				identifier = identifier.replace(/^(cover[-_]?|book[-_]?|img[-_]?)/i, '');
@@ -68,11 +75,39 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 						.from('marc_records')
 						.select('id, isbn, title_statement')
 						.eq('isbn', isbn)
-						.single();
+						.maybeSingle();
 					record = data;
+					if (!record) {
+						const { data: fuzzyMatches } = await supabase
+							.from('marc_records')
+							.select('id, isbn, title_statement')
+							.ilike('isbn', `%${isbn}%`)
+							.limit(1);
+						record = fuzzyMatches?.[0] ?? null;
+					}
+					if (!record && rawIdentifier !== identifier) {
+						const { data: rawMatches } = await supabase
+							.from('marc_records')
+							.select('id, isbn, title_statement')
+							.ilike('isbn', `%${rawIdentifier}%`)
+							.limit(1);
+						record = rawMatches?.[0] ?? null;
+					}
 				}
 
 				// If not found by ISBN, try by UUID (record ID)
+				if (!record) {
+					const normalizedIsbn = extractIsbn(rawIdentifier);
+					if (normalizedIsbn) {
+						const { data: normalizedMatches } = await supabase
+							.from('marc_records')
+							.select('id, isbn, title_statement')
+							.ilike('isbn', `%${normalizedIsbn}%`)
+							.limit(1);
+						record = normalizedMatches?.[0] ?? null;
+					}
+				}
+
 				if (!record) {
 					const uuidMatch = identifier.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
 					if (uuidMatch) {
