@@ -46,6 +46,32 @@
 	let uploadSucceeded = $state(0);
 	let uploadFailed = $state(0);
 
+	/**
+	 * Helper function to handle error responses from API endpoints
+	 * Checks response status and content type before parsing
+	 * @param response - Fetch Response object
+	 * @param defaultMessage - Default error message if parsing fails
+	 * @returns Promise<never> - Always throws an error
+	 */
+	async function handleErrorResponse(response: Response, defaultMessage: string): Promise<never> {
+		let errorMessage = defaultMessage;
+		const contentType = response.headers.get('content-type');
+		
+		if (contentType?.includes('application/json')) {
+			try {
+				const errorData = await response.json();
+				errorMessage = errorData.error || errorMessage;
+			} catch {
+				errorMessage = `Server error (${response.status})`;
+			}
+		} else {
+			// HTML or other response - likely a server error page
+			errorMessage = `Server error (${response.status}): Unable to parse response`;
+		}
+		
+		throw new Error(errorMessage);
+	}
+
 	onMount(async () => {
 		await loadStats();
 	});
@@ -119,11 +145,12 @@
 					body: JSON.stringify({ batchSize: migrateBatchSize, operation: 'migrate' })
 				});
 
-				const result = await response.json();
-
+				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					throw new Error(result.error || 'Migration failed');
+					await handleErrorResponse(response, 'Migration failed');
 				}
+
+				const result = await response.json();
 
 				migrateProcessed += result.processed;
 				migrateSucceeded += result.succeeded;
@@ -193,11 +220,12 @@
 					body: JSON.stringify({ batchSize: refetchBatchSize, operation: 'refetch' })
 				});
 
-				const result = await response.json();
-
+				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					throw new Error(result.error || 'Re-fetch failed');
+					await handleErrorResponse(response, 'Re-fetch failed');
 				}
+
+				const result = await response.json();
 
 				refetchProcessed += result.processed;
 				refetchSucceeded += result.succeeded;
@@ -277,11 +305,12 @@
 					body: JSON.stringify({ batchSize: fetchMissingBatchSize, operation: 'fetch-missing' })
 				});
 
-				const result = await response.json();
-
+				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					throw new Error(result.error || 'Fetch-missing failed');
+					await handleErrorResponse(response, 'Fetch-missing failed');
 				}
+
+				const result = await response.json();
 
 				fetchMissingProcessed += result.processed;
 				fetchMissingSucceeded += result.succeeded;
@@ -364,11 +393,12 @@
 				body: formData
 			});
 
-			const result = await response.json();
-
+			// Check if response is OK before parsing JSON
 			if (!response.ok) {
-				throw new Error(result.error || 'Upload failed');
+				await handleErrorResponse(response, 'Upload failed');
 			}
+
+			const result = await response.json();
 
 			uploadSucceeded = result.succeeded;
 			uploadFailed = result.failed;
