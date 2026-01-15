@@ -466,15 +466,15 @@
 					{#if !isMigrating}
 						<button
 							class="btn-primary"
-							onclick={startMigration}
+							on:click={startMigration}
 							disabled={migrateRemaining === 0}
 						>
 							Start Migration
 						</button>
 					{:else}
-						<button class="btn-secondary" onclick={pauseMigration}>Pause</button>
+						<button class="btn-secondary" on:click={pauseMigration}>Pause</button>
 					{/if}
-					<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
+					<button class="btn-secondary" on:click={loadStats}>Refresh Stats</button>
 				</div>
 			</div>
 
@@ -543,15 +543,15 @@
 					{#if !isRefetching}
 						<button
 							class="btn-primary"
-							onclick={startRefetch}
+							on:click={startRefetch}
 							disabled={refetchRemaining === 0}
 						>
 							Start Re-fetch
 						</button>
 					{:else}
-						<button class="btn-secondary" onclick={pauseRefetch}>Pause</button>
+						<button class="btn-secondary" on:click={pauseRefetch}>Pause</button>
 					{/if}
-					<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
+					<button class="btn-secondary" on:click={loadStats}>Refresh Stats</button>
 				</div>
 			</div>
 
@@ -620,15 +620,15 @@
 					{#if !isFetchingMissing}
 						<button
 							class="btn-primary"
-							onclick={startFetchMissing}
+							on:click={startFetchMissing}
 							disabled={fetchMissingRemaining === 0}
 						>
 							Start Fetch Missing
 						</button>
 					{:else}
-						<button class="btn-secondary" onclick={pauseFetchMissing}>Pause</button>
+						<button class="btn-secondary" on:click={pauseFetchMissing}>Pause</button>
 					{/if}
-					<button class="btn-secondary" onclick={loadStats}>Refresh Stats</button>
+					<button class="btn-secondary" on:click={loadStats}>Refresh Stats</button>
 				</div>
 			</div>
 
@@ -677,7 +677,7 @@
 						type="file"
 						multiple
 						accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-						onchange={handleFileSelect}
+						on:change={handleFileSelect}
 						disabled={isUploading}
 					/>
 					<label for="file-input" class="file-input-label">
@@ -690,7 +690,7 @@
 				<div class="buttons">
 					<button
 						class="btn-primary"
-						onclick={uploadLocalFiles}
+						on:click={uploadLocalFiles}
 						disabled={isUploading || !selectedFiles || selectedFiles.length === 0}
 					>
 						{isUploading ? 'Uploading...' : 'Upload Files'}
