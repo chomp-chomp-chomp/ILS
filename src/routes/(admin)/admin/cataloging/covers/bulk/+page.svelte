@@ -150,6 +150,12 @@
 					await handleErrorResponse(response, 'Migration failed');
 				}
 
+				// Verify response is JSON before parsing
+				const contentType = response.headers.get('content-type');
+				if (!contentType?.includes('application/json')) {
+					throw new Error(`Server returned unexpected content type: ${contentType || 'none'}. Expected JSON.`);
+				}
+
 				const result = await response.json();
 
 				migrateProcessed += result.processed;
@@ -223,6 +229,12 @@
 				// Check if response is OK before parsing JSON
 				if (!response.ok) {
 					await handleErrorResponse(response, 'Re-fetch failed');
+				}
+
+				// Verify response is JSON before parsing
+				const contentType = response.headers.get('content-type');
+				if (!contentType?.includes('application/json')) {
+					throw new Error(`Server returned unexpected content type: ${contentType || 'none'}. Expected JSON.`);
 				}
 
 				const result = await response.json();
@@ -308,6 +320,12 @@
 				// Check if response is OK before parsing JSON
 				if (!response.ok) {
 					await handleErrorResponse(response, 'Fetch-missing failed');
+				}
+
+				// Verify response is JSON before parsing
+				const contentType = response.headers.get('content-type');
+				if (!contentType?.includes('application/json')) {
+					throw new Error(`Server returned unexpected content type: ${contentType || 'none'}. Expected JSON.`);
 				}
 
 				const result = await response.json();
@@ -396,6 +414,12 @@
 			// Check if response is OK before parsing JSON
 			if (!response.ok) {
 				await handleErrorResponse(response, 'Upload failed');
+			}
+
+			// Verify response is JSON before parsing
+			const contentType = response.headers.get('content-type');
+			if (!contentType?.includes('application/json')) {
+				throw new Error(`Server returned unexpected content type: ${contentType || 'none'}. Expected JSON.`);
 			}
 
 			const result = await response.json();
