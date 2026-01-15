@@ -439,20 +439,5 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 			}, 
 			{ status: 500 }
 		);
-	} catch (fatalError: any) {
-		// Catch any errors from the outer try block (session, imagekit, etc.)
-		console.error('Fatal error in bulk-migrate endpoint:', fatalError);
-		return json(
-			{
-				error: fatalError?.message || 'Fatal server error',
-				success: false,
-				processed: 0,
-				succeeded: 0,
-				failed: 0,
-				remaining: 0,
-				results: []
-			},
-			{ status: 500 }
-		);
 	}
 };
