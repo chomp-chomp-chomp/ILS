@@ -119,11 +119,28 @@
 					body: JSON.stringify({ batchSize: migrateBatchSize, operation: 'migrate' })
 				});
 
-				const result = await response.json();
-
+				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					throw new Error(result.error || 'Migration failed');
+					// Try to parse JSON error, but handle HTML responses
+					let errorMessage = 'Migration failed';
+					const contentType = response.headers.get('content-type');
+					
+					if (contentType?.includes('application/json')) {
+						try {
+							const errorData = await response.json();
+							errorMessage = errorData.error || errorMessage;
+						} catch {
+							errorMessage = `Server error (${response.status})`;
+						}
+					} else {
+						// HTML or other response - likely a server error page
+						errorMessage = `Server error (${response.status}): Unable to parse response`;
+					}
+					
+					throw new Error(errorMessage);
 				}
+
+				const result = await response.json();
 
 				migrateProcessed += result.processed;
 				migrateSucceeded += result.succeeded;
@@ -193,11 +210,28 @@
 					body: JSON.stringify({ batchSize: refetchBatchSize, operation: 'refetch' })
 				});
 
-				const result = await response.json();
-
+				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					throw new Error(result.error || 'Re-fetch failed');
+					// Try to parse JSON error, but handle HTML responses
+					let errorMessage = 'Re-fetch failed';
+					const contentType = response.headers.get('content-type');
+					
+					if (contentType?.includes('application/json')) {
+						try {
+							const errorData = await response.json();
+							errorMessage = errorData.error || errorMessage;
+						} catch {
+							errorMessage = `Server error (${response.status})`;
+						}
+					} else {
+						// HTML or other response - likely a server error page
+						errorMessage = `Server error (${response.status}): Unable to parse response`;
+					}
+					
+					throw new Error(errorMessage);
 				}
+
+				const result = await response.json();
 
 				refetchProcessed += result.processed;
 				refetchSucceeded += result.succeeded;
@@ -277,11 +311,28 @@
 					body: JSON.stringify({ batchSize: fetchMissingBatchSize, operation: 'fetch-missing' })
 				});
 
-				const result = await response.json();
-
+				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					throw new Error(result.error || 'Fetch-missing failed');
+					// Try to parse JSON error, but handle HTML responses
+					let errorMessage = 'Fetch-missing failed';
+					const contentType = response.headers.get('content-type');
+					
+					if (contentType?.includes('application/json')) {
+						try {
+							const errorData = await response.json();
+							errorMessage = errorData.error || errorMessage;
+						} catch {
+							errorMessage = `Server error (${response.status})`;
+						}
+					} else {
+						// HTML or other response - likely a server error page
+						errorMessage = `Server error (${response.status}): Unable to parse response`;
+					}
+					
+					throw new Error(errorMessage);
 				}
+
+				const result = await response.json();
 
 				fetchMissingProcessed += result.processed;
 				fetchMissingSucceeded += result.succeeded;
@@ -364,11 +415,28 @@
 				body: formData
 			});
 
-			const result = await response.json();
-
+			// Check if response is OK before parsing JSON
 			if (!response.ok) {
-				throw new Error(result.error || 'Upload failed');
+				// Try to parse JSON error, but handle HTML responses
+				let errorMessage = 'Upload failed';
+				const contentType = response.headers.get('content-type');
+				
+				if (contentType?.includes('application/json')) {
+					try {
+						const errorData = await response.json();
+						errorMessage = errorData.error || errorMessage;
+					} catch {
+						errorMessage = `Server error (${response.status})`;
+					}
+				} else {
+					// HTML or other response - likely a server error page
+					errorMessage = `Server error (${response.status}): Unable to parse response`;
+				}
+				
+				throw new Error(errorMessage);
 			}
+
+			const result = await response.json();
 
 			uploadSucceeded = result.succeeded;
 			uploadFailed = result.failed;

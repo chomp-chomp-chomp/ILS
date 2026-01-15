@@ -35,17 +35,25 @@ try {
  * Matches files to records by ISBN or record ID in filename
  */
 export const POST: RequestHandler = async ({ request, locals: { supabase, safeGetSession } }) => {
-	const { session } = await safeGetSession();
-	if (!session) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	if (!imagekit) {
-		return json({ error: 'ImageKit not configured' }, { status: 500 });
-	}
-
 	try {
-		const formData = await request.formData();
+		const { session } = await safeGetSession();
+		if (!session) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
+		if (!imagekit) {
+			return json({ error: 'ImageKit not configured' }, { status: 500 });
+		}
+
+		// Parse form data with error handling
+		let formData;
+		try {
+			formData = await request.formData();
+		} catch (parseError) {
+			console.error('Failed to parse form data:', parseError);
+			return json({ error: 'Invalid form data' }, { status: 400 });
+		}
+
 		const files = formData.getAll('files') as File[];
 
 		if (!files || files.length === 0) {
@@ -207,6 +215,30 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		});
 	} catch (error: any) {
 		console.error('Bulk upload error:', error);
-		return json({ error: error.message }, { status: 500 });
+		return json(
+			{
+				error: error?.message || 'An unexpected error occurred',
+				success: false,
+				total: 0,
+				succeeded: 0,
+				failed: 0,
+				results: []
+			},
+			{ status: 500 }
+		);
+	} catch (fatalError: any) {
+		// Catch any errors from the outer try block (session, imagekit, etc.)
+		console.error('Fatal error in bulk-upload endpoint:', fatalError);
+		return json(
+			{
+				error: fatalError?.message || 'Fatal server error',
+				success: false,
+				total: 0,
+				succeeded: 0,
+				failed: 0,
+				results: []
+			},
+			{ status: 500 }
+		);
 	}
 };

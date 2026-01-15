@@ -71,17 +71,26 @@ try {
  * Migrate existing covers to ImageKit
  */
 export const POST: RequestHandler = async ({ request, locals: { supabase, safeGetSession } }) => {
-	const { session } = await safeGetSession();
-	if (!session) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	if (!imagekit) {
-		return json({ error: 'ImageKit not configured' }, { status: 500 });
-	}
-
 	try {
-		const { batchSize = 10, operation = 'migrate' } = await request.json();
+		const { session } = await safeGetSession();
+		if (!session) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
+		if (!imagekit) {
+			return json({ error: 'ImageKit not configured' }, { status: 500 });
+		}
+
+		// Parse request body with error handling
+		let body;
+		try {
+			body = await request.json();
+		} catch (parseError) {
+			console.error('Failed to parse request body:', parseError);
+			return json({ error: 'Invalid request body' }, { status: 400 });
+		}
+
+		const { batchSize = 10, operation = 'migrate' } = body;
 
 		let records: any[] = [];
 		const debug: string[] = []; // Debug messages to return to client
@@ -418,6 +427,32 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 		});
 	} catch (error: any) {
 		console.error('Bulk migration error:', error);
-		return json({ error: error.message }, { status: 500 });
+		return json(
+			{ 
+				error: error?.message || 'An unexpected error occurred',
+				success: false,
+				processed: 0,
+				succeeded: 0,
+				failed: 0,
+				remaining: 0,
+				results: []
+			}, 
+			{ status: 500 }
+		);
+	} catch (fatalError: any) {
+		// Catch any errors from the outer try block (session, imagekit, etc.)
+		console.error('Fatal error in bulk-migrate endpoint:', fatalError);
+		return json(
+			{
+				error: fatalError?.message || 'Fatal server error',
+				success: false,
+				processed: 0,
+				succeeded: 0,
+				failed: 0,
+				remaining: 0,
+				results: []
+			},
+			{ status: 500 }
+		);
 	}
 };
