@@ -46,6 +46,32 @@
 	let uploadSucceeded = $state(0);
 	let uploadFailed = $state(0);
 
+	/**
+	 * Helper function to handle error responses from API endpoints
+	 * Checks response status and content type before parsing
+	 * @param response - Fetch Response object
+	 * @param defaultMessage - Default error message if parsing fails
+	 * @returns Promise<never> - Always throws an error
+	 */
+	async function handleErrorResponse(response: Response, defaultMessage: string): Promise<never> {
+		let errorMessage = defaultMessage;
+		const contentType = response.headers.get('content-type');
+		
+		if (contentType?.includes('application/json')) {
+			try {
+				const errorData = await response.json();
+				errorMessage = errorData.error || errorMessage;
+			} catch {
+				errorMessage = `Server error (${response.status})`;
+			}
+		} else {
+			// HTML or other response - likely a server error page
+			errorMessage = `Server error (${response.status}): Unable to parse response`;
+		}
+		
+		throw new Error(errorMessage);
+	}
+
 	onMount(async () => {
 		await loadStats();
 	});
@@ -121,23 +147,7 @@
 
 				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					// Try to parse JSON error, but handle HTML responses
-					let errorMessage = 'Migration failed';
-					const contentType = response.headers.get('content-type');
-					
-					if (contentType?.includes('application/json')) {
-						try {
-							const errorData = await response.json();
-							errorMessage = errorData.error || errorMessage;
-						} catch {
-							errorMessage = `Server error (${response.status})`;
-						}
-					} else {
-						// HTML or other response - likely a server error page
-						errorMessage = `Server error (${response.status}): Unable to parse response`;
-					}
-					
-					throw new Error(errorMessage);
+					await handleErrorResponse(response, 'Migration failed');
 				}
 
 				const result = await response.json();
@@ -212,23 +222,7 @@
 
 				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					// Try to parse JSON error, but handle HTML responses
-					let errorMessage = 'Re-fetch failed';
-					const contentType = response.headers.get('content-type');
-					
-					if (contentType?.includes('application/json')) {
-						try {
-							const errorData = await response.json();
-							errorMessage = errorData.error || errorMessage;
-						} catch {
-							errorMessage = `Server error (${response.status})`;
-						}
-					} else {
-						// HTML or other response - likely a server error page
-						errorMessage = `Server error (${response.status}): Unable to parse response`;
-					}
-					
-					throw new Error(errorMessage);
+					await handleErrorResponse(response, 'Re-fetch failed');
 				}
 
 				const result = await response.json();
@@ -313,23 +307,7 @@
 
 				// Check if response is OK before parsing JSON
 				if (!response.ok) {
-					// Try to parse JSON error, but handle HTML responses
-					let errorMessage = 'Fetch-missing failed';
-					const contentType = response.headers.get('content-type');
-					
-					if (contentType?.includes('application/json')) {
-						try {
-							const errorData = await response.json();
-							errorMessage = errorData.error || errorMessage;
-						} catch {
-							errorMessage = `Server error (${response.status})`;
-						}
-					} else {
-						// HTML or other response - likely a server error page
-						errorMessage = `Server error (${response.status}): Unable to parse response`;
-					}
-					
-					throw new Error(errorMessage);
+					await handleErrorResponse(response, 'Fetch-missing failed');
 				}
 
 				const result = await response.json();
@@ -417,23 +395,7 @@
 
 			// Check if response is OK before parsing JSON
 			if (!response.ok) {
-				// Try to parse JSON error, but handle HTML responses
-				let errorMessage = 'Upload failed';
-				const contentType = response.headers.get('content-type');
-				
-				if (contentType?.includes('application/json')) {
-					try {
-						const errorData = await response.json();
-						errorMessage = errorData.error || errorMessage;
-					} catch {
-						errorMessage = `Server error (${response.status})`;
-					}
-				} else {
-					// HTML or other response - likely a server error page
-					errorMessage = `Server error (${response.status}): Unable to parse response`;
-				}
-				
-				throw new Error(errorMessage);
+				await handleErrorResponse(response, 'Upload failed');
 			}
 
 			const result = await response.json();
