@@ -140,7 +140,9 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude already processed records
 			if (processedIds.length > 0) {
-				query = query.not('id', 'in', `(${processedIds.join(',')})`);
+				// Use proper NOT IN syntax with quoted UUIDs
+				const quotedIds = processedIds.map(id => `"${id}"`).join(',');
+				query = query.not('id', 'in', `(${quotedIds})`);
 			}
 
 			const { data, error } = await query.limit(batchSize);
@@ -178,7 +180,9 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude manually uploaded covers
 			if (processedIds.length > 0) {
-				query = query.not('id', 'in', `(${processedIds.join(',')})`);
+				// Use proper NOT IN syntax with quoted UUIDs
+				const quotedIds = processedIds.map(id => `"${id}"`).join(',');
+				query = query.not('id', 'in', `(${quotedIds})`);
 			}
 
 			const { data, error } = await query.limit(batchSize);
@@ -376,7 +380,9 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('cover_image_url', 'is', null);
 
 			if (updatedProcessedIds.length > 0) {
-				countQuery = countQuery.not('id', 'in', `(${updatedProcessedIds.join(',')})`);
+				// Use proper NOT IN syntax with quoted UUIDs
+				const quotedIds = updatedProcessedIds.map(id => `"${id}"`).join(',');
+				countQuery = countQuery.not('id', 'in', `(${quotedIds})`);
 			}
 
 			const { count } = await countQuery;
@@ -398,7 +404,9 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('isbn', 'is', null);
 
 			if (uploadedIds.length > 0) {
-				countQuery = countQuery.not('id', 'in', `(${uploadedIds.join(',')})`);
+				// Use proper NOT IN syntax with quoted UUIDs
+				const quotedIds = uploadedIds.map(id => `"${id}"`).join(',');
+				countQuery = countQuery.not('id', 'in', `(${quotedIds})`);
 			}
 
 			const { count } = await countQuery;
