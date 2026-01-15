@@ -9,6 +9,42 @@ import ImageKit from 'imagekit';
 import { env as privateEnv } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 
+const extractIsbn = (value?: string | null): string | null => {
+	if (!value) return null;
+	const match = value.match(/\d{10,13}/);
+	return match ? match[0] : null;
+};
+
+const fetchImageBuffer = async (url: string): Promise<Buffer | null> => {
+	const response = await fetch(url);
+	if (!response.ok) return null;
+	if (!response.headers.get('content-type')?.startsWith('image/')) return null;
+	const arrayBuffer = await response.arrayBuffer();
+	if (arrayBuffer.byteLength <= 1024) return null;
+	return Buffer.from(arrayBuffer);
+};
+
+const fetchGoogleBooksCover = async (isbn: string): Promise<Buffer | null> => {
+	const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+	const response = await fetch(apiUrl);
+	if (!response.ok) return null;
+	const data = await response.json();
+	const book = data.items?.[0];
+	const imageLinks = book?.volumeInfo?.imageLinks;
+
+	const imageUrl =
+		imageLinks?.extraLarge ||
+		imageLinks?.large ||
+		imageLinks?.medium ||
+		imageLinks?.thumbnail ||
+		imageLinks?.smallThumbnail;
+
+	if (!imageUrl) return null;
+
+	const sanitizedUrl = imageUrl.replace('http://', 'https://').replace(/&zoom=\d+/, '');
+	return fetchImageBuffer(sanitizedUrl);
+};
+
 // Initialize ImageKit
 let imagekit: ImageKit | null = null;
 try {
@@ -205,31 +241,32 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 				} else if ((operation === 'refetch' || operation === 'fetch-missing') && record.isbn) {
 					// Try Open Library first, then Google Books as fallback
-					const isbn = record.isbn.replace(/[-\s]/g, '');
+					const isbn = extractIsbn(record.isbn);
+					if (!isbn) {
+						results.push({
+							id: record.id,
+							title: record.title_statement?.a,
+							success: false,
+							error: 'Invalid or missing ISBN'
+						});
+						continue;
+					}
 					let imageBuffer: Buffer | null = null;
 					let source = '';
 
 					// Try Open Library
-					const olResponse = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`);
-					if (olResponse.ok && olResponse.headers.get('content-type')?.startsWith('image/')) {
-						const arrayBuffer = await olResponse.arrayBuffer();
-						// Reject images smaller than 1KB (likely placeholders)
-						if (arrayBuffer.byteLength > 1024) {
-							imageBuffer = Buffer.from(arrayBuffer);
-							source = 'openlibrary';
-						}
+					imageBuffer = await fetchImageBuffer(
+						`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`
+					);
+					if (imageBuffer) {
+						source = 'openlibrary';
 					}
 
 					// If Open Library failed, try Google Books
 					if (!imageBuffer) {
-						const gbResponse = await fetch(`https://books.google.com/books/content?id=${isbn}&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api`);
-						if (gbResponse.ok && gbResponse.headers.get('content-type')?.startsWith('image/')) {
-							const arrayBuffer = await gbResponse.arrayBuffer();
-							// Reject images smaller than 1KB (likely placeholders)
-							if (arrayBuffer.byteLength > 1024) {
-								imageBuffer = Buffer.from(arrayBuffer);
-								source = 'google';
-							}
+						imageBuffer = await fetchGoogleBooksCover(isbn);
+						if (imageBuffer) {
+							source = 'google';
 						}
 					}
 
