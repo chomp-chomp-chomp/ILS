@@ -29,6 +29,9 @@
 	let languageNote = $state(record.language_note || '');
 	let contentsNote = $state(record.formatted_contents_note?.[0] || '');
 	let summary = $state(record.summary || '');
+	let digitalLinks = $state<any[]>(record.marc_json?.digital_links || []);
+	let showHathiTrust = $state(record.marc_json?.digital_links_visibility?.hathiTrust ?? true);
+	let showGoogleBooks = $state(record.marc_json?.digital_links_visibility?.googleBooks ?? true);
 	let subjects = $state<string[]>(
 		record.subject_topical?.map((s: any) => s.a) || ['']
 	);
@@ -63,6 +66,13 @@ let manualCoverUrl = $state('');
 function isNameLinked() {
 	return authorityLinks.some((link) => link.marc_field === '100');
 }
+
+function isProviderMatch(provider: string | undefined, match: string) {
+	return provider?.toLowerCase().includes(match.toLowerCase()) || false;
+}
+
+const hasHathiTrustLinks = $derived(() => digitalLinks.some((link) => isProviderMatch(link.provider, 'hathi')));
+const hasGoogleBooksLinks = $derived(() => digitalLinks.some((link) => isProviderMatch(link.provider, 'google')));
 
 function isSubjectLinked(index: number) {
 	return authorityLinks.some(
@@ -101,6 +111,15 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 		message = '';
 
 		try {
+			const updatedMarcJson = {
+				...(record.marc_json || {}),
+				digital_links: digitalLinks,
+				digital_links_visibility: {
+					hathiTrust: showHathiTrust,
+					googleBooks: showGoogleBooks
+				}
+			};
+
 			const updatedRecord = {
 				isbn,
 				issn,
@@ -127,6 +146,7 @@ function handleAuthorityLinked(field: string, index: number, authority: any) {
 				language_note: languageNote || null,
 				formatted_contents_note: contentsNote ? [contentsNote] : [],
 				summary,
+				marc_json: updatedMarcJson,
 				subject_topical: subjects
 					.filter((s) => s.trim())
 					.map((s) => ({ a: s.trim() })),
@@ -1025,6 +1045,48 @@ function statusClass(status: string) {
 		</section>
 
 		<section class="form-section">
+			<h2>Digital Access Links</h2>
+			{#if digitalLinks.length > 0}
+				<p class="section-note">
+					Control whether digital access links display in the public catalog.
+				</p>
+				<div class="form-row">
+					<label class="checkbox-label">
+						<input
+							type="checkbox"
+							bind:checked={showHathiTrust}
+							disabled={!hasHathiTrustLinks}
+						/>
+						<span>Show HathiTrust links in OPAC</span>
+					</label>
+					<label class="checkbox-label">
+						<input
+							type="checkbox"
+							bind:checked={showGoogleBooks}
+							disabled={!hasGoogleBooksLinks}
+						/>
+						<span>Show Google Books previews in OPAC</span>
+					</label>
+				</div>
+				<div class="digital-links-list">
+					{#each digitalLinks as link}
+						<div class="digital-link-item">
+							<span class="digital-provider">{link.provider}</span>
+							<a href={link.url} target="_blank" rel="noopener noreferrer">
+								{link.url}
+							</a>
+							{#if link.access}
+								<span class="digital-access">{link.access}</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="empty-state">No digital links stored for this record.</p>
+			{/if}
+		</section>
+
+		<section class="form-section">
 			<h2>Additional Notes</h2>
 
 			<div class="form-group">
@@ -1171,6 +1233,60 @@ function statusClass(status: string) {
 	gap: 1rem;
 	margin-bottom: 1rem;
 	}
+
+.checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 500;
+	color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+	width: auto;
+}
+
+.digital-links-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.digital-link-item {
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 6px;
+	padding: 0.5rem 0.75rem;
+	font-size: 0.875rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.digital-link-item a {
+	color: #2563eb;
+	word-break: break-all;
+}
+
+.digital-provider {
+	font-weight: 600;
+	color: #1f2937;
+}
+
+.digital-access {
+	background: #e0f2fe;
+	color: #0369a1;
+	padding: 0.1rem 0.4rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+}
+
+.empty-state {
+	color: #6b7280;
+	font-size: 0.9rem;
+}
 
 	.form-group {
 		margin-bottom: 1rem;
