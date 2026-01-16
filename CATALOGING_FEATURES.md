@@ -4,10 +4,207 @@ This document describes the advanced cataloging features added to the ILS system
 
 ## Table of Contents
 
-1. [Copy Cataloging](#copy-cataloging)
-2. [Batch Editing](#batch-editing)
-3. [Cataloging Templates](#cataloging-templates)
-4. [MARC Import/Export](#marc-importexport)
+1. [Enhanced ISBN Lookup](#enhanced-isbn-lookup)
+2. [Copy Cataloging](#copy-cataloging)
+3. [Batch Editing](#batch-editing)
+4. [Cataloging Templates](#cataloging-templates)
+5. [MARC Import/Export](#marc-importexport)
+
+---
+
+## Enhanced ISBN Lookup
+
+### Overview
+The ISBN Lookup feature has been significantly enhanced to query multiple bibliographic data sources, providing comprehensive metadata, call numbers, digital access links, and table of contents information.
+
+### Location
+`/admin/cataloging/isbn-lookup`
+
+### Data Sources
+
+The system now queries **7 major bibliographic sources** in intelligent cascades:
+
+1. **OpenLibrary** - Fast, comprehensive coverage for popular books
+   - Cover images
+   - Basic bibliographic data
+   - Page counts
+   - Subjects
+
+2. **Library of Congress (SRU)** - Authoritative MARC records
+   - LC Subject Headings (LCSH)
+   - LC call numbers
+   - Dewey Decimal numbers
+   - Publication data
+
+3. **OCLC WorldCat Classify** - Call number classification
+   - Dewey Decimal Classification (DDC)
+   - Library of Congress Classification (LCC)
+   - OCLC numbers
+   - VIAF IDs for authority control
+
+4. **HathiTrust** ✨ NEW
+   - Digital access links to full-text when available
+   - Public domain vs. restricted access indicators
+   - LCCN validation
+   - Rights information (public domain, in copyright, etc.)
+
+5. **Harvard LibraryCloud** ✨ NEW
+   - Academic metadata (MODS format)
+   - Enhanced subject coverage
+   - Table of contents
+   - High-quality call numbers
+   - Physical descriptions
+
+6. **Google Books** ✨ NEW (Enhanced)
+   - Digital preview links
+   - Viewability status (full view, limited preview, snippet)
+   - Cover images
+   - Categories/subjects
+
+### How to Use
+
+1. Navigate to `/admin/cataloging/isbn-lookup`
+2. Enter an ISBN (10 or 13 digits, with or without hyphens)
+3. Click "Search" or press Enter
+4. Watch the progress log as the system queries each source
+5. Review the combined results
+6. Click "Import to Catalog" to add the record
+
+### Search Process
+
+The system uses an intelligent cascade strategy:
+
+**If found on OpenLibrary (Step 1):**
+- Base record from OpenLibrary
+- ✓ Supplement with Library of Congress MARC data
+- ✓ Add call numbers from OCLC WorldCat
+- ✓ Add digital links from HathiTrust
+- ✓ Enhance with Harvard academic metadata
+- ✓ Add preview links from Google Books
+
+**If NOT found on OpenLibrary (Fallback):**
+- Try Library of Congress → OCLC → HathiTrust → Harvard → Google Books
+- Each source supplements or replaces previous data
+- System continues until finding usable data
+
+### Features
+
+#### Digital Access Links 🌐
+
+When available, the system displays direct links to digital versions:
+
+- **HathiTrust Full-Text**
+  - 🔓 Public domain books (full access)
+  - 🔒 Copyrighted books (limited access based on rights)
+  - Online reader format
+
+- **Google Books Previews**
+  - 👁️ Preview available
+  - Full view for public domain
+  - Limited preview for recent books
+  - Snippet view for restricted content
+
+Each link shows:
+- Provider name (HathiTrust, Google Books)
+- Access level badge (Full Access, Preview, Restricted)
+- View type
+- Direct link to open in new tab
+
+#### Table of Contents 📖
+
+When Harvard LibraryCloud provides TOC data:
+- Displayed in formatted section
+- Scrollable for long contents
+- Helps patrons understand book structure
+- Aids in collection development decisions
+
+#### Call Numbers 📚
+
+Comprehensive call number coverage:
+- **Dewey Decimal Classification** - from OCLC or Harvard
+- **Library of Congress Classification** - from LoC or OCLC
+- Color-coded display (green background)
+- Automatically applied to holdings
+- Monospaced font for clarity
+
+#### Enhanced Subjects
+
+Subject headings from multiple sources:
+- **LC Subject Headings** (LCSH) - from Library of Congress
+- **Harvard subjects** - academic vocabulary
+- **OpenLibrary subjects** - community-generated
+- Deduplicated and limited to top 10
+- Ready for import as MARC 650 fields
+
+### Data Import
+
+When you click "Import to Catalog":
+
+**Stored in MARC record:**
+- Title and subtitle (245 $a, $b)
+- Author (100 $a)
+- Publisher and date (260/264)
+- Subjects (650 fields)
+- Summary (520)
+- Table of contents (505) ✨ NEW
+- Physical description (300)
+
+**Stored in marc_json field:**
+- Original source attribution
+- Digital links array ✨ NEW
+- Call numbers (Dewey, LC)
+- OCLC number
+- VIAF ID
+- Complete imported data for reference
+
+**Auto-created holding:**
+- Default location: "Main Library"
+- Status: "available"
+- Call number: Dewey or LC (whichever available)
+- Copy number: 1
+
+### Search Log
+
+Real-time progress indicators:
+```
+1/7 Searching OpenLibrary...
+  ✓ Found on OpenLibrary
+  → Supplementing with Library of Congress...
+  ✓ Added MARC data from Library of Congress
+  → Getting call numbers from OCLC WorldCat...
+  ✓ Added call numbers from OCLC
+  → Checking HathiTrust for digital access...
+  ✓ Found 2 digital copy(ies) on HathiTrust
+  → Checking Harvard LibraryCloud...
+  ✓ Added academic metadata from Harvard
+  → Checking Google Books for previews...
+  ✓ Found preview on Google Books
+```
+
+### Benefits
+
+1. **Comprehensive Coverage** - Queries 7 sources for most complete data
+2. **Digital Discovery** - Links to free full-text and previews
+3. **Better Call Numbers** - Multiple authoritative sources
+4. **Academic Enhancement** - Harvard metadata for scholarly works
+5. **TOC Display** - Helps users understand book content
+6. **Time Savings** - Automatic merging of best data from each source
+7. **Graceful Fallback** - Continues searching until finding data
+
+### Technical Details
+
+- **Timeouts**: 8-10 seconds per source to prevent hanging
+- **Parallel Queries**: Some sources queried simultaneously for speed
+- **Error Handling**: Individual source failures don't stop the process
+- **Data Merging**: Intelligent preference for higher-quality metadata
+- **Type Safety**: Full TypeScript types for all API responses
+
+### Future Enhancements
+
+- British Library Z39.50 integration
+- LibraryThing extended data
+- Multiple call number display options
+- Direct MARC download from sources
 
 ---
 

@@ -4,7 +4,7 @@
 
 The ILS includes a comprehensive book cover management system that automatically fetches, stores, and displays cover images from multiple sources. The system features:
 
-- **Multiple Sources**: OpenLibrary, Google Books, LibraryThing APIs
+- **Multiple Sources**: OpenLibrary, Google Books, HathiTrust, LibraryThing APIs
 - **Manual Uploads**: Custom cover image uploads via Supabase Storage
 - **Bulk Processing**: Queue-based system for fetching covers for entire catalog
 - **Lazy Loading**: Performance-optimized image loading
