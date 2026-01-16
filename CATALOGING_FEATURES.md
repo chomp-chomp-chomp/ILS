@@ -5,10 +5,11 @@ This document describes the advanced cataloging features added to the ILS system
 ## Table of Contents
 
 1. [Enhanced ISBN Lookup](#enhanced-isbn-lookup)
-2. [Copy Cataloging](#copy-cataloging)
-3. [Batch Editing](#batch-editing)
-4. [Cataloging Templates](#cataloging-templates)
-5. [MARC Import/Export](#marc-importexport)
+2. [Bulk ISBN Import](#bulk-isbn-import)
+3. [Copy Cataloging](#copy-cataloging)
+4. [Batch Editing](#batch-editing)
+5. [Cataloging Templates](#cataloging-templates)
+6. [MARC Import/Export](#marc-importexport)
 
 ---
 
@@ -205,6 +206,221 @@ Real-time progress indicators:
 - LibraryThing extended data
 - Multiple call number display options
 - Direct MARC download from sources
+
+---
+
+## Bulk ISBN Import
+
+### Overview
+The Bulk ISBN Import feature allows you to import multiple books at once by entering a list of ISBNs. Like the single ISBN lookup, it now queries all 7 bibliographic sources for comprehensive metadata.
+
+### Location
+`/admin/cataloging/bulk-isbn`
+
+### Data Sources
+
+Queries the **same 7 major bibliographic sources** as single ISBN lookup:
+
+1. **OpenLibrary** - Fast, good coverage
+2. **Library of Congress** - Authoritative MARC data
+3. **OCLC WorldCat** - Call numbers (integrated in LoC query)
+4. **HathiTrust** ✨ NEW - Digital access links
+5. **Harvard LibraryCloud** ✨ NEW - Table of contents, academic metadata
+6. **Google Books** ✨ NEW - Preview links
+
+### How to Use
+
+1. Navigate to `/admin/cataloging/bulk-isbn`
+2. Enter ISBNs in the text area (one per line)
+   - Can be ISBN-10 or ISBN-13
+   - Hyphens and spaces are automatically removed
+   - Example format:
+     ```
+     9780743273565
+     978-0-06-231609-7
+     0451524934
+     ```
+3. Click **"Process ISBNs"**
+4. Wait while the system queries each ISBN across all sources (~2-5 seconds per ISBN)
+5. Review the results:
+   - ✓ Green checkmark = Found
+   - ✗ Red X = Not found
+   - Source information shown for each result
+6. Select the records you want to import (checkboxes)
+7. Click **"Import Selected"**
+
+### Features
+
+#### Comprehensive Metadata
+Each ISBN is queried across multiple sources and results are intelligently merged:
+
+**From OpenLibrary:**
+- Cover images
+- Basic bibliographic data
+- Page counts
+
+**From Library of Congress:**
+- LC Subject Headings (LCSH)
+- LC and Dewey call numbers
+- Genre/form terms
+- Variant titles
+
+**From HathiTrust:**
+- Digital full-text links (when available)
+- Public domain indicators
+- OCLC and LCCN numbers
+
+**From Harvard:**
+- Table of contents
+- Enhanced abstracts/summaries
+- Academic subject headings
+- Additional call numbers
+
+**From Google Books:**
+- Preview links
+- Viewability status
+
+#### Data Merging Strategy
+
+The system intelligently combines data from all sources:
+1. Prefers authoritative data (LoC subjects > OpenLibrary)
+2. Combines digital links from all sources
+3. Deduplicates subjects across sources (max 10 retained)
+4. Fills in missing call numbers from any available source
+5. Preserves table of contents when available
+
+#### Processing Speed
+
+- **Average**: 2-5 seconds per ISBN
+- **Timeout**: 8 seconds per source
+- Processes ISBNs sequentially with 300ms delay between each
+- Real-time progress display
+
+#### Results Display
+
+Each result shows:
+- ISBN
+- Status (found/not found/error)
+- Source(s) that provided data
+- Title preview
+- Checkbox for import selection
+
+#### Import Behavior
+
+**New Records:**
+- Creates new MARC record
+- Creates default holding (location: "Main Library", status: "available")
+- Includes:
+  - Title, subtitle, variant title
+  - Author(s)
+  - Publisher, publication date
+  - ISBN, ISSN
+  - Call numbers (LC and Dewey)
+  - Subjects (up to 10)
+  - Genre/form terms
+  - Edition statement
+  - Physical description
+  - Language notes
+  - Contents notes
+  - **Summary** ✨ NEW
+  - **Table of Contents** ✨ NEW
+  - **Digital Links** ✨ NEW (in marc_json)
+
+**Existing Records:**
+- Updates/overlays existing record with same ISBN
+- Preserves record ID
+- Updates timestamp
+
+### Digital Access Links
+
+Digital links are stored in `marc_json.digital_links` as an array:
+
+```json
+{
+  "digital_links": [
+    {
+      "url": "https://catalog.hathitrust.org/Record/...",
+      "provider": "HathiTrust",
+      "access": "public",
+      "type": "Full view",
+      "format": "online_reader"
+    },
+    {
+      "url": "https://books.google.com/books?id=...",
+      "provider": "Google Books",
+      "access": "preview",
+      "type": "PARTIAL",
+      "format": "online_reader"
+    }
+  ]
+}
+```
+
+These links appear on the public OPAC record detail pages, allowing patrons to access:
+- **Full-text** for public domain books (HathiTrust)
+- **Previews** for in-copyright books (Google Books)
+
+### Performance Considerations
+
+**For large batches** (50+ ISBNs):
+- Allow 5-10 minutes for processing
+- Page stays responsive during processing
+- Can pause/resume by closing and reopening
+- Results are saved as processed
+
+**Recommendations:**
+- Process in batches of 20-50 ISBNs
+- Monitor progress in real-time
+- Internet connection must remain stable
+- Some timeouts are expected (APIs can be slow)
+
+### Error Handling
+
+**Common errors and solutions:**
+
+1. **"Not found"** - ISBN doesn't exist in any database
+   - Verify ISBN is correct
+   - Try alternative identifiers (LCCN, OCLC)
+   - Manual cataloging may be needed
+
+2. **Timeout errors** - API too slow
+   - Normal for some ISBNs
+   - Data from other sources still merged
+   - Can retry individual ISBNs later
+
+3. **Network errors** - Connection issues
+   - Check internet connection
+   - Retry when connection is stable
+
+### Use Cases
+
+1. **Processing donation batches**
+   - Donor provides list of ISBNs
+   - Quick import of entire batch
+   - Review and edit records after import
+
+2. **Collection development orders**
+   - Import ISBNs from acquisition list
+   - Preview metadata before ordering
+   - Generate catalog records immediately
+
+3. **Retrospective conversion**
+   - Convert legacy card catalog
+   - ISBN lists from existing systems
+   - Bulk enhancement of existing records
+
+4. **Course reserves**
+   - Faculty provides reading list ISBNs
+   - Quick setup for new semester
+   - Complete metadata with digital links
+
+### Future Enhancements
+
+- CSV import with additional fields
+- Progress saving/resuming
+- Batch error retry
+- Parallel processing for speed
+- ISBN validation before processing
 
 ---
 
