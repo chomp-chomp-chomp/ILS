@@ -11,6 +11,70 @@
 	let currentIndex = $state(0);
 	let showResults = $state(false);
 
+	type SourceStatus = 'success' | 'not_found' | 'error';
+
+	const sourceOrder = [
+		'OpenLibrary',
+		'Library of Congress',
+		'OCLC WorldCat',
+		'HathiTrust',
+		'Harvard LibraryCloud',
+		'Google Books'
+	];
+
+	function summarizeSourceFields(data: any) {
+		const fields: string[] = [];
+
+		if (!data) return fields;
+
+		if (data.title) fields.push('Title');
+		if (data.subtitle) fields.push('Subtitle');
+		if (data.authors?.length) fields.push(`Author(s) (${data.authors.length})`);
+		if (data.publishers?.length) fields.push(`Publisher${data.publishers.length > 1 ? 's' : ''}`);
+		if (data.publish_date) fields.push('Publish date');
+		if (data.number_of_pages) fields.push('Page count');
+		if (data.subjects?.length) fields.push(`Subjects (${data.subjects.length})`);
+		if (data.cover) fields.push('Cover image');
+		if (data.table_of_contents || data.contents_note) fields.push('Table of contents');
+		if (data.summary) fields.push('Summary');
+		if (data.dewey_call_number || data.dewey_call_number?.a) fields.push('Dewey call number');
+		if (data.lcc_call_number || data.lc_call_number || data.lc_call_number?.a) fields.push('LC call number');
+		if (data.oclc_number) fields.push('OCLC number');
+		if (data.lccn) fields.push('LCCN');
+		if (data.digital_links?.length) fields.push(`Digital links (${data.digital_links.length})`);
+
+		return fields;
+	}
+
+	function isProviderMatch(provider: string | undefined, match: string) {
+		return provider?.toLowerCase().includes(match.toLowerCase()) || false;
+	}
+
+	function buildDigitalVisibility(links: any[]) {
+		return {
+			hathiTrust: links.some((link) => isProviderMatch(link.provider, 'hathi')),
+			googleBooks: links.some((link) => isProviderMatch(link.provider, 'google'))
+		};
+	}
+
+	async function runSource(name: string, fetcher: () => Promise<any>) {
+		try {
+			const data = await fetcher();
+			if (data) {
+				return {
+					data,
+					detail: { status: 'success' as SourceStatus, fields: summarizeSourceFields(data) }
+				};
+			}
+			return { data: null, detail: { status: 'not_found' as SourceStatus } };
+		} catch (err: any) {
+			return {
+				data: null,
+				detail: { status: 'error' as SourceStatus, error: err?.message || 'Unknown error' }
+			};
+		}
+	}
+
 	async function parseLocMarc(marcxml: string) {
 		const parser = new DOMParser();
 		const xmlDoc = parser.parseFromString(marcxml, 'text/xml');
@@ -117,173 +181,218 @@
 	}
 
 	async function tryLibraryOfCongress(cleanISBN: string) {
-		try {
-			const url = `/api/isbn/loc?isbn=${cleanISBN}`;
-			const response = await fetchWithTimeout(url, 5000);
-			if (!response.ok) {
-				throw new Error(`LoC proxy failed with status ${response.status}`);
-			}
-			const xmlText = await response.text();
+		const url = `/api/isbn/loc?isbn=${cleanISBN}`;
+		const response = await fetchWithTimeout(url, 5000);
+		if (!response.ok) {
+			throw new Error(`LoC proxy failed with status ${response.status}`);
+		}
+		const xmlText = await response.text();
 
-			if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
-				return null;
-			}
-
-			return await parseLocMarc(xmlText);
-		} catch (err) {
-			console.warn(`LoC API failed for ${cleanISBN}:`, err);
+		if (xmlText.includes('<numberOfRecords>0</numberOfRecords>')) {
 			return null;
 		}
+
+		return await parseLocMarc(xmlText);
+	}
+
+	/**
+	 * Query OCLC Classify API for bibliographic data and call numbers
+	 * Returns Dewey Decimal and LC classification numbers for shelving
+	 * Free API - no authentication required
+	 */
+	async function tryOCLCClassify(cleanISBN: string) {
+		const url = `/api/isbn/oclc?isbn=${cleanISBN}`;
+		const response = await fetchWithTimeout(url, 8000);
+		if (!response.ok) {
+			throw new Error(`OCLC proxy failed with status ${response.status}`);
+		}
+		const xmlText = await response.text();
+
+		const parser = new DOMParser();
+		const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+		// Check response code (0 = single work match, 2 = multiple works, 4 = single edition)
+		const responseCode = xmlDoc.querySelector('response')?.getAttribute('code');
+		if (!responseCode || !['0', '2', '4'].includes(responseCode)) {
+			return null;
+		}
+
+		// Extract data
+		const work = xmlDoc.querySelector('work');
+		const author = work?.getAttribute('author') ||
+		               xmlDoc.querySelector('author')?.textContent || '';
+		const title = work?.getAttribute('title') || '';
+
+		// Get call numbers (most popular preferred, fallback to most recent)
+		const dewey = xmlDoc.querySelector('ddc mostPopular')?.getAttribute('sfa') ||
+		              xmlDoc.querySelector('ddc mostRecent')?.getAttribute('sfa') || '';
+		const lcc = xmlDoc.querySelector('lcc mostPopular')?.getAttribute('sfa') ||
+		            xmlDoc.querySelector('lcc mostRecent')?.getAttribute('sfa') || '';
+
+		// Get first edition for additional data
+		const edition = xmlDoc.querySelector('edition');
+		const language = edition?.getAttribute('language') || '';
+		const pubYear = edition?.getAttribute('pubyear') || '';
+		const oclcNumber = edition?.getAttribute('oclc') || '';
+
+		// Get VIAF ID for authority control
+		const viafId = xmlDoc.querySelector('author')?.getAttribute('viaf') || '';
+
+		return {
+			title: title,
+			subtitle: '',
+			authors: author ? [author] : [],
+			publishers: [],
+			publish_date: pubYear,
+			dewey_call_number: dewey,
+			lcc_call_number: lcc,
+			language: language,
+			oclc_number: oclcNumber,
+			viaf_id: viafId,
+			subjects: [],
+			source: 'OCLC WorldCat'
+		};
 	}
 
 	/**
 	 * Try HathiTrust Bibliographic API for digital links
 	 */
 	async function tryHathiTrust(cleanISBN: string) {
-		try {
-			const url = `https://catalog.hathitrust.org/api/volumes/brief/isbn/${cleanISBN}.json`;
-			
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-			
-			const response = await fetch(url, { signal: controller.signal });
-			clearTimeout(timeoutId);
-			
-			if (!response.ok) return null;
-			
-			const data = await response.json();
-			
-			if (!data.items || data.items.length === 0) return null;
-			
-			// Extract record info
-			const recordKey = Object.keys(data.records || {})[0];
-			const record = data.records?.[recordKey];
-			
-			if (!record) return null;
-			
-			// Build digital links
-			const digitalLinks = data.items.map((item: any) => ({
-				url: item.itemURL,
-				provider: 'HathiTrust',
-				access: item.rights === 'pd' ? 'public' : 'restricted',
-				type: item.usRightsString || item.rights,
-				format: 'online_reader'
-			}));
-			
-			return {
-				title: record.titles?.[0] || '',
-				digital_links: digitalLinks,
-				oclc_number: record.oclcs?.[0],
-				lccn: record.lccns?.[0],
-				source: 'HathiTrust'
-			};
-		} catch (error) {
-			console.warn(`HathiTrust API error for ${cleanISBN}:`, error);
-			return null;
+		const url = `https://catalog.hathitrust.org/api/volumes/brief/isbn/${cleanISBN}.json`;
+		
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+		
+		const response = await fetch(url, { signal: controller.signal });
+		clearTimeout(timeoutId);
+		
+		if (!response.ok) {
+			throw new Error(`HathiTrust API returned ${response.status}`);
 		}
+		
+		const data = await response.json();
+		
+		if (!data.items || data.items.length === 0) return null;
+		
+		// Extract record info
+		const recordKey = Object.keys(data.records || {})[0];
+		const record = data.records?.[recordKey];
+		
+		if (!record) return null;
+		
+		// Build digital links
+		const digitalLinks = data.items.map((item: any) => ({
+			url: item.itemURL,
+			provider: 'HathiTrust',
+			access: item.rights === 'pd' ? 'public' : 'restricted',
+			type: item.usRightsString || item.rights,
+			format: 'online_reader'
+		}));
+		
+		return {
+			title: record.titles?.[0] || '',
+			digital_links: digitalLinks,
+			oclc_number: record.oclcs?.[0],
+			lccn: record.lccns?.[0],
+			source: 'HathiTrust'
+		};
 	}
 
 	/**
 	 * Try Harvard LibraryCloud for academic metadata
 	 */
 	async function tryHarvard(cleanISBN: string) {
-		try {
-			const url = `https://api.lib.harvard.edu/v2/items.json?identifier=${cleanISBN}&limit=1`;
-			
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 8000);
-			
-			const response = await fetch(url, { signal: controller.signal });
-			clearTimeout(timeoutId);
-			
-			if (!response.ok) return null;
-			
-			const data = await response.json();
-			
-			if (!data.items?.mods || data.items.mods.length === 0) return null;
-			
-			const mods = data.items.mods[0];
-			
-			// Extract data from MODS format
-			const titleInfo = Array.isArray(mods.titleInfo) ? mods.titleInfo[0] : mods.titleInfo;
-			const names = Array.isArray(mods.name) ? mods.name : (mods.name ? [mods.name] : []);
-			const originInfo = Array.isArray(mods.originInfo) ? mods.originInfo[0] : mods.originInfo;
-			const subjectArray = Array.isArray(mods.subject) ? mods.subject : (mods.subject ? [mods.subject] : []);
-			
-			// Extract call numbers
-			const classArray = Array.isArray(mods.classification) ? mods.classification : (mods.classification ? [mods.classification] : []);
-			let dewey = '';
-			let lcc = '';
-			
-			classArray.forEach((cls: any) => {
-				const text = cls['#text'] || cls;
-				const authority = cls['@authority'];
-				
-				if (authority === 'ddc' || /^\d{3}/.test(text)) {
-					dewey = text;
-				} else if (authority === 'lcc' || /^[A-Z]/.test(text)) {
-					lcc = text;
-				}
-			});
-			
-			return {
-				title: titleInfo?.title || '',
-				subtitle: titleInfo?.subTitle || '',
-				authors: names.map((n: any) => n.namePart).filter((n: string) => n),
-				publishers: originInfo?.publisher ? [originInfo.publisher] : [],
-				publish_date: originInfo?.dateIssued || '',
-				subjects: subjectArray.map((s: any) => s.topic).filter((t: string) => t),
-				dewey_call_number: dewey,
-				lcc_call_number: lcc,
-				table_of_contents: mods.tableOfContents || '',
-				summary: mods.abstract || '',
-				source: 'Harvard LibraryCloud'
-			};
-		} catch (error) {
-			console.warn(`Harvard API error for ${cleanISBN}:`, error);
-			return null;
+		const url = `https://api.lib.harvard.edu/v2/items.json?identifier=${cleanISBN}&limit=1`;
+		
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 8000);
+		
+		const response = await fetch(url, { signal: controller.signal });
+		clearTimeout(timeoutId);
+		
+		if (!response.ok) {
+			throw new Error(`Harvard API returned ${response.status}`);
 		}
+		
+		const data = await response.json();
+		
+		if (!data.items?.mods || data.items.mods.length === 0) return null;
+		
+		const mods = data.items.mods[0];
+		
+		// Extract data from MODS format
+		const titleInfo = Array.isArray(mods.titleInfo) ? mods.titleInfo[0] : mods.titleInfo;
+		const names = Array.isArray(mods.name) ? mods.name : (mods.name ? [mods.name] : []);
+		const originInfo = Array.isArray(mods.originInfo) ? mods.originInfo[0] : mods.originInfo;
+		const subjectArray = Array.isArray(mods.subject) ? mods.subject : (mods.subject ? [mods.subject] : []);
+		
+		// Extract call numbers
+		const classArray = Array.isArray(mods.classification) ? mods.classification : (mods.classification ? [mods.classification] : []);
+		let dewey = '';
+		let lcc = '';
+		
+		classArray.forEach((cls: any) => {
+			const text = cls['#text'] || cls;
+			const authority = cls['@authority'];
+			
+			if (authority === 'ddc' || /^\d{3}/.test(text)) {
+				dewey = text;
+			} else if (authority === 'lcc' || /^[A-Z]/.test(text)) {
+				lcc = text;
+			}
+		});
+		
+		return {
+			title: titleInfo?.title || '',
+			subtitle: titleInfo?.subTitle || '',
+			authors: names.map((n: any) => n.namePart).filter((n: string) => n),
+			publishers: originInfo?.publisher ? [originInfo.publisher] : [],
+			publish_date: originInfo?.dateIssued || '',
+			subjects: subjectArray.map((s: any) => s.topic).filter((t: string) => t),
+			dewey_call_number: dewey,
+			lcc_call_number: lcc,
+			table_of_contents: mods.tableOfContents || '',
+			summary: mods.abstract || '',
+			source: 'Harvard LibraryCloud'
+		};
 	}
 
 	/**
 	 * Try Google Books for digital links and previews
 	 */
 	async function tryGoogleBooksEnhanced(cleanISBN: string) {
-		try {
-			const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanISBN}`;
-			
-			const response = await fetch(url);
-			if (!response.ok) return null;
-			
-			const data = await response.json();
-			
-			if (!data.items || data.items.length === 0) return null;
-			
-			const book = data.items[0];
-			const volumeInfo = book.volumeInfo;
-			const accessInfo = book.accessInfo;
-			
-			// Build digital links
-			const digitalLinks = [];
-			if (accessInfo?.viewability && accessInfo.viewability !== 'NO_PAGES') {
-				digitalLinks.push({
-					url: volumeInfo.previewLink || volumeInfo.infoLink,
-					provider: 'Google Books',
-					type: accessInfo.viewability,
-					access: accessInfo.viewability === 'ALL_PAGES' ? 'public' : 'preview',
-					format: 'online_reader'
-				});
-			}
-			
-			return {
-				digital_links: digitalLinks,
-				cover: volumeInfo.imageLinks?.thumbnail,
-				source: 'Google Books'
-			};
-		} catch (error) {
-			console.warn(`Google Books API error for ${cleanISBN}:`, error);
-			return null;
+		const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanISBN}`;
+		
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`Google Books API returned ${response.status}`);
 		}
+		
+		const data = await response.json();
+		
+		if (!data.items || data.items.length === 0) return null;
+		
+		const book = data.items[0];
+		const volumeInfo = book.volumeInfo;
+		const accessInfo = book.accessInfo;
+		
+		// Build digital links
+		const digitalLinks = [];
+		if (accessInfo?.viewability && accessInfo.viewability !== 'NO_PAGES') {
+			digitalLinks.push({
+				url: volumeInfo.previewLink || volumeInfo.infoLink,
+				provider: 'Google Books',
+				type: accessInfo.viewability,
+				access: accessInfo.viewability === 'ALL_PAGES' ? 'public' : 'preview',
+				format: 'online_reader'
+			});
+		}
+		
+		return {
+			digital_links: digitalLinks,
+			cover: volumeInfo.imageLinks?.thumbnail,
+			source: 'Google Books'
+		};
 	}
 
 	async function processBulkISBNs() {
@@ -307,106 +416,187 @@
 				isbn,
 				status: 'processing',
 				source: null,
-				data: null
+				data: null,
+				sourceDetails: {}
 			}];
 
 			try {
 				// Strategy: Try OpenLibrary first for speed, then supplement with all other sources
-				let bookData = await tryOpenLibrary(isbn);
+				let sourceDetails: Record<string, { status: SourceStatus; fields?: string[]; error?: string }> = {};
+				let bookData: any = null;
 				let sources = [];
+				const openLibraryResult = await runSource('OpenLibrary', () => tryOpenLibrary(isbn));
+				sourceDetails = { ...sourceDetails, OpenLibrary: openLibraryResult.detail };
+				bookData = openLibraryResult.data;
 				
 				if (bookData) {
 					sources.push('OpenLibrary');
 					
 					// Supplement with LoC data
-					const locData = await tryLibraryOfCongress(isbn);
-					if (locData) {
+					const locData = await runSource('Library of Congress', () => tryLibraryOfCongress(isbn));
+					sourceDetails = { ...sourceDetails, 'Library of Congress': locData.detail };
+					if (locData.data) {
 						sources.push('Library of Congress');
 						bookData = {
 							...bookData,
-							lc_call_number: locData.lc_call_number || bookData.lc_call_number,
-							dewey_call_number: locData.dewey_call_number || bookData.dewey_call_number,
-							subjects: locData.subjects.length > 0 ? locData.subjects : bookData.subjects,
-							genre_forms: locData.genre_forms.length > 0 ? locData.genre_forms : bookData.genre_forms,
-							variant_title: locData.variant_title || bookData.variant_title,
-							edition: locData.edition || bookData.edition,
-							language_note: locData.language_note || bookData.language_note,
-							contents_note: locData.contents_note || bookData.contents_note,
-							issn: locData.issn || bookData.issn
+							lc_call_number: locData.data.lc_call_number || bookData.lc_call_number,
+							dewey_call_number: locData.data.dewey_call_number || bookData.dewey_call_number,
+							subjects: locData.data.subjects.length > 0 ? locData.data.subjects : bookData.subjects,
+							genre_forms: locData.data.genre_forms.length > 0 ? locData.data.genre_forms : bookData.genre_forms,
+							variant_title: locData.data.variant_title || bookData.variant_title,
+							edition: locData.data.edition || bookData.edition,
+							language_note: locData.data.language_note || bookData.language_note,
+							contents_note: locData.data.contents_note || bookData.contents_note,
+							issn: locData.data.issn || bookData.issn
+						};
+					}
+
+					// Add OCLC call numbers
+					const oclcData = await runSource('OCLC WorldCat', () => tryOCLCClassify(isbn));
+					sourceDetails = { ...sourceDetails, 'OCLC WorldCat': oclcData.detail };
+					if (oclcData.data?.dewey_call_number || oclcData.data?.lcc_call_number) {
+						sources.push('OCLC WorldCat');
+						bookData = {
+							...bookData,
+							dewey_call_number: bookData.dewey_call_number || oclcData.data.dewey_call_number,
+							lc_call_number: bookData.lc_call_number || oclcData.data.lcc_call_number,
+							viaf_id: oclcData.data.viaf_id,
+							oclc_number: oclcData.data.oclc_number
 						};
 					}
 					
 					// Add HathiTrust digital links
-					const hathiData = await tryHathiTrust(isbn);
-					if (hathiData?.digital_links && hathiData.digital_links.length > 0) {
+					const hathiData = await runSource('HathiTrust', () => tryHathiTrust(isbn));
+					sourceDetails = { ...sourceDetails, HathiTrust: hathiData.detail };
+					if (hathiData.data?.digital_links && hathiData.data.digital_links.length > 0) {
 						sources.push('HathiTrust');
 						bookData = {
 							...bookData,
-							digital_links: hathiData.digital_links,
-							oclc_number: bookData.oclc_number || hathiData.oclc_number,
-							lccn: bookData.lccn || hathiData.lccn
+							digital_links: hathiData.data.digital_links,
+							oclc_number: bookData.oclc_number || hathiData.data.oclc_number,
+							lccn: bookData.lccn || hathiData.data.lccn
 						};
 					}
 					
 					// Add Harvard academic metadata
-					const harvardData = await tryHarvard(isbn);
-					if (harvardData) {
+					const harvardData = await runSource('Harvard LibraryCloud', () => tryHarvard(isbn));
+					sourceDetails = { ...sourceDetails, 'Harvard LibraryCloud': harvardData.detail };
+					if (harvardData.data) {
 						sources.push('Harvard');
 						bookData = {
 							...bookData,
-							dewey_call_number: bookData.dewey_call_number || harvardData.dewey_call_number,
-							lc_call_number: bookData.lc_call_number || harvardData.lc_call_number,
-							table_of_contents: harvardData.table_of_contents || bookData.table_of_contents,
-							summary: bookData.summary || harvardData.summary,
-							subjects: [...new Set([...(bookData.subjects || []), ...(harvardData.subjects || [])])].slice(0, 10)
+							dewey_call_number: bookData.dewey_call_number || harvardData.data.dewey_call_number,
+							lc_call_number: bookData.lc_call_number || harvardData.data.lc_call_number,
+							table_of_contents: harvardData.data.table_of_contents || bookData.table_of_contents,
+							summary: bookData.summary || harvardData.data.summary,
+							subjects: [...new Set([...(bookData.subjects || []), ...(harvardData.data.subjects || [])])].slice(0, 10)
 						};
 					}
 					
 					// Add Google Books preview links
-					const googleData = await tryGoogleBooksEnhanced(isbn);
-					if (googleData?.digital_links && googleData.digital_links.length > 0) {
+					const googleData = await runSource('Google Books', () => tryGoogleBooksEnhanced(isbn));
+					sourceDetails = { ...sourceDetails, 'Google Books': googleData.detail };
+					if (googleData.data?.digital_links && googleData.data.digital_links.length > 0) {
 						sources.push('Google Books');
 						bookData = {
 							...bookData,
-							digital_links: [...(bookData.digital_links || []), ...googleData.digital_links]
+							digital_links: [...(bookData.digital_links || []), ...googleData.data.digital_links]
 						};
 					}
 				} else {
 					// OpenLibrary didn't find it - try other sources
-					bookData = await tryLibraryOfCongress(isbn);
+					const locData = await runSource('Library of Congress', () => tryLibraryOfCongress(isbn));
+					sourceDetails = { ...sourceDetails, 'Library of Congress': locData.detail };
+					bookData = locData.data;
 					if (bookData) {
 						sources.push('Library of Congress');
-						
-						// Still try to add digital links
-						const hathiData = await tryHathiTrust(isbn);
-						if (hathiData?.digital_links) {
-							sources.push('HathiTrust');
-							bookData.digital_links = hathiData.digital_links;
+
+						const oclcData = await runSource('OCLC WorldCat', () => tryOCLCClassify(isbn));
+						sourceDetails = { ...sourceDetails, 'OCLC WorldCat': oclcData.detail };
+						if (oclcData.data?.dewey_call_number || oclcData.data?.lcc_call_number) {
+							sources.push('OCLC WorldCat');
+							bookData = {
+								...bookData,
+								dewey_call_number: bookData.dewey_call_number || oclcData.data.dewey_call_number,
+								lc_call_number: bookData.lc_call_number || oclcData.data.lcc_call_number,
+								viaf_id: oclcData.data.viaf_id,
+								oclc_number: oclcData.data.oclc_number
+							};
 						}
 						
-						const harvardData = await tryHarvard(isbn);
-						if (harvardData) {
+						// Still try to add digital links
+						const hathiData = await runSource('HathiTrust', () => tryHathiTrust(isbn));
+						sourceDetails = { ...sourceDetails, HathiTrust: hathiData.detail };
+						if (hathiData.data?.digital_links) {
+							sources.push('HathiTrust');
+							bookData.digital_links = hathiData.data.digital_links;
+						}
+						
+						const harvardData = await runSource('Harvard LibraryCloud', () => tryHarvard(isbn));
+						sourceDetails = { ...sourceDetails, 'Harvard LibraryCloud': harvardData.detail };
+						if (harvardData.data) {
 							sources.push('Harvard');
 							bookData = {
 								...bookData,
-								dewey_call_number: bookData.dewey_call_number || harvardData.dewey_call_number,
-								lc_call_number: bookData.lc_call_number || harvardData.lc_call_number,
-								table_of_contents: harvardData.table_of_contents
+								dewey_call_number: bookData.dewey_call_number || harvardData.data.dewey_call_number,
+								lc_call_number: bookData.lc_call_number || harvardData.data.lc_call_number,
+								table_of_contents: harvardData.data.table_of_contents
+							};
+						}
+
+						const googleData = await runSource('Google Books', () => tryGoogleBooksEnhanced(isbn));
+						sourceDetails = { ...sourceDetails, 'Google Books': googleData.detail };
+						if (googleData.data?.digital_links && googleData.data.digital_links.length > 0) {
+							sources.push('Google Books');
+							bookData = {
+								...bookData,
+								digital_links: [...(bookData.digital_links || []), ...googleData.data.digital_links]
 							};
 						}
 					} else {
-						// Try HathiTrust or Harvard as last resort
-						const hathiData = await tryHathiTrust(isbn);
-						const harvardData = await tryHarvard(isbn);
-						
-						if (harvardData) {
-							sources.push('Harvard');
-							bookData = harvardData;
-						}
-						if (hathiData?.digital_links) {
-							sources.push('HathiTrust');
-							if (!bookData) bookData = {} as any;
-							bookData.digital_links = hathiData.digital_links;
+						// Try OCLC as next fallback
+						const oclcData = await runSource('OCLC WorldCat', () => tryOCLCClassify(isbn));
+						sourceDetails = { ...sourceDetails, 'OCLC WorldCat': oclcData.detail };
+
+						if (oclcData.data?.title) {
+							sources.push('OCLC WorldCat');
+							bookData = oclcData.data;
+
+							const hathiData = await runSource('HathiTrust', () => tryHathiTrust(isbn));
+							sourceDetails = { ...sourceDetails, HathiTrust: hathiData.detail };
+							if (hathiData.data?.digital_links) {
+								sources.push('HathiTrust');
+								bookData.digital_links = hathiData.data.digital_links;
+							}
+
+							const googleData = await runSource('Google Books', () => tryGoogleBooksEnhanced(isbn));
+							sourceDetails = { ...sourceDetails, 'Google Books': googleData.detail };
+							if (googleData.data?.digital_links && googleData.data.digital_links.length > 0) {
+								sources.push('Google Books');
+								bookData.digital_links = [
+									...(bookData.digital_links || []),
+									...googleData.data.digital_links
+								];
+							}
+						} else {
+							// Try HathiTrust or Harvard as last resort
+							const hathiData = await runSource('HathiTrust', () => tryHathiTrust(isbn));
+							const harvardData = await runSource('Harvard LibraryCloud', () => tryHarvard(isbn));
+							sourceDetails = {
+								...sourceDetails,
+								HathiTrust: hathiData.detail,
+								'Harvard LibraryCloud': harvardData.detail
+							};
+							
+							if (harvardData.data) {
+								sources.push('Harvard');
+								bookData = harvardData.data;
+							}
+							if (hathiData.data?.digital_links) {
+								sources.push('HathiTrust');
+								if (!bookData) bookData = {} as any;
+								bookData.digital_links = hathiData.data.digital_links;
+							}
 						}
 					}
 				}
@@ -417,14 +607,16 @@
 						isbn,
 						status: 'found',
 						source: sources.join(' + '),
-						data: bookData
+						data: bookData,
+						sourceDetails
 					};
 				} else {
 					results[i] = {
 						isbn,
 						status: 'not_found',
 						source: null,
-						data: null
+						data: null,
+						sourceDetails
 					};
 				}
 			} catch (err: any) {
@@ -433,7 +625,8 @@
 					status: 'error',
 					error: err.message || 'Unknown error',
 					source: null,
-					data: null
+					data: null,
+					sourceDetails: {}
 				};
 			}
 
@@ -496,7 +689,8 @@
 						marc_json: {
 							source: result.source,
 							imported_data: result.data,
-							digital_links: result.data.digital_links || []
+							digital_links: result.data.digital_links || [],
+							digital_links_visibility: buildDigitalVisibility(result.data.digital_links || [])
 						}
 					};
 
@@ -671,6 +865,30 @@
 									{/if}
 								</p>
 								<p class="source">Source: {result.source}</p>
+								{#if result.sourceDetails && Object.keys(result.sourceDetails).length > 0}
+									<div class="source-breakdown">
+										<ul>
+											{#each sourceOrder as source}
+												{#if result.sourceDetails[source]}
+													<li class="source-line {result.sourceDetails[source].status}">
+														<span class="source-name">{source}:</span>
+														{#if result.sourceDetails[source].status === 'success'}
+															<span class="source-fields">
+																{result.sourceDetails[source].fields?.length
+																	? result.sourceDetails[source].fields?.join(', ')
+																	: 'Data available'}
+															</span>
+														{:else if result.sourceDetails[source].status === 'error'}
+															<span class="source-error">Error: {result.sourceDetails[source].error}</span>
+														{:else}
+															<span class="source-missing">No data returned</span>
+														{/if}
+													</li>
+												{/if}
+											{/each}
+										</ul>
+									</div>
+								{/if}
 								{#if result.importError}
 									<p class="import-error">Error: {result.importError}</p>
 								{/if}
@@ -678,6 +896,30 @@
 						{:else if result.status === 'not_found'}
 							<div class="result-content">
 								<p class="error-text">ISBN {result.isbn}: Not found</p>
+								{#if result.sourceDetails && Object.keys(result.sourceDetails).length > 0}
+									<div class="source-breakdown">
+										<ul>
+											{#each sourceOrder as source}
+												{#if result.sourceDetails[source]}
+													<li class="source-line {result.sourceDetails[source].status}">
+														<span class="source-name">{source}:</span>
+														{#if result.sourceDetails[source].status === 'success'}
+															<span class="source-fields">
+																{result.sourceDetails[source].fields?.length
+																	? result.sourceDetails[source].fields?.join(', ')
+																	: 'Data available'}
+															</span>
+														{:else if result.sourceDetails[source].status === 'error'}
+															<span class="source-error">Error: {result.sourceDetails[source].error}</span>
+														{:else}
+															<span class="source-missing">No data returned</span>
+														{/if}
+													</li>
+												{/if}
+											{/each}
+										</ul>
+									</div>
+								{/if}
 							</div>
 						{:else if result.status === 'processing'}
 							<div class="result-content">
@@ -686,6 +928,30 @@
 						{:else}
 							<div class="result-content">
 								<p class="error-text">ISBN {result.isbn}: Error - {result.error}</p>
+								{#if result.sourceDetails && Object.keys(result.sourceDetails).length > 0}
+									<div class="source-breakdown">
+										<ul>
+											{#each sourceOrder as source}
+												{#if result.sourceDetails[source]}
+													<li class="source-line {result.sourceDetails[source].status}">
+														<span class="source-name">{source}:</span>
+														{#if result.sourceDetails[source].status === 'success'}
+															<span class="source-fields">
+																{result.sourceDetails[source].fields?.length
+																	? result.sourceDetails[source].fields?.join(', ')
+																	: 'Data available'}
+															</span>
+														{:else if result.sourceDetails[source].status === 'error'}
+															<span class="source-error">Error: {result.sourceDetails[source].error}</span>
+														{:else}
+															<span class="source-missing">No data returned</span>
+														{/if}
+													</li>
+												{/if}
+											{/each}
+										</ul>
+									</div>
+								{/if}
 							</div>
 						{/if}
 					</div>
@@ -886,6 +1152,45 @@
 		font-size: 0.75rem;
 		color: #10b981;
 		font-weight: 600;
+	}
+
+	.source-breakdown {
+		margin-top: 0.5rem;
+		background: #fff;
+		border: 1px solid #e5e7eb;
+		border-radius: 6px;
+		padding: 0.5rem 0.75rem;
+	}
+
+	.source-breakdown ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.source-line {
+		display: flex;
+		gap: 0.5rem;
+		font-size: 0.7rem;
+		padding: 0.2rem 0;
+	}
+
+	.source-name {
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.source-fields {
+		color: #047857;
+	}
+
+	.source-line.error .source-name,
+	.source-error {
+		color: #b91c1c;
+	}
+
+	.source-missing {
+		color: #6b7280;
 	}
 
 	.processing-text {

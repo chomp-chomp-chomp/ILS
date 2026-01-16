@@ -8,6 +8,19 @@
 	const holdings = $derived(data.holdings || []);
 	const relatedRecords = $derived(data.relatedRecords || []);
 	const attachments = $derived(data.attachments || []);
+	const digitalLinks = $derived(record?.marc_json?.digital_links || []);
+	const digitalVisibility = $derived(record?.marc_json?.digital_links_visibility || {});
+	const visibleDigitalLinks = $derived(() => {
+		return digitalLinks.filter((link: any) => {
+			if (isProviderMatch(link.provider, 'hathi') && digitalVisibility.hathiTrust === false) {
+				return false;
+			}
+			if (isProviderMatch(link.provider, 'google') && digitalVisibility.googleBooks === false) {
+				return false;
+			}
+			return true;
+		});
+	});
 
 	let copyingLink = $state(false);
 	let showCopiedToast = $state(false);
@@ -215,6 +228,10 @@
 		return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[exponent]}`;
 	}
 
+	function isProviderMatch(provider: string | undefined, match: string) {
+		return provider?.toLowerCase().includes(match.toLowerCase()) || false;
+	}
+
 	function isImage(type?: string | null) {
 		return type?.startsWith('image/');
 	}
@@ -358,6 +375,30 @@
 					<section class="info-section">
 						<h3>Summary</h3>
 						<p>{record.summary}</p>
+					</section>
+				{/if}
+
+				{#if visibleDigitalLinks.length > 0}
+					<section class="info-section">
+						<h3>Digital Access</h3>
+						<div class="digital-access-list">
+							{#each visibleDigitalLinks as link}
+								<a
+									class="digital-access-card"
+									href={link.url}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									<div>
+										<span class="digital-provider">{link.provider}</span>
+										{#if link.access}
+											<span class="digital-access-badge">{link.access}</span>
+										{/if}
+									</div>
+									<span class="digital-link-url">{link.url}</span>
+								</a>
+							{/each}
+						</div>
 					</section>
 				{/if}
 
@@ -663,6 +704,50 @@
 		color: #2c3e50;
 		border-bottom: 2px solid #667eea;
 		padding-bottom: 0.5rem;
+	}
+
+	.digital-access-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.digital-access-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: 0.75rem;
+		border: 1px solid #e2e8f0;
+		border-radius: 6px;
+		background: #f8fafc;
+		text-decoration: none;
+		color: inherit;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.digital-access-card:hover {
+		border-color: #667eea;
+		box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+	}
+
+	.digital-provider {
+		font-weight: 600;
+		color: #1f2937;
+	}
+
+	.digital-access-badge {
+		margin-left: 0.5rem;
+		background: #e0f2fe;
+		color: #0369a1;
+		padding: 0.1rem 0.45rem;
+		border-radius: 999px;
+		font-size: 0.75rem;
+	}
+
+	.digital-link-url {
+		color: #2563eb;
+		font-size: 0.85rem;
+		word-break: break-all;
 	}
 
 	.field {
