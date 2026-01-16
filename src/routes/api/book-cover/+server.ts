@@ -64,6 +64,33 @@ async function tryGoogleBooks(isbn: string): Promise<string | null> {
 	}
 }
 
+async function tryHathiTrust(isbn: string): Promise<string | null> {
+	try {
+		const cleanISBN = isbn.replace(/[^0-9X]/gi, '');
+		// HathiTrust doesn't have a direct cover API, but we can get covers from their catalog
+		// Note: This is a best-effort approach
+		const response = await fetch(
+			`https://catalog.hathitrust.org/api/volumes/brief/isbn/${cleanISBN}.json`
+		);
+
+		if (!response.ok) return null;
+
+		const data = await response.json();
+
+		// HathiTrust API doesn't directly provide covers, but we can check if item exists
+		// and fall back to other sources. This function primarily validates the ISBN exists.
+		if (data.items && data.items.length > 0) {
+			// Could potentially construct a cover URL from HathiTrust ID
+			// For now, return null to let other sources handle covers
+		}
+
+		return null;
+	} catch (error) {
+		console.error('HathiTrust API error:', error);
+		return null;
+	}
+}
+
 async function tryOpenLibrary(
 	isbn: string | null,
 	title: string | null,

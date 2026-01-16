@@ -142,6 +142,156 @@
 		};
 	}
 
+	/**
+	 * Try HathiTrust Bibliographic API for digital links
+	 */
+	async function tryHathiTrust(cleanISBN: string) {
+		try {
+			const url = `https://catalog.hathitrust.org/api/volumes/brief/isbn/${cleanISBN}.json`;
+			
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+			
+			const response = await fetch(url, { signal: controller.signal });
+			clearTimeout(timeoutId);
+			
+			if (!response.ok) return null;
+			
+			const data = await response.json();
+			
+			if (!data.items || data.items.length === 0) return null;
+			
+			// Extract record info
+			const recordKey = Object.keys(data.records || {})[0];
+			const record = data.records?.[recordKey];
+			
+			if (!record) return null;
+			
+			// Build digital links
+			const digitalLinks = data.items.map((item: any) => ({
+				url: item.itemURL,
+				provider: 'HathiTrust',
+				access: item.rights === 'pd' ? 'public' : 'restricted',
+				type: item.usRightsString || item.rights,
+				format: 'online_reader'
+			}));
+			
+			return {
+				title: record.titles?.[0] || '',
+				digital_links: digitalLinks,
+				oclc_number: record.oclcs?.[0],
+				lccn: record.lccns?.[0],
+				source: 'HathiTrust'
+			};
+		} catch (error) {
+			console.warn(`HathiTrust API error for ${cleanISBN}:`, error);
+			return null;
+		}
+	}
+
+	/**
+	 * Try Harvard LibraryCloud for academic metadata
+	 */
+	async function tryHarvard(cleanISBN: string) {
+		try {
+			const url = `https://api.lib.harvard.edu/v2/items.json?identifier=${cleanISBN}&limit=1`;
+			
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000);
+			
+			const response = await fetch(url, { signal: controller.signal });
+			clearTimeout(timeoutId);
+			
+			if (!response.ok) return null;
+			
+			const data = await response.json();
+			
+			if (!data.items?.mods || data.items.mods.length === 0) return null;
+			
+			const mods = data.items.mods[0];
+			
+			// Extract data from MODS format
+			const titleInfo = Array.isArray(mods.titleInfo) ? mods.titleInfo[0] : mods.titleInfo;
+			const names = Array.isArray(mods.name) ? mods.name : (mods.name ? [mods.name] : []);
+			const originInfo = Array.isArray(mods.originInfo) ? mods.originInfo[0] : mods.originInfo;
+			const subjectArray = Array.isArray(mods.subject) ? mods.subject : (mods.subject ? [mods.subject] : []);
+			
+			// Extract call numbers
+			const classArray = Array.isArray(mods.classification) ? mods.classification : (mods.classification ? [mods.classification] : []);
+			let dewey = '';
+			let lcc = '';
+			
+			classArray.forEach((cls: any) => {
+				const text = cls['#text'] || cls;
+				const authority = cls['@authority'];
+				
+				if (authority === 'ddc' || /^\d{3}/.test(text)) {
+					dewey = text;
+				} else if (authority === 'lcc' || /^[A-Z]/.test(text)) {
+					lcc = text;
+				}
+			});
+			
+			return {
+				title: titleInfo?.title || '',
+				subtitle: titleInfo?.subTitle || '',
+				authors: names.map((n: any) => n.namePart).filter((n: string) => n),
+				publishers: originInfo?.publisher ? [originInfo.publisher] : [],
+				publish_date: originInfo?.dateIssued || '',
+				subjects: subjectArray.map((s: any) => s.topic).filter((t: string) => t),
+				dewey_call_number: dewey,
+				lcc_call_number: lcc,
+				table_of_contents: mods.tableOfContents || '',
+				summary: mods.abstract || '',
+				source: 'Harvard LibraryCloud'
+			};
+		} catch (error) {
+			console.warn(`Harvard API error for ${cleanISBN}:`, error);
+			return null;
+		}
+	}
+
+	/**
+	 * Try Google Books for digital links and previews
+	 */
+	async function tryGoogleBooksEnhanced(cleanISBN: string) {
+		try {
+			const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanISBN}`;
+			
+			const response = await fetch(url);
+			if (!response.ok) return null;
+			
+			const data = await response.json();
+			
+			if (!data.items || data.items.length === 0) return null;
+			
+			const book = data.items[0];
+			const volumeInfo = book.volumeInfo;
+			const accessInfo = book.accessInfo;
+			
+			// Build digital links
+			const digitalLinks = [];
+			if (accessInfo?.viewability && accessInfo.viewability !== 'NO_PAGES') {
+				digitalLinks.push({
+					url: volumeInfo.previewLink || volumeInfo.infoLink,
+					provider: 'Google Books',
+					type: accessInfo.viewability,
+					access: accessInfo.viewability === 'ALL_PAGES' ? 'public' : 'preview',
+					format: 'online_reader'
+				});
+			}
+			
+			return {
+				digital_links: digitalLinks,
+				cover: volumeInfo.imageLinks?.thumbnail,
+				source: 'Google Books'
+			};
+		} catch (error) {
+			console.warn(`Google Books API error for ${cleanISBN}:`, error);
+			return null;
+		}
+	}
+
 	async function lookupISBN() {
 		searching = true;
 		error = '';
@@ -152,7 +302,7 @@
 			const cleanISBN = isbn.replace(/[^0-9X]/g, '');
 
 			// Try OpenLibrary first (best for popular books, covers, descriptions)
-			searchLog = [...searchLog, '1/4 Searching OpenLibrary...'];
+			searchLog = [...searchLog, '1/7 Searching OpenLibrary...'];
 			const olResult = await tryOpenLibrary(cleanISBN);
 
 			if (olResult) {
@@ -200,11 +350,58 @@
 				} else {
 					searchLog = [...searchLog, '  ✗ No call numbers available from OCLC'];
 				}
+
+				// NEW: Try HathiTrust for digital links
+				searchLog = [...searchLog, '  → Checking HathiTrust for digital access...'];
+				const hathiResult = await tryHathiTrust(cleanISBN);
+				if (hathiResult?.digital_links && hathiResult.digital_links.length > 0) {
+					results = {
+						...results,
+						digital_links: hathiResult.digital_links,
+						oclc_number: results.oclc_number || hathiResult.oclc_number,
+						lccn: results.lccn || hathiResult.lccn
+					};
+					searchLog = [...searchLog, `  ✓ Found ${hathiResult.digital_links.length} digital copy(ies) on HathiTrust`];
+				} else {
+					searchLog = [...searchLog, '  ✗ No digital copies found on HathiTrust'];
+				}
+
+				// NEW: Try Harvard for enhanced academic metadata
+				searchLog = [...searchLog, '  → Checking Harvard LibraryCloud...'];
+				const harvardResult = await tryHarvard(cleanISBN);
+				if (harvardResult) {
+					results = {
+						...results,
+						// Use Harvard call numbers if we don't have them
+						dewey_call_number: results.dewey_call_number || harvardResult.dewey_call_number,
+						lcc_call_number: results.lcc_call_number || harvardResult.lcc_call_number,
+						// Add TOC if available
+						table_of_contents: harvardResult.table_of_contents || results.table_of_contents,
+						// Supplement subjects
+						subjects: [...new Set([...(results.subjects || []), ...(harvardResult.subjects || [])])].slice(0, 10)
+					};
+					searchLog = [...searchLog, '  ✓ Added academic metadata from Harvard'];
+				} else {
+					searchLog = [...searchLog, '  ✗ Not found in Harvard LibraryCloud'];
+				}
+
+				// NEW: Try Google Books for digital preview links
+				searchLog = [...searchLog, '  → Checking Google Books for previews...'];
+				const googleResult = await tryGoogleBooksEnhanced(cleanISBN);
+				if (googleResult?.digital_links && googleResult.digital_links.length > 0) {
+					results = {
+						...results,
+						digital_links: [...(results.digital_links || []), ...googleResult.digital_links]
+					};
+					searchLog = [...searchLog, '  ✓ Found preview on Google Books'];
+				} else {
+					searchLog = [...searchLog, '  ✗ No preview available on Google Books'];
+				}
 			} else {
 				searchLog = [...searchLog, '  ✗ Not found on OpenLibrary'];
 
 				// Fallback to Library of Congress
-				searchLog = [...searchLog, '2/4 Trying Library of Congress...'];
+				searchLog = [...searchLog, '2/7 Trying Library of Congress...'];
 				const locResult = await tryLibraryOfCongress(cleanISBN);
 
 				if (locResult) {
@@ -226,19 +423,67 @@
 					} else {
 						searchLog = [...searchLog, '  ✗ No call numbers available from OCLC'];
 					}
+
+					// Try new sources
+					searchLog = [...searchLog, '  → Checking HathiTrust...'];
+					const hathiResult = await tryHathiTrust(cleanISBN);
+					if (hathiResult?.digital_links && hathiResult.digital_links.length > 0) {
+						results = {
+							...results,
+							digital_links: hathiResult.digital_links
+						};
+						searchLog = [...searchLog, `  ✓ Found digital copies on HathiTrust`];
+					}
+
+					searchLog = [...searchLog, '  → Checking Harvard...'];
+					const harvardResult = await tryHarvard(cleanISBN);
+					if (harvardResult) {
+						results = {
+							...results,
+							dewey_call_number: results.dewey_call_number || harvardResult.dewey_call_number,
+							lcc_call_number: results.lcc_call_number || harvardResult.lcc_call_number,
+							table_of_contents: harvardResult.table_of_contents
+						};
+						searchLog = [...searchLog, '  ✓ Added data from Harvard'];
+					}
 				} else {
 					searchLog = [...searchLog, '  ✗ Not found on Library of Congress'];
 
-					// Last resort: Try OCLC alone
-					searchLog = [...searchLog, '3/4 Trying OCLC WorldCat...'];
+					// Try OCLC
+					searchLog = [...searchLog, '3/7 Trying OCLC WorldCat...'];
 					const oclcResult = await tryOCLCClassify(cleanISBN);
 
 					if (oclcResult?.title) {
 						results = oclcResult;
 						searchLog = [...searchLog, '  ✓ Found on OCLC WorldCat'];
+
+						// Still try new sources
+						searchLog = [...searchLog, '  → Checking digital sources...'];
+						const hathiResult = await tryHathiTrust(cleanISBN);
+						if (hathiResult?.digital_links) {
+							results.digital_links = hathiResult.digital_links;
+						}
 					} else {
 						searchLog = [...searchLog, '  ✗ Not found on OCLC WorldCat'];
-						error = 'No results found for this ISBN on any source (OpenLibrary, Library of Congress, OCLC)';
+
+						// Last resort: Try HathiTrust alone
+						searchLog = [...searchLog, '4/7 Trying HathiTrust...'];
+						const hathiResult = await tryHathiTrust(cleanISBN);
+						if (hathiResult?.title) {
+							results = hathiResult;
+							searchLog = [...searchLog, '  ✓ Found on HathiTrust'];
+						} else {
+							// Final attempt: Harvard
+							searchLog = [...searchLog, '5/7 Trying Harvard LibraryCloud...'];
+							const harvardResult = await tryHarvard(cleanISBN);
+							if (harvardResult?.title) {
+								results = harvardResult;
+								searchLog = [...searchLog, '  ✓ Found on Harvard'];
+							} else {
+								searchLog = [...searchLog, '  ✗ Not found on Harvard'];
+								error = 'No results found for this ISBN on any source (OpenLibrary, LoC, OCLC, HathiTrust, Harvard, Google Books)';
+							}
+						}
 					}
 				}
 			}
@@ -272,13 +517,16 @@
 					a: results.number_of_pages ? `${results.number_of_pages} pages` : null
 				},
 				subject_topical: results.subjects?.slice(0, 5).map((s: string) => ({ a: s })) || [],
+				summary: results.summary || null,
+				table_of_contents: results.table_of_contents || null,
 				marc_json: {
 					source: results.source,
 					imported_data: results,
 					dewey_call_number: results.dewey_call_number,
 					lcc_call_number: results.lcc_call_number,
 					oclc_number: results.oclc_number,
-					viaf_id: results.viaf_id
+					viaf_id: results.viaf_id,
+					digital_links: results.digital_links || []
 				}
 			};
 
@@ -313,7 +561,7 @@
 
 <div class="isbn-lookup">
 	<h1>ISBN Lookup</h1>
-	<p class="subtitle">Search for books by ISBN. Tries OpenLibrary first (fast), then supplements with Library of Congress (MARC data, subject headings) and OCLC WorldCat (call numbers).</p>
+	<p class="subtitle">Search for books by ISBN. Queries OpenLibrary, Library of Congress, OCLC WorldCat, HathiTrust (digital access), Harvard LibraryCloud (academic metadata), and Google Books (previews) to provide the most comprehensive bibliographic data.</p>
 
 	<div class="lookup-form">
 		<div class="form-row">
@@ -399,6 +647,34 @@
 									<li>{subject}</li>
 								{/each}
 							</ul>
+						{/if}
+
+						{#if results.table_of_contents}
+							<div class="toc-section">
+								<p><strong>📖 Table of Contents:</strong></p>
+								<div class="toc-content">{results.table_of_contents}</div>
+							</div>
+						{/if}
+
+						{#if results.digital_links && results.digital_links.length > 0}
+							<div class="digital-links">
+								<p class="digital-links-title"><strong>🌐 Digital Access:</strong></p>
+								{#each results.digital_links as link}
+									<div class="digital-link">
+										<a href={link.url} target="_blank" rel="noopener noreferrer">
+											<span class="provider">{link.provider}</span>
+											<span class="access-badge" class:public={link.access === 'public'} class:preview={link.access === 'preview'}>
+												{link.access === 'public' ? '🔓 Full Access' : 
+												 link.access === 'preview' ? '👁️ Preview' : 
+												 '🔒 Restricted'}
+											</span>
+										</a>
+										{#if link.type && link.type !== link.access}
+											<span class="view-type">{link.type}</span>
+										{/if}
+									</div>
+								{/each}
+							</div>
 						{/if}
 
 						<p class="source-info">
@@ -601,6 +877,100 @@
 
 	.subjects li {
 		margin: 0.25rem 0;
+	}
+
+	.toc-section {
+		background: #f0f4ff;
+		border-left: 4px solid #667eea;
+		padding: 1rem;
+		margin: 1rem 0;
+		border-radius: 4px;
+	}
+
+	.toc-content {
+		margin-top: 0.5rem;
+		white-space: pre-wrap;
+		font-size: 0.9rem;
+		line-height: 1.6;
+		color: #444;
+		max-height: 300px;
+		overflow-y: auto;
+	}
+
+	.digital-links {
+		background: #e3f2fd;
+		border-left: 4px solid #2196f3;
+		padding: 1rem;
+		margin: 1rem 0;
+		border-radius: 4px;
+	}
+
+	.digital-links-title {
+		margin-top: 0 !important;
+		font-weight: 600;
+		color: #1565c0;
+	}
+
+	.digital-link {
+		background: white;
+		border-radius: 4px;
+		padding: 0.75rem;
+		margin: 0.5rem 0;
+		border: 1px solid #bbdefb;
+		transition: all 0.2s;
+	}
+
+	.digital-link:hover {
+		box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+		border-color: #2196f3;
+	}
+
+	.digital-link a {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		text-decoration: none;
+		color: #1565c0;
+		font-weight: 500;
+	}
+
+	.digital-link a:hover {
+		text-decoration: underline;
+	}
+
+	.digital-link .provider {
+		font-weight: 600;
+		color: #0d47a1;
+	}
+
+	.access-badge {
+		display: inline-block;
+		padding: 0.25rem 0.5rem;
+		border-radius: 3px;
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+
+	.access-badge.public {
+		background: #4caf50;
+		color: white;
+	}
+
+	.access-badge.preview {
+		background: #ff9800;
+		color: white;
+	}
+
+	.access-badge:not(.public):not(.preview) {
+		background: #9e9e9e;
+		color: white;
+	}
+
+	.view-type {
+		font-size: 0.8rem;
+		color: #666;
+		font-style: italic;
+		margin-left: 0.5rem;
 	}
 
 	.source-info {
