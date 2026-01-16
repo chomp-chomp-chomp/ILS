@@ -106,12 +106,13 @@
 
 				const { data: coverData, error: coverError } = await supabase
 					.from('covers')
-					.select('original_url, thumbnail_medium_url, thumbnail_large_url, source')
+					.select('original_url, thumbnail_medium_url, thumbnail_large_url, source, imagekit_file_id')
 					.eq('marc_record_id', recordId)
 					.eq('is_active', true)
 					.single();
 
-				if (coverData && !coverError) {
+				if (coverData && !coverError && coverData.original_url) {
+					// Use the URLs from database (they are already imagekit URLs if uploaded there)
 					coverUrl = coverData.original_url;
 					thumbnailUrl = coverData.thumbnail_medium_url || coverData.original_url;
 					loading = false;
@@ -119,9 +120,17 @@
 				}
 			}
 
+			// Only fallback to API fetch if we have ISBN and no database record
+			// This prevents unnecessary API calls when covers are already cached
+			if (!isbn) {
+				error = true;
+				loading = false;
+				return;
+			}
+
 			// Fallback to API fetch (tries OpenLibrary, Google, etc.)
 			const params = new URLSearchParams();
-			if (isbn) params.set('isbn', isbn);
+			params.set('isbn', isbn);
 			if (title) params.set('title', title);
 			if (author) params.set('author', author);
 
