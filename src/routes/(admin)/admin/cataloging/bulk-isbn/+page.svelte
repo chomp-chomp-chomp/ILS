@@ -463,6 +463,10 @@
 		try {
 			for (const result of selectedResults) {
 				try {
+					const formattedContentsNotes = [
+						result.data.contents_note,
+						result.data.table_of_contents
+					].filter((note: string | undefined) => note && note.trim());
 					const marcRecord = {
 						isbn: result.data.isbn || result.isbn,
 						issn: result.data.issn || null,
@@ -485,11 +489,10 @@
 						lc_call_number: result.data.lc_call_number || null,
 						dewey_call_number: result.data.dewey_call_number || null,
 						language_note: result.data.language_note || null,
-						formatted_contents_note: result.data.contents_note ? [result.data.contents_note] : [],
+						formatted_contents_note: formattedContentsNotes,
 						subject_topical: result.data.subjects?.slice(0, 10).map((s: string) => ({ a: s })) || [],
 						genre_form_term: result.data.genre_forms?.map((g: string) => ({ a: g })) || [],
 						summary: result.data.summary || null,
-						table_of_contents: result.data.table_of_contents || null,
 						marc_json: {
 							source: result.source,
 							imported_data: result.data,

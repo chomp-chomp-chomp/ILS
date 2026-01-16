@@ -60,9 +60,8 @@
 
 	async function tryLibraryOfCongress(cleanISBN: string) {
 		try {
-			// LoC SRU API - returns MARCXML
-			const query = encodeURIComponent(`bath.isbn=${cleanISBN}`);
-			const url = `https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=${query}&maximumRecords=1&recordSchema=marcxml`;
+			// LoC SRU API (proxied) - returns MARCXML
+			const url = `/api/isbn/loc?isbn=${cleanISBN}`;
 
 			// Add timeout with AbortController
 			const controller = new AbortController();
@@ -70,6 +69,10 @@
 
 			const response = await fetch(url, { signal: controller.signal });
 			clearTimeout(timeoutId);
+
+			if (!response.ok) {
+				throw new Error(`LoC proxy failed with status ${response.status}`);
+			}
 			
 			const xmlText = await response.text();
 
@@ -91,9 +94,11 @@
 	 * Free API - no authentication required
 	 */
 	async function tryOCLCClassify(cleanISBN: string) {
-		const url = `https://classify.oclc.org/classify2/Classify?isbn=${cleanISBN}&summary=true`;
-
+		const url = `/api/isbn/oclc?isbn=${cleanISBN}`;
 		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`OCLC proxy failed with status ${response.status}`);
+		}
 		const xmlText = await response.text();
 
 		const parser = new DOMParser();
@@ -518,7 +523,7 @@
 				},
 				subject_topical: results.subjects?.slice(0, 5).map((s: string) => ({ a: s })) || [],
 				summary: results.summary || null,
-				table_of_contents: results.table_of_contents || null,
+				formatted_contents_note: results.table_of_contents ? [results.table_of_contents] : [],
 				marc_json: {
 					source: results.source,
 					imported_data: results,
