@@ -56,8 +56,13 @@ GET https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg
 
 **API Endpoints Used:**
 ```
-GET https://lx2.loc.gov:210/lcdb?operation=searchRetrieve&version=1.1&query=bath.isbn={isbn}&maximumRecords=1&recordSchema=marcxml
+GET https://lx2.loc.gov:210/LCDB?operation=searchRetrieve&version=1.1&query=bath.isbn={isbn}&maximumRecords=1&recordSchema=marcxml
+GET https://www.loc.gov/sru/?operation=searchRetrieve&version=1.1&query=bath.isbn={isbn}&maximumRecords=1&recordSchema=marcxml
 ```
+
+**Configurable Options:**
+- `LOC_SRU_BASE_URL` (primary SRU endpoint, defaults to `https://lx2.loc.gov:210/LCDB`)
+- `LOC_SRU_FALLBACK_BASE_URL` (fallback SRU endpoint, defaults to `https://www.loc.gov/sru/`)
 
 **Rate Limits**: None specified, reasonable use expected  
 **Reliability**: Very high (government service)  
@@ -97,6 +102,9 @@ GET https://classify.oclc.org/classify2/Classify?isbn={isbn}&summary=true
 **Rate Limits**: Fair use (no published limits)  
 **Reliability**: Very high  
 **Coverage**: Excellent (largest bibliographic database in the world)
+
+**Configurable Options:**
+- `OCLC_CLASSIFY_WSKEY` (optional OCLC Classify WSKey if your tenant requires it)
 
 ---
 
