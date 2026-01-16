@@ -326,6 +326,20 @@
 						</div>
 					{/if}
 
+					{#if record.lc_call_number?.a}
+						<div class="field">
+							<span class="label">LC Call Number:</span>
+							<span class="value">{record.lc_call_number.a}{#if record.lc_call_number.b} {record.lc_call_number.b}{/if}</span>
+						</div>
+					{/if}
+
+					{#if record.dewey_call_number?.a}
+						<div class="field">
+							<span class="label">Dewey Decimal:</span>
+							<span class="value">{record.dewey_call_number.a}</span>
+						</div>
+					{/if}
+
 					{#if record.series_statement?.a}
 						<div class="field">
 							<span class="label">Series:</span>
