@@ -316,9 +316,8 @@
 		
 		const data = await response.json();
 		
-		if (!data.items?.mods || data.items.mods.length === 0) return null;
-		
-		const mods = data.items.mods[0];
+		const mods = Array.isArray(data.items?.mods) ? data.items.mods[0] : data.items?.mods;
+		if (!mods) return null;
 		
 		// Extract data from MODS format
 		const titleInfo = Array.isArray(mods.titleInfo) ? mods.titleInfo[0] : mods.titleInfo;

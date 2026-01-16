@@ -348,7 +348,8 @@ export async function lookupHarvard(
 		//   }
 		// }
 		
-		if (!data.items?.mods || data.items.mods.length === 0) {
+		const mods = Array.isArray(data.items?.mods) ? data.items.mods[0] : data.items?.mods;
+		if (!mods) {
 			return {
 				success: false,
 				error: 'No results found in Harvard LibraryCloud',
@@ -356,8 +357,6 @@ export async function lookupHarvard(
 				response_time_ms: Date.now() - startTime
 			};
 		}
-		
-		const mods = data.items.mods[0];
 		
 		// Extract data from MODS format
 		const titleInfo = Array.isArray(mods.titleInfo) ? mods.titleInfo[0] : mods.titleInfo;
