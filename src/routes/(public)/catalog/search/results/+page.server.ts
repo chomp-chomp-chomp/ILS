@@ -305,96 +305,101 @@ async function performSearch(
 			{ search_query: params.q }
 		);
 
-		if (searchError) {
+		// If RPC function doesn't exist (migration not applied), fall back to standard search
+		if (searchError && searchError.message?.includes('function search_marc_records_basic')) {
+			console.warn('RPC function search_marc_records_basic not found, falling back to standard search. Please apply migration 030.');
+			// Fall through to standard query builder below
+		} else if (searchError) {
 			console.error('Basic search RPC error:', searchError);
 			throw searchError;
+		} else {
+			// RPC function succeeded - process results
+			let results = searchResults || [];
+
+			// Fetch items for each record (RPC doesn't include items)
+			const recordIds = results.map((r: any) => r.id);
+			if (recordIds.length > 0) {
+				const { data: itemsData } = await supabase
+					.from('items')
+					.select('*')
+					.in('marc_record_id', recordIds);
+
+				// Attach items to records
+				results = results.map((record: any) => ({
+					...record,
+					items: itemsData?.filter((item) => item.marc_record_id === record.id) || []
+				}));
+			}
+
+			// Apply additional filters
+			// Material type filter
+			const materialTypes = [...(params.material_types || [])];
+			if (params.type && !materialTypes.includes(params.type)) {
+				materialTypes.push(params.type);
+			}
+			if (materialTypes.length > 0) {
+				results = results.filter((record: any) => materialTypes.includes(record.material_type));
+			}
+
+			// Language filter
+			if (params.languages && params.languages.length > 0) {
+				results = results.filter((record: any) => params.languages?.includes(record.language_code));
+			}
+
+			// Year range filter
+			if (params.year_from || params.year_to) {
+				results = results.filter((record: any) => {
+					const year = record.publication_info?.c;
+					if (!year) return false;
+					const yearNum = parseInt(year);
+					if (params.year_from && yearNum < parseInt(params.year_from)) return false;
+					if (params.year_to && yearNum > parseInt(params.year_to)) return false;
+					return true;
+				});
+			}
+
+			// Apply availability filter (post-process)
+			if (params.availability && params.availability.length > 0) {
+				results = results.filter((record: any) => {
+					const items = record.items || [];
+					if (params.availability?.includes('available')) {
+						return items.some((item: any) => item.status === 'available');
+					}
+					if (params.availability?.includes('checked_out')) {
+						return items.some((item: any) => item.status === 'checked_out');
+					}
+					if (params.availability?.includes('unavailable')) {
+						return items.every((item: any) => item.status !== 'available');
+					}
+					return true;
+				});
+			}
+
+			// Apply location filter (post-process)
+			if (params.locations && params.locations.length > 0) {
+				results = results.filter((record: any) => {
+					const items = record.items || [];
+					return items.some((item: any) => params.locations?.includes(item.location));
+				});
+			}
+
+			// Apply sorting (RPC already sorts by relevance, but allow other sorts)
+			results = applySorting(results, params);
+
+			// Apply pagination
+			const page = params.page || 1;
+			const perPage = params.per_page || 20;
+			const total = results.length;
+			const from = (page - 1) * perPage;
+			const to = from + perPage;
+
+			results = results.slice(from, to);
+
+			return {
+				results,
+				total
+			};
 		}
-
-		let results = searchResults || [];
-
-		// Fetch items for each record (RPC doesn't include items)
-		const recordIds = results.map((r: any) => r.id);
-		if (recordIds.length > 0) {
-			const { data: itemsData } = await supabase
-				.from('items')
-				.select('*')
-				.in('marc_record_id', recordIds);
-
-			// Attach items to records
-			results = results.map((record: any) => ({
-				...record,
-				items: itemsData?.filter((item) => item.marc_record_id === record.id) || []
-			}));
-		}
-
-		// Apply additional filters
-		// Material type filter
-		const materialTypes = [...(params.material_types || [])];
-		if (params.type && !materialTypes.includes(params.type)) {
-			materialTypes.push(params.type);
-		}
-		if (materialTypes.length > 0) {
-			results = results.filter((record: any) => materialTypes.includes(record.material_type));
-		}
-
-		// Language filter
-		if (params.languages && params.languages.length > 0) {
-			results = results.filter((record: any) => params.languages?.includes(record.language_code));
-		}
-
-		// Year range filter
-		if (params.year_from || params.year_to) {
-			results = results.filter((record: any) => {
-				const year = record.publication_info?.c;
-				if (!year) return false;
-				const yearNum = parseInt(year);
-				if (params.year_from && yearNum < parseInt(params.year_from)) return false;
-				if (params.year_to && yearNum > parseInt(params.year_to)) return false;
-				return true;
-			});
-		}
-
-		// Apply availability filter (post-process)
-		if (params.availability && params.availability.length > 0) {
-			results = results.filter((record: any) => {
-				const items = record.items || [];
-				if (params.availability?.includes('available')) {
-					return items.some((item: any) => item.status === 'available');
-				}
-				if (params.availability?.includes('checked_out')) {
-					return items.some((item: any) => item.status === 'checked_out');
-				}
-				if (params.availability?.includes('unavailable')) {
-					return items.every((item: any) => item.status !== 'available');
-				}
-				return true;
-			});
-		}
-
-		// Apply location filter (post-process)
-		if (params.locations && params.locations.length > 0) {
-			results = results.filter((record: any) => {
-				const items = record.items || [];
-				return items.some((item: any) => params.locations?.includes(item.location));
-			});
-		}
-
-		// Apply sorting (RPC already sorts by relevance, but allow other sorts)
-		results = applySorting(results, params);
-
-		// Apply pagination
-		const page = params.page || 1;
-		const perPage = params.per_page || 20;
-		const total = results.length;
-		const from = (page - 1) * perPage;
-		const to = from + perPage;
-
-		results = results.slice(from, to);
-
-		return {
-			results,
-			total
-		};
 	}
 
 	// If no keyword search, build standard query
@@ -421,6 +426,19 @@ async function performSearch(
 		// IMPORTANT: Only show active, public records in the OPAC
 		.eq('status', 'active')
 		.eq('visibility', 'public');
+
+	// Basic keyword search using full-text search with relevance boosting
+	// This is used either when no keyword was provided, or as a fallback if RPC function doesn't exist
+	if (params.q) {
+		// Normalize query to remove diacritics (e.g., "Zizek" matches "Žižek")
+		const normalizedQuery = normalizeSearchQuery(params.q);
+
+		// Use PostgreSQL full-text search for relevance ranking
+		query = query.textSearch('search_vector', normalizedQuery, {
+			type: 'websearch',
+			config: 'english'
+		});
+	}
 
 	// Year range filter
 	if (params.year_from || params.year_to) {
