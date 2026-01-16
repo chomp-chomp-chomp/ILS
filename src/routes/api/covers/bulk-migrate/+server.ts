@@ -140,14 +140,24 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude already processed records
 			if (processedIds.length > 0) {
-				// Use proper NOT IN syntax with quoted UUIDs
-				const quotedIds = processedIds.map(id => `"${id}"`).join(',');
-				query = query.not('id', 'in', `(${quotedIds})`);
+				// Use Supabase filter syntax for NOT IN
+				query = query.filter('id', 'not.in', `(${processedIds.join(',')})`);
 			}
 
 			const { data, error } = await query.limit(batchSize);
 
-			if (error) throw error;
+			if (error) {
+				console.error('Database query error (migrate):', error);
+				return json({ 
+					error: `Database error: ${error.message}`,
+					success: false,
+					processed: 0,
+					succeeded: 0,
+					failed: 0,
+					remaining: 0,
+					results: []
+				}, { status: 500 });
+			}
 			records = data || [];
 		} else if (operation === 'fetch-missing') {
 			// Get records with ISBNs but no cover at all (not even in marc_records.cover_image_url)
@@ -160,7 +170,19 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			debug.push(`Fetch-missing: Query returned ${data?.length || 0} records with ISBNs but no covers, error: ${error?.message || 'none'}`);
 
-			if (error) throw error;
+			if (error) {
+				console.error('Database query error (fetch-missing):', error);
+				return json({ 
+					error: `Database error: ${error.message}`,
+					success: false,
+					processed: 0,
+					succeeded: 0,
+					failed: 0,
+					remaining: 0,
+					results: [],
+					debug
+				}, { status: 500 });
+			}
 			records = data || [];
 		} else if (operation === 'refetch') {
 			// First check total count of records with ISBNs
@@ -180,16 +202,27 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude manually uploaded covers
 			if (processedIds.length > 0) {
-				// Use proper NOT IN syntax with quoted UUIDs
-				const quotedIds = processedIds.map(id => `"${id}"`).join(',');
-				query = query.not('id', 'in', `(${quotedIds})`);
+				// Use Supabase filter syntax for NOT IN
+				query = query.filter('id', 'not.in', `(${processedIds.join(',')})`);
 			}
 
 			const { data, error } = await query.limit(batchSize);
 
 			debug.push(`Re-fetch: Query returned ${data?.length || 0} records, error: ${error?.message || 'none'}`);
 
-			if (error) throw error;
+			if (error) {
+				console.error('Database query error (refetch):', error);
+				return json({ 
+					error: `Database error: ${error.message}`,
+					success: false,
+					processed: 0,
+					succeeded: 0,
+					failed: 0,
+					remaining: 0,
+					results: [],
+					debug
+				}, { status: 500 });
+			}
 			records = data || [];
 		}
 
@@ -380,9 +413,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('cover_image_url', 'is', null);
 
 			if (updatedProcessedIds.length > 0) {
-				// Use proper NOT IN syntax with quoted UUIDs
-				const quotedIds = updatedProcessedIds.map(id => `"${id}"`).join(',');
-				countQuery = countQuery.not('id', 'in', `(${quotedIds})`);
+				// Use Supabase filter syntax for NOT IN
+				countQuery = countQuery.filter('id', 'not.in', `(${updatedProcessedIds.join(',')})`);
 			}
 
 			const { count } = await countQuery;
@@ -404,9 +436,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('isbn', 'is', null);
 
 			if (uploadedIds.length > 0) {
-				// Use proper NOT IN syntax with quoted UUIDs
-				const quotedIds = uploadedIds.map(id => `"${id}"`).join(',');
-				countQuery = countQuery.not('id', 'in', `(${quotedIds})`);
+				// Use Supabase filter syntax for NOT IN
+				countQuery = countQuery.filter('id', 'not.in', `(${uploadedIds.join(',')})`);
 			}
 
 			const { count } = await countQuery;
