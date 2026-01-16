@@ -41,17 +41,25 @@ export const GET: RequestHandler = async ({ url }) => {
 
 	const baseUrl = env.OCLC_CLASSIFY_BASE_URL || 'https://classify.oclc.org/classify2/Classify';
 	const userAgent = env.BIBLIOGRAPHIC_PROXY_USER_AGENT || 'ILS ISBN Lookup';
-	const oclcUrl = `${baseUrl}?isbn=${cleanISBN}&summary=true`;
+	const wskey = env.OCLC_CLASSIFY_WSKEY?.trim();
+	const oclcUrl = new URL(baseUrl);
+	oclcUrl.searchParams.set('isbn', cleanISBN);
+	oclcUrl.searchParams.set('summary', 'true');
+	if (wskey) {
+		oclcUrl.searchParams.set('wskey', wskey);
+	}
 
 	try {
-		const response = await fetchWithRetry(oclcUrl, 8000, {
+		const response = await fetchWithRetry(oclcUrl.toString(), 8000, {
 			headers: {
 				'User-Agent': userAgent,
 				'Accept': 'text/xml'
 			}
 		});
 		if (!response.ok) {
-			throw error(502, `OCLC API returned ${response.status}`);
+			const errorBody = await response.text().catch(() => '');
+			const details = errorBody ? `: ${errorBody.slice(0, 200)}` : '';
+			throw error(502, `OCLC API returned ${response.status}${details}`);
 		}
 		const xmlText = await response.text();
 		return new Response(xmlText, {
