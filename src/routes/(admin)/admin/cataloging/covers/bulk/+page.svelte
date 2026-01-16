@@ -78,25 +78,39 @@
 
 	async function loadStats() {
 		try {
-			// Count records with cover_image_url (need migration)
-			const { count: migrateCount } = await supabase
+			// Get IDs of records that already have ImageKit covers
+			const { data: existingCovers } = await supabase
+				.from('covers')
+				.select('marc_record_id, source')
+				.eq('is_active', true)
+				.not('imagekit_file_id', 'is', null);
+
+			const coversWithImageKit = existingCovers?.map(c => c.marc_record_id) || [];
+			const manuallyUploadedIds = existingCovers?.filter(c => c.source === 'upload').map(c => c.marc_record_id) || [];
+
+			// Count records with cover_image_url but NO ImageKit cover yet (need migration)
+			const { data: recordsWithCovers } = await supabase
 				.from('marc_records')
-				.select('id', { count: 'exact', head: true })
+				.select('id')
 				.not('cover_image_url', 'is', null);
 
-			migrateRemaining = migrateCount || 0;
-			migrateTotal = migrateCount || 0;
+			// Filter out records that already have ImageKit covers
+			const needsMigration = recordsWithCovers?.filter(r => !coversWithImageKit.includes(r.id)) || [];
+			migrateRemaining = needsMigration.length;
+			migrateTotal = needsMigration.length;
 
-			// Count records with ISBNs (can be re-fetched)
-			const { count: refetchCount } = await supabase
+			// Count records with ISBNs (can be re-fetched) excluding manually uploaded
+			const { data: recordsWithISBN } = await supabase
 				.from('marc_records')
-				.select('id', { count: 'exact', head: true })
+				.select('id')
 				.not('isbn', 'is', null);
 
-			refetchRemaining = refetchCount || 0;
-			refetchTotal = refetchCount || 0;
+			// Filter out manually uploaded covers (we don't want to overwrite those)
+			const canRefetch = recordsWithISBN?.filter(r => !manuallyUploadedIds.includes(r.id)) || [];
+			refetchRemaining = canRefetch.length;
+			refetchTotal = canRefetch.length;
 
-			// Count records with ISBNs but no covers (fetch missing)
+			// Count records with ISBNs but no covers at all (fetch missing)
 			const { count: fetchMissingCount } = await supabase
 				.from('marc_records')
 				.select('id', { count: 'exact', head: true })
