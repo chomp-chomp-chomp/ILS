@@ -279,6 +279,11 @@
 							if (!record.added_entry_corporate_name) record.added_entry_corporate_name = [];
 							record.added_entry_corporate_name.push(subfields);
 						}
+						// Holdings information (852) - store for later creation
+						if (tag === '852') {
+							if (!record._holdings) record._holdings = [];
+							record._holdings.push(subfields);
+						}
 					}
 				});
 
@@ -440,6 +445,11 @@
 						if (!record.added_entry_corporate_name) record.added_entry_corporate_name = [];
 						record.added_entry_corporate_name.push(subfields);
 					}
+					// Holdings information (852) - store for later creation
+					if (tag === '852') {
+						if (!record._holdings) record._holdings = [];
+						record._holdings.push(subfields);
+					}
 				});
 
 				// Set material type based on leader or default to book
@@ -525,7 +535,7 @@
 
 				try {
 					// Remove temporary fields
-					const { _index, isDuplicate, duplicateInfo, ...cleanRecord } = record;
+					const { _index, isDuplicate, duplicateInfo, _holdings, ...cleanRecord } = record;
 
 					// Check if record already exists (by ISBN or control_number)
 					let existingRecord = null;
@@ -549,6 +559,8 @@
 						existingRecord = data;
 					}
 
+					let recordId = null;
+
 					if (existingRecord) {
 						// UPDATE existing record (overlay)
 						const { error } = await supabase
@@ -560,19 +572,52 @@
 							.eq('id', existingRecord.id);
 
 						if (error) throw error;
+						recordId = existingRecord.id;
 						updatedCount++;
 					} else {
 						// INSERT new record
-						const { error } = await supabase
+						const { data, error } = await supabase
 							.from('marc_records')
 							.insert([{
 								...cleanRecord,
 								created_at: new Date().toISOString(),
 								updated_at: new Date().toISOString()
-							}]);
+							}])
+							.select('id')
+							.single();
 
 						if (error) throw error;
+						recordId = data.id;
 						insertedCount++;
+					}
+
+					// Create holdings if 852 fields were present
+					if (_holdings && _holdings.length > 0 && recordId) {
+						for (const holdingData of _holdings) {
+							const holdingRecord: any = {
+								marc_record_id: recordId,
+								call_number: holdingData.h || holdingData.i || null,
+								location: holdingData.a || 'Main Library',
+								sublocation: holdingData.b || null,
+								status: 'available',
+								barcode: holdingData.p || null, // subfield p is item barcode
+								copy_number: holdingData.t || null, // subfield t is copy number
+								created_at: new Date().toISOString(),
+								updated_at: new Date().toISOString()
+							};
+
+							// Only create if we have at least a call number or location
+							if (holdingRecord.call_number || holdingRecord.location !== 'Main Library') {
+								const { error: holdingError } = await supabase
+									.from('items')
+									.insert([holdingRecord]);
+
+								if (holdingError) {
+									console.error('Error creating holding:', holdingError);
+									// Don't fail the whole import if holding creation fails
+								}
+							}
+						}
 					}
 				} catch (err: any) {
 					console.error(`Error importing record ${index}:`, err);
