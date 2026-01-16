@@ -140,8 +140,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude already processed records
 			if (processedIds.length > 0) {
-				// Use Supabase filter syntax for NOT IN
-				query = query.filter('id', 'not.in', `(${processedIds.join(',')})`);
+				// Use Supabase filter syntax for NOT IN - pass array directly
+				query = query.filter('id', 'not.in', processedIds);
 			}
 
 			const { data, error } = await query.limit(batchSize);
@@ -202,8 +202,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 
 			// Exclude manually uploaded covers
 			if (processedIds.length > 0) {
-				// Use Supabase filter syntax for NOT IN
-				query = query.filter('id', 'not.in', `(${processedIds.join(',')})`);
+				// Use Supabase filter syntax for NOT IN - pass array directly
+				query = query.filter('id', 'not.in', processedIds);
 			}
 
 			const { data, error } = await query.limit(batchSize);
@@ -413,8 +413,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('cover_image_url', 'is', null);
 
 			if (updatedProcessedIds.length > 0) {
-				// Use Supabase filter syntax for NOT IN
-				countQuery = countQuery.filter('id', 'not.in', `(${updatedProcessedIds.join(',')})`);
+				// Use Supabase filter syntax for NOT IN - pass array directly
+				countQuery = countQuery.filter('id', 'not.in', updatedProcessedIds);
 			}
 
 			const { count } = await countQuery;
@@ -436,8 +436,8 @@ export const POST: RequestHandler = async ({ request, locals: { supabase, safeGe
 				.not('isbn', 'is', null);
 
 			if (uploadedIds.length > 0) {
-				// Use Supabase filter syntax for NOT IN
-				countQuery = countQuery.filter('id', 'not.in', `(${uploadedIds.join(',')})`);
+				// Use Supabase filter syntax for NOT IN - pass array directly
+				countQuery = countQuery.filter('id', 'not.in', uploadedIds);
 			}
 
 			const { count } = await countQuery;
