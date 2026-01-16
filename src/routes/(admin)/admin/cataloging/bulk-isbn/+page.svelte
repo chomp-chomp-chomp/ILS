@@ -136,6 +136,156 @@
 		}
 	}
 
+	/**
+	 * Try HathiTrust Bibliographic API for digital links
+	 */
+	async function tryHathiTrust(cleanISBN: string) {
+		try {
+			const url = `https://catalog.hathitrust.org/api/volumes/brief/isbn/${cleanISBN}.json`;
+			
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+			
+			const response = await fetch(url, { signal: controller.signal });
+			clearTimeout(timeoutId);
+			
+			if (!response.ok) return null;
+			
+			const data = await response.json();
+			
+			if (!data.items || data.items.length === 0) return null;
+			
+			// Extract record info
+			const recordKey = Object.keys(data.records || {})[0];
+			const record = data.records?.[recordKey];
+			
+			if (!record) return null;
+			
+			// Build digital links
+			const digitalLinks = data.items.map((item: any) => ({
+				url: item.itemURL,
+				provider: 'HathiTrust',
+				access: item.rights === 'pd' ? 'public' : 'restricted',
+				type: item.usRightsString || item.rights,
+				format: 'online_reader'
+			}));
+			
+			return {
+				title: record.titles?.[0] || '',
+				digital_links: digitalLinks,
+				oclc_number: record.oclcs?.[0],
+				lccn: record.lccns?.[0],
+				source: 'HathiTrust'
+			};
+		} catch (error) {
+			console.warn(`HathiTrust API error for ${cleanISBN}:`, error);
+			return null;
+		}
+	}
+
+	/**
+	 * Try Harvard LibraryCloud for academic metadata
+	 */
+	async function tryHarvard(cleanISBN: string) {
+		try {
+			const url = `https://api.lib.harvard.edu/v2/items.json?identifier=${cleanISBN}&limit=1`;
+			
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000);
+			
+			const response = await fetch(url, { signal: controller.signal });
+			clearTimeout(timeoutId);
+			
+			if (!response.ok) return null;
+			
+			const data = await response.json();
+			
+			if (!data.items?.mods || data.items.mods.length === 0) return null;
+			
+			const mods = data.items.mods[0];
+			
+			// Extract data from MODS format
+			const titleInfo = Array.isArray(mods.titleInfo) ? mods.titleInfo[0] : mods.titleInfo;
+			const names = Array.isArray(mods.name) ? mods.name : (mods.name ? [mods.name] : []);
+			const originInfo = Array.isArray(mods.originInfo) ? mods.originInfo[0] : mods.originInfo;
+			const subjectArray = Array.isArray(mods.subject) ? mods.subject : (mods.subject ? [mods.subject] : []);
+			
+			// Extract call numbers
+			const classArray = Array.isArray(mods.classification) ? mods.classification : (mods.classification ? [mods.classification] : []);
+			let dewey = '';
+			let lcc = '';
+			
+			classArray.forEach((cls: any) => {
+				const text = cls['#text'] || cls;
+				const authority = cls['@authority'];
+				
+				if (authority === 'ddc' || /^\d{3}/.test(text)) {
+					dewey = text;
+				} else if (authority === 'lcc' || /^[A-Z]/.test(text)) {
+					lcc = text;
+				}
+			});
+			
+			return {
+				title: titleInfo?.title || '',
+				subtitle: titleInfo?.subTitle || '',
+				authors: names.map((n: any) => n.namePart).filter((n: string) => n),
+				publishers: originInfo?.publisher ? [originInfo.publisher] : [],
+				publish_date: originInfo?.dateIssued || '',
+				subjects: subjectArray.map((s: any) => s.topic).filter((t: string) => t),
+				dewey_call_number: dewey,
+				lcc_call_number: lcc,
+				table_of_contents: mods.tableOfContents || '',
+				summary: mods.abstract || '',
+				source: 'Harvard LibraryCloud'
+			};
+		} catch (error) {
+			console.warn(`Harvard API error for ${cleanISBN}:`, error);
+			return null;
+		}
+	}
+
+	/**
+	 * Try Google Books for digital links and previews
+	 */
+	async function tryGoogleBooksEnhanced(cleanISBN: string) {
+		try {
+			const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanISBN}`;
+			
+			const response = await fetch(url);
+			if (!response.ok) return null;
+			
+			const data = await response.json();
+			
+			if (!data.items || data.items.length === 0) return null;
+			
+			const book = data.items[0];
+			const volumeInfo = book.volumeInfo;
+			const accessInfo = book.accessInfo;
+			
+			// Build digital links
+			const digitalLinks = [];
+			if (accessInfo?.viewability && accessInfo.viewability !== 'NO_PAGES') {
+				digitalLinks.push({
+					url: volumeInfo.previewLink || volumeInfo.infoLink,
+					provider: 'Google Books',
+					type: accessInfo.viewability,
+					access: accessInfo.viewability === 'ALL_PAGES' ? 'public' : 'preview',
+					format: 'online_reader'
+				});
+			}
+			
+			return {
+				digital_links: digitalLinks,
+				cover: volumeInfo.imageLinks?.thumbnail,
+				source: 'Google Books'
+			};
+		} catch (error) {
+			console.warn(`Google Books API error for ${cleanISBN}:`, error);
+			return null;
+		}
+	}
+
 	async function processBulkISBNs() {
 		processing = true;
 		showResults = true;
@@ -161,41 +311,104 @@
 			}];
 
 			try {
-				// Strategy: Try OpenLibrary first for speed, then supplement with LoC for complete MARC data
+				// Strategy: Try OpenLibrary first for speed, then supplement with all other sources
 				let bookData = await tryOpenLibrary(isbn);
-				let source = 'OpenLibrary';
+				let sources = [];
 				
 				if (bookData) {
-					// OpenLibrary found it - now try to supplement with LoC data
-					// LoC provides better call numbers, subject headings, and MARC fields
-					const locData = await tryLibraryOfCongress(isbn);
+					sources.push('OpenLibrary');
 					
+					// Supplement with LoC data
+					const locData = await tryLibraryOfCongress(isbn);
 					if (locData) {
-						// Merge: Keep OpenLibrary's cover/pages but add LoC's superior MARC data
+						sources.push('Library of Congress');
 						bookData = {
 							...bookData,
-							// Prefer LoC call numbers (more authoritative)
 							lc_call_number: locData.lc_call_number || bookData.lc_call_number,
 							dewey_call_number: locData.dewey_call_number || bookData.dewey_call_number,
-							// Prefer LoC subject headings (LCSH controlled vocabulary)
 							subjects: locData.subjects.length > 0 ? locData.subjects : bookData.subjects,
-							// Add LoC-specific genre/form terms
 							genre_forms: locData.genre_forms.length > 0 ? locData.genre_forms : bookData.genre_forms,
-							// Prefer LoC variant title and edition if available
 							variant_title: locData.variant_title || bookData.variant_title,
 							edition: locData.edition || bookData.edition,
-							// Add language and contents notes from LoC
 							language_note: locData.language_note || bookData.language_note,
 							contents_note: locData.contents_note || bookData.contents_note,
-							// Keep ISSN if LoC has it
 							issn: locData.issn || bookData.issn
 						};
-						source = 'OpenLibrary + Library of Congress';
+					}
+					
+					// Add HathiTrust digital links
+					const hathiData = await tryHathiTrust(isbn);
+					if (hathiData?.digital_links && hathiData.digital_links.length > 0) {
+						sources.push('HathiTrust');
+						bookData = {
+							...bookData,
+							digital_links: hathiData.digital_links,
+							oclc_number: bookData.oclc_number || hathiData.oclc_number,
+							lccn: bookData.lccn || hathiData.lccn
+						};
+					}
+					
+					// Add Harvard academic metadata
+					const harvardData = await tryHarvard(isbn);
+					if (harvardData) {
+						sources.push('Harvard');
+						bookData = {
+							...bookData,
+							dewey_call_number: bookData.dewey_call_number || harvardData.dewey_call_number,
+							lc_call_number: bookData.lc_call_number || harvardData.lc_call_number,
+							table_of_contents: harvardData.table_of_contents || bookData.table_of_contents,
+							summary: bookData.summary || harvardData.summary,
+							subjects: [...new Set([...(bookData.subjects || []), ...(harvardData.subjects || [])])].slice(0, 10)
+						};
+					}
+					
+					// Add Google Books preview links
+					const googleData = await tryGoogleBooksEnhanced(isbn);
+					if (googleData?.digital_links && googleData.digital_links.length > 0) {
+						sources.push('Google Books');
+						bookData = {
+							...bookData,
+							digital_links: [...(bookData.digital_links || []), ...googleData.digital_links]
+						};
 					}
 				} else {
-					// OpenLibrary didn't find it - try LoC as complete fallback
+					// OpenLibrary didn't find it - try other sources
 					bookData = await tryLibraryOfCongress(isbn);
-					source = 'Library of Congress';
+					if (bookData) {
+						sources.push('Library of Congress');
+						
+						// Still try to add digital links
+						const hathiData = await tryHathiTrust(isbn);
+						if (hathiData?.digital_links) {
+							sources.push('HathiTrust');
+							bookData.digital_links = hathiData.digital_links;
+						}
+						
+						const harvardData = await tryHarvard(isbn);
+						if (harvardData) {
+							sources.push('Harvard');
+							bookData = {
+								...bookData,
+								dewey_call_number: bookData.dewey_call_number || harvardData.dewey_call_number,
+								lc_call_number: bookData.lc_call_number || harvardData.lc_call_number,
+								table_of_contents: harvardData.table_of_contents
+							};
+						}
+					} else {
+						// Try HathiTrust or Harvard as last resort
+						const hathiData = await tryHathiTrust(isbn);
+						const harvardData = await tryHarvard(isbn);
+						
+						if (harvardData) {
+							sources.push('Harvard');
+							bookData = harvardData;
+						}
+						if (hathiData?.digital_links) {
+							sources.push('HathiTrust');
+							if (!bookData) bookData = {} as any;
+							bookData.digital_links = hathiData.digital_links;
+						}
+					}
 				}
 
 				// Update the result
@@ -203,7 +416,7 @@
 					results[i] = {
 						isbn,
 						status: 'found',
-						source,
+						source: sources.join(' + '),
 						data: bookData
 					};
 				} else {
@@ -275,9 +488,12 @@
 						formatted_contents_note: result.data.contents_note ? [result.data.contents_note] : [],
 						subject_topical: result.data.subjects?.slice(0, 10).map((s: string) => ({ a: s })) || [],
 						genre_form_term: result.data.genre_forms?.map((g: string) => ({ a: g })) || [],
+						summary: result.data.summary || null,
+						table_of_contents: result.data.table_of_contents || null,
 						marc_json: {
 							source: result.source,
-							imported_data: result.data
+							imported_data: result.data,
+							digital_links: result.data.digital_links || []
 						}
 					};
 
